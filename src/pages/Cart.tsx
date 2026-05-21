@@ -16,7 +16,8 @@ const checkoutSchema = z.object({
 });
 
 export default function Cart() {
-  const items = useCart((s) => Object.values(s.items));
+  const itemsMap = useCart((s) => s.items);
+  const items = Object.values(itemsMap);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
