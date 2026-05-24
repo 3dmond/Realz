@@ -3,12 +3,7 @@ import { Menu, ShoppingBag, X } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/store/cart";
 
-const NAV = [
-  { to: "/", label: "Home" },
-  { to: "/shop", label: "Shop" },
-  { to: "/selections", label: "Selections" },
-  { to: "/admin", label: "Admin" },
-];
+const NAV: { to: string; label: string }[] = [];
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -16,9 +11,11 @@ export default function Header() {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/50 backdrop-blur-xl"
-      style={{ background: "oklch(0.135 0.025 265 / 0.7)" }}>
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-4 sm:px-8">
+    <header
+      className="sticky top-0 z-40 border-b border-border/50 backdrop-blur-xl"
+      style={{ background: "oklch(0.135 0.025 265 / 0.7)" }}
+    >
+      <div className="mx-auto flex py-6 max-w-[1600px] items-center justify-between px-4 sm:px-8">
         {/* Mobile menu button */}
         <button
           className="rounded-md p-2 text-foreground md:hidden"
@@ -29,8 +26,15 @@ export default function Header() {
         </button>
 
         {/* Logo */}
-        <Link to="/" className="realz-logo text-3xl md:text-4xl">
-          Rea<span className="lz">lz</span>
+        <Link
+          to="/"
+          onClick={() => {
+            setOpen(false);
+            window.dispatchEvent(new CustomEvent("reset-home"));
+          }}
+          className="realz-logo text-7xl sm:text-8xl md:text-9xl leading-[0.85] tracking-tight text-white drop-shadow-[0_0_15px_oklch(0.705_0.20_47/0.5)]"
+        >
+          Rea<span className="lz text-primary">lz</span>
         </Link>
 
         {/* Desktop nav */}
@@ -73,7 +77,11 @@ export default function Header() {
           />
           <div className="absolute left-0 top-0 h-full w-72 bg-white p-6 text-black shadow-2xl">
             <div className="flex items-center justify-between">
-              <Link to="/" onClick={() => setOpen(false)} className="realz-logo text-3xl text-black">
+              <Link
+                to="/"
+                onClick={() => setOpen(false)}
+                className="realz-logo text-3xl text-black"
+              >
                 Rea<span className="lz">lz</span>
               </Link>
               <button onClick={() => setOpen(false)} aria-label="Close">

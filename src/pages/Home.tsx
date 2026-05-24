@@ -1,16 +1,17 @@
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import {
-  fetchCategories,
-  fetchFeaturedProducts,
-  fetchSubcategories,
-} from "@/lib/queries";
-import SectionTitle from "@/components/ui-bits/SectionTitle";
-import ExploreMore from "@/components/ui-bits/ExploreMore";
-import CategoryCard from "@/components/ui-bits/CategoryCard";
+import { Filter, Menu } from "lucide-react";
+import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/queries";
 import ProductCard from "@/components/ui-bits/ProductCard";
+import SectionTitle from "@/components/ui-bits/SectionTitle";
+import CategoryCard from "@/components/ui-bits/CategoryCard";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
-// Stable Unsplash photos for category cards (kept separate from DB thumbnails to vary visuals).
 const CATEGORY_VISUALS: Record<string, string> = {
   anime: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&q=80",
   tech: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80",
@@ -20,130 +21,278 @@ const CATEGORY_VISUALS: Record<string, string> = {
   nature: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",
 };
 
-const SERVICE_IMAGES = [
-  "https://images.unsplash.com/photo-1503602642458-232111445657?w=1200&q=80",
-  "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=1200&q=80",
-  "https://images.unsplash.com/photo-1561089489-f13d5e730d72?w=800&q=80",
-  "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800&q=80",
-];
-
 export default function Home() {
-  const cats = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
-  const subs = useQuery({ queryKey: ["subcategories"], queryFn: fetchSubcategories });
-  const feat = useQuery({ queryKey: ["featured"], queryFn: fetchFeaturedProducts });
+  const { data: cats } = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
+  const { data: subs } = useQuery({ queryKey: ["subcategories"], queryFn: fetchSubcategories });
+  const { data: dbProducts } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
+
+  const [currentCategorySlug, setCurrentCategorySlug] = useState<string>("All");
+  const [currentSubCategorySlug, setCurrentSubCategorySlug] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+
+  useEffect(() => {
+    const handleReset = () => {
+      setCurrentCategorySlug("All");
+      setCurrentSubCategorySlug(null);
+      setCurrentPage(1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    window.addEventListener("reset-home", handleReset);
+    return () => window.removeEventListener("reset-home", handleReset);
+  }, []);
+
+  // Dynamic derivations based on Categories from the DB
+  const availableCategories = useMemo(() => {
+    if (!cats) return ["All"];
+    return ["All", ...cats.map((c) => c.slug)];
+  }, [cats]);
+
+  const availableSubCategories = useMemo(() => {
+    if (currentCategorySlug === "All" || !subs) return [];
+    if (currentCategorySlug === "AllPacks") return subs.map((s) => s.slug);
+    return subs.filter((s) => s.category_id === currentCategorySlug).map((s) => s.slug);
+  }, [currentCategorySlug, subs]);
+
+  const visiblePacks = useMemo(() => {
+    if (!dbProducts) return [];
+    return dbProducts.filter((pack) => {
+      const categoryMatch =
+        currentCategorySlug === "All" ||
+        currentCategorySlug === "AllPacks" ||
+        pack.category_id === currentCategorySlug;
+      const subCategoryMatch =
+        !currentSubCategorySlug || pack.subcategory_id === currentSubCategorySlug;
+      return categoryMatch && subCategoryMatch;
+    });
+  }, [dbProducts, currentCategorySlug, currentSubCategorySlug]);
+
+  const ITEMS_PER_PAGE = 100;
+  const totalPages = Math.ceil(visiblePacks.length / ITEMS_PER_PAGE);
+  const paginatedPacks = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return visiblePacks.slice(start, start + ITEMS_PER_PAGE);
+  }, [visiblePacks, currentPage]);
+
+  const handleCategoryClick = (catSlug: string) => {
+    setCurrentCategorySlug(catSlug);
+    setCurrentSubCategorySlug(null);
+    setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const getCategoryName = (slug: string) => {
+    if (slug === "All") return "All";
+    if (slug === "AllPacks") return "Packs";
+    return cats?.find((c) => c.slug === slug)?.name || slug;
+  };
+
+  const getSubCategoryName = (slug: string) => {
+    return subs?.find((s) => s.slug === slug)?.name || slug;
+  };
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 sm:px-8">
-      {/* HERO */}
-      <section className="relative flex flex-col items-center justify-center py-20 sm:py-32 md:py-40 text-center">
-        <p className="text-micro text-accent">DROP 01 / 2026</p>
-        <h1
-          className="mt-6 text-6xl sm:text-8xl md:text-[10rem] leading-[0.85] realz-logo"
-        >
-          Rea<span className="lz">lz</span>
-        </h1>
-        <p className="mt-6 max-w-xl text-balance text-sm sm:text-base text-muted-foreground">
-          Cinematic sticker drops — anime, tech, streetwear, minimal.
-          Bulk pricing, pay on delivery, cult quality.
-        </p>
-        <Link
-          to="/shop"
-          className="mt-10 rounded-full bg-primary px-8 py-3 text-sm font-black uppercase tracking-[0.25em] text-primary-foreground transition hover:scale-105 hover:shadow-[0_0_30px_oklch(0.705_0.20_47/0.7)]"
-        >
-          Shop the drop
-        </Link>
-      </section>
-
-      {/* CATEGORIES */}
-      <section className="py-16 sm:py-24">
-        <SectionTitle>C A T E G O R I E S</SectionTitle>
-        <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6 lg:gap-6">
-          {cats.data?.map((c) => (
-            <CategoryCard
-              key={c.id}
-              title={c.name}
-              image={CATEGORY_VISUALS[c.slug] ?? CATEGORY_VISUALS.anime}
-              to={`/shop?category=${c.slug}`}
+    <div className="w-full flex flex-col min-h-screen bg-background">
+      {currentCategorySlug === "All" && (
+        <section className="relative flex min-h-[15vh] flex-col justify-center overflow-hidden">
+          {/* Full-bleed background image with deep navy gradient fade */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
+              alt="Sticker Hero"
+              className="h-full w-full object-cover opacity-60"
             />
-          ))}
-        </div>
-        <ExploreMore />
-      </section>
+            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+          </div>
 
-      {/* PACKS (subcategories grid) */}
-      <section className="py-16 sm:py-24">
-        <SectionTitle>P A C K S</SectionTitle>
-        <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-5 md:gap-4 lg:grid-cols-6 lg:gap-6">
-          {subs.data?.slice(0, 12).map((s, i) => (
-            <CategoryCard
-              key={s.id}
-              title={s.name}
-              image={`https://images.unsplash.com/photo-15${String(20000000 + i * 4321).slice(0, 8)}?w=600&q=80`}
-              to={`/shop?subcategory=${s.slug}`}
-            />
-          ))}
-        </div>
-        <ExploreMore />
-      </section>
-
-      {/* SERVICES masonry */}
-      <section className="py-16 sm:py-24">
-        <SectionTitle>S E R V I C E S</SectionTitle>
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          <ServiceCard image={SERVICE_IMAGES[0]} label="Custom Drops" tall />
-          <div className="grid gap-4">
-            <ServiceCard image={SERVICE_IMAGES[1]} label="Brand Packs" wide />
-            <div className="grid grid-cols-2 gap-4">
-              <ServiceCard image={SERVICE_IMAGES[2]} label="Bulk Print" />
-              <ServiceCard image={SERVICE_IMAGES[3]} label="Holo Series" />
+          {/* Left-aligned content */}
+          <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8">
+            <div className="max-w-4xl py-6 sm:py-8 md:py-10">
+              <p className="text-micro text-primary">Vol. 04 — Drop 26</p>
+              <h1 className="mt-6 font-black uppercase leading-[0.85] tracking-tight text-7xl sm:text-8xl md:text-9xl text-white">
+                Stuck on <br />
+                <span className="text-primary drop-shadow-[0_0_20px_oklch(0.705_0.20_47/0.8)]">
+                  Real
+                </span>
+                ness.
+              </h1>
+              <p className="mt-8 max-w-xl text-balance text-base font-medium opacity-60 sm:text-lg text-white">
+                Cinematic sticker drops — anime, tech, streetwear, minimal. Bulk pricing, pay on
+                delivery, cult quality.
+              </p>
+              <div className="mt-10 flex flex-wrap items-center gap-4">
+                <button
+                  onClick={() => {
+                    const firstCat = cats?.[0]?.slug || "All";
+                    handleCategoryClick(firstCat);
+                  }}
+                  className="rounded-full bg-primary px-8 py-4 text-sm font-black uppercase tracking-[0.25em] text-primary-foreground neon-glow transition-transform hover:scale-105"
+                >
+                  Shop the drop
+                </button>
+              </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Navigational Sidebar */}
+          <aside className="lg:w-64 shrink-0 flex flex-col gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="flex items-center justify-between px-4 py-3 bg-card border rounded-lg hover:bg-accent hover:text-accent-foreground text-sm font-black uppercase tracking-[0.1em]"
+            >
+              <span>{getCategoryName(currentCategorySlug)}</span>
+              <Menu className="w-5 h-5" />
+            </button>
+            {isSidebarOpen && (
+              <div className="flex flex-row flex-wrap lg:flex-col gap-2">
+                {availableCategories.map((catSlug) => (
+                  <button
+                    key={catSlug}
+                    onClick={() => {
+                      handleCategoryClick(catSlug);
+                    }}
+                    className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all ${
+                      currentCategorySlug === catSlug
+                        ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
+                        : "glass-card text-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    {getCategoryName(catSlug)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </aside>
+
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col gap-6">
+            {currentCategorySlug === "All" ? (
+              <>
+                {/* CATEGORIES */}
+                <section className="text-center">
+                  <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
+                    {cats?.map((c) => (
+                      <CategoryCard
+                        key={c.id}
+                        title={c.name}
+                        image={CATEGORY_VISUALS[c.slug] ?? CATEGORY_VISUALS.anime}
+                        onClick={() => handleCategoryClick(c.slug)}
+                      />
+                    ))}
+                  </div>
+                </section>
+
+                {/* PACKS */}
+                <section className="text-center mt-16">
+                  <SectionTitle>P A C K S</SectionTitle>
+                  <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
+                    {subs?.slice(0, 12).map((s, i) => (
+                      <CategoryCard
+                        key={s.id}
+                        title={s.name}
+                        image={`https://images.unsplash.com/photo-15${String(20000000 + i * 4321).slice(0, 8)}?w=600&q=80`}
+                        onClick={() => {
+                          setCurrentCategorySlug(s.category_id);
+                          setCurrentSubCategorySlug(s.slug);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-6 flex justify-end">
+                    <button
+                      onClick={() => {
+                        setCurrentCategorySlug("AllPacks");
+                        setCurrentSubCategorySlug(null);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="explore-underline text-micro-sm inline-flex items-baseline gap-1"
+                    >
+                      <span className="text-foreground">EXPLORE&nbsp;</span>
+                      <span className="text-primary">MORE</span>
+                    </button>
+                  </div>
+                </section>
+              </>
+            ) : (
+              <>
+                {/* Sub-Taxonomy Filter row */}
+                {availableSubCategories.length > 0 && (
+                  <div className="flex justify-end mb-4">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-2 px-4 py-2 bg-card border rounded-md hover:bg-accent hover:text-accent-foreground text-sm">
+                          <Filter className="w-4 h-4" /> Filter
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setCurrentSubCategorySlug(null);
+                            setCurrentPage(1);
+                          }}
+                        >
+                          All {getCategoryName(currentCategorySlug)}
+                        </DropdownMenuItem>
+                        {availableSubCategories.map((subSlug) => (
+                          <DropdownMenuItem
+                            key={subSlug}
+                            onClick={() => {
+                              setCurrentSubCategorySlug(subSlug);
+                              setCurrentPage(1);
+                            }}
+                          >
+                            {getSubCategoryName(subSlug)}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+
+                {/* Pack Asset Grid */}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-y-8">
+                  {paginatedPacks.map((pack) => (
+                    <ProductCard key={pack.id} product={pack} />
+                  ))}
+                </div>
+
+                {visiblePacks.length === 0 && (
+                  <div className="py-20 text-center text-muted-foreground glass-panel rounded-xl mt-4">
+                    <p>No packs found matching this filter criteria.</p>
+                  </div>
+                )}
+
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-8">
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setCurrentPage(i + 1);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className={`w-10 h-10 rounded-full text-sm font-bold ${
+                          currentPage === i + 1
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card hover:bg-accent"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </section>
-
-      {/* FEATURED */}
-      <section className="py-16 sm:py-24">
-        <SectionTitle>F E A T U R E D</SectionTitle>
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-5">
-          {feat.data?.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-        <ExploreMore />
-      </section>
-    </div>
-  );
-}
-
-function ServiceCard({
-  image,
-  label,
-  tall,
-  wide,
-}: {
-  image: string;
-  label: string;
-  tall?: boolean;
-  wide?: boolean;
-}) {
-  return (
-    <div
-      className={`group relative overflow-hidden rounded-xl bg-card ${
-        tall ? "aspect-square md:aspect-auto md:h-full md:min-h-[520px]" : wide ? "aspect-[16/9]" : "aspect-square"
-      }`}
-    >
-      <img
-        src={image}
-        alt={label}
-        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-      />
-      <div className="img-fade absolute inset-0" />
-      <span
-        className="absolute bottom-4 left-4 text-3xl font-black uppercase tracking-tight text-white transition-colors group-hover:text-primary md:text-5xl"
-        style={{ fontFamily: "var(--font-display)" }}
-      >
-        {label}
-      </span>
     </div>
   );
 }
