@@ -11,6 +11,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const CATEGORY_VISUALS: Record<string, string> = {
   anime: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&q=80",
@@ -95,42 +102,77 @@ export default function Home() {
     <div className="w-full flex flex-col min-h-screen bg-background">
       {currentCategorySlug === "All" && (
         <section className="relative flex min-h-[15vh] flex-col justify-center overflow-hidden">
-          {/* Full-bleed background image with deep navy gradient fade */}
+          {/* Full-bleed background image with vibrant gradient fade */}
           <div className="absolute inset-0 z-0">
             <img
-              src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
+              src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop"
               alt="Sticker Hero"
-              className="h-full w-full object-cover opacity-60"
+              className="h-full w-full object-cover opacity-70 mix-blend-screen"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-950 via-fuchsia-900/60 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
           </div>
 
-          {/* Left-aligned content */}
-          <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8">
-            <div className="max-w-4xl py-6 sm:py-8 md:py-10">
-              <p className="text-micro text-primary">Vol. 04 — Drop 26</p>
-              <h1 className="mt-6 font-black uppercase leading-[0.85] tracking-tight text-7xl sm:text-8xl md:text-9xl text-white">
-                Stuck on <br />
-                <span className="text-primary drop-shadow-[0_0_20px_oklch(0.705_0.20_47/0.8)]">
-                  Real
-                </span>
-                ness.
-              </h1>
-              <p className="mt-8 max-w-xl text-balance text-base font-medium opacity-60 sm:text-lg text-white">
-                Cinematic sticker drops — anime, tech, streetwear, minimal. Bulk pricing, pay on
-                delivery, cult quality.
-              </p>
-              <div className="mt-10 flex flex-wrap items-center gap-4">
-                <button
-                  onClick={() => {
-                    const firstCat = cats?.[0]?.slug || "All";
-                    handleCategoryClick(firstCat);
-                  }}
-                  className="rounded-full bg-primary px-8 py-4 text-sm font-black uppercase tracking-[0.25em] text-primary-foreground neon-glow transition-transform hover:scale-105"
-                >
-                  Shop the drop
-                </button>
+          {/* Content */}
+          <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8 h-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center py-6 sm:py-8 md:py-10">
+              {/* Left-aligned content */}
+              <div className="max-w-xl flex flex-col justify-center">
+                <p className="text-micro text-cyan-400 drop-shadow-md">Vol. 04 — Drop 26</p>
+                <h1 className="mt-6 font-black uppercase leading-[0.85] tracking-tight text-7xl sm:text-8xl md:text-9xl text-cyan-100 drop-shadow-lg">
+                  Stuck on <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
+                    Real
+                  </span>
+                  ness.
+                </h1>
+                <p className="mt-8 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
+                  Cinematic sticker drops — anime, tech, streetwear, minimal. Bulk pricing, pay on
+                  delivery, cult quality.
+                </p>
+              </div>
+
+              {/* Right-aligned Packs Grid */}
+              <div className="hidden lg:flex flex-col items-end justify-center w-full">
+                <div className="w-full flex flex-col pl-4 lg:pl-16 pr-8 lg:pr-12">
+                  <h3 className="text-base font-black uppercase tracking-[0.25em] text-cyan-100 drop-shadow-md mb-6">
+                    Featured Packs
+                  </h3>
+
+                  {/* Static Grid */}
+                  <div className="grid grid-cols-3 gap-4 w-full">
+                    {subs?.slice(0, 3).map((s, i) => (
+                      <CategoryCard
+                        key={s.id}
+                        title={s.name}
+                        image={`https://images.unsplash.com/photo-15${String(20000000 + i * 4321).slice(0, 8)}?w=600&q=80`}
+                        onClick={() => {
+                          setCurrentCategorySlug(s.category_id);
+                          setCurrentSubCategorySlug(s.slug);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="mt-8 flex justify-end w-full">
+                    <button
+                      onClick={() => {
+                        setCurrentCategorySlug("AllPacks");
+                        setCurrentSubCategorySlug(null);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors"
+                    >
+                      <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
+                        EXPLORE&nbsp;
+                      </span>
+                      <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
+                        MORE
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -145,7 +187,7 @@ export default function Home() {
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="flex items-center justify-between px-4 py-3 bg-card border rounded-lg hover:bg-accent hover:text-accent-foreground text-sm font-black uppercase tracking-[0.1em]"
             >
-              <span>{getCategoryName(currentCategorySlug)}</span>
+              <span>{isSidebarOpen ? "Collapse" : "Expand"}</span>
               <Menu className="w-5 h-5" />
             </button>
             {isSidebarOpen && (
@@ -184,38 +226,6 @@ export default function Home() {
                         onClick={() => handleCategoryClick(c.slug)}
                       />
                     ))}
-                  </div>
-                </section>
-
-                {/* PACKS */}
-                <section className="text-center mt-16">
-                  <SectionTitle>P A C K S</SectionTitle>
-                  <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
-                    {subs?.slice(0, 12).map((s, i) => (
-                      <CategoryCard
-                        key={s.id}
-                        title={s.name}
-                        image={`https://images.unsplash.com/photo-15${String(20000000 + i * 4321).slice(0, 8)}?w=600&q=80`}
-                        onClick={() => {
-                          setCurrentCategorySlug(s.category_id);
-                          setCurrentSubCategorySlug(s.slug);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-6 flex justify-end">
-                    <button
-                      onClick={() => {
-                        setCurrentCategorySlug("AllPacks");
-                        setCurrentSubCategorySlug(null);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className="explore-underline text-micro-sm inline-flex items-baseline gap-1"
-                    >
-                      <span className="text-foreground">EXPLORE&nbsp;</span>
-                      <span className="text-primary">MORE</span>
-                    </button>
                   </div>
                 </section>
               </>
