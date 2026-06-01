@@ -2,10 +2,15 @@ import { Minus, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/store/cart";
 import type { Product } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ProductCard({ product }: { product: Product }) {
   const inCart = useCart((s) => !!s.items[product.id]);
   const toggle = useCart((s) => s.toggle);
+
+  const computedImageSrc = product.thumbnail_url?.startsWith('http') 
+    ? product.thumbnail_url 
+    : supabase.storage.from('products').getPublicUrl(product.thumbnail_url).data.publicUrl;
 
   return (
     <div
@@ -15,7 +20,7 @@ export default function ProductCard({ product }: { product: Product }) {
     >
       <Link to={`/product/${product.id}`} className="absolute inset-0 z-0">
         <img
-          src={product.thumbnail_url}
+          src={computedImageSrc}
           alt={product.title}
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -23,10 +28,6 @@ export default function ProductCard({ product }: { product: Product }) {
       </Link>
       <div className="img-fade absolute inset-0 pointer-events-none" />
       {inCart && <div className="absolute inset-0 bg-black/35 pointer-events-none" />}
-
-      <span className="text-micro absolute bottom-2 left-2 z-20 text-accent">
-        {product.title}
-      </span>
 
       <button
         onClick={(e) => {

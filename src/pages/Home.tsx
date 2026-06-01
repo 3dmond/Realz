@@ -179,26 +179,80 @@ export default function Home() {
         </section>
       )}
 
+      {/* Category Hero Section for other pages */}
+      {currentCategorySlug !== "All" && (
+        <section className="relative flex flex-col justify-center overflow-hidden py-12">
+          {/* Full-bleed background image with vibrant gradient fade */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop"
+              alt="Category Hero"
+              className="h-full w-full object-cover opacity-50 mix-blend-screen"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-950 via-fuchsia-900/40 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background"></div>
+          </div>
+
+          <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8">
+            {availableSubCategories.length > 0 && (
+              <div className="flex flex-col w-full">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full">
+                  <CategoryCard
+                    title={`All ${getCategoryName(currentCategorySlug)}`}
+                    image="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80"
+                    onClick={() => {
+                      setCurrentSubCategorySlug(null);
+                      setCurrentPage(1);
+                    }}
+                  />
+                  {availableSubCategories.map((subSlug, i) => (
+                    <CategoryCard
+                      key={subSlug}
+                      title={getSubCategoryName(subSlug)}
+                      image={`https://images.unsplash.com/photo-15${String(30000000 + i * 4321).slice(0, 8)}?w=600&q=80`}
+                      onClick={() => {
+                        setCurrentSubCategorySlug(subSlug);
+                        setCurrentPage(1);
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="mt-8 flex justify-end w-full">
+                  <button
+                    onClick={() => {
+                      setCurrentSubCategorySlug(null);
+                      setCurrentPage(1);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors uppercase"
+                  >
+                    <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
+                      EXPLORE MORE&nbsp;
+                    </span>
+                    <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
+                      {getCategoryName(currentCategorySlug)} PACKS
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Navigational Sidebar */}
-          <aside className="lg:w-64 shrink-0 flex flex-col gap-4">
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="flex items-center justify-between px-4 py-3 bg-card border rounded-lg hover:bg-accent hover:text-accent-foreground text-sm font-black uppercase tracking-[0.1em]"
-            >
-              <span>{isSidebarOpen ? "Collapse" : "Expand"}</span>
-              <Menu className="w-5 h-5" />
-            </button>
-            {isSidebarOpen && (
-              <div className="flex flex-row flex-wrap lg:flex-col gap-2">
+          {currentCategorySlug !== "All" && (
+            <aside className="lg:w-64 shrink-0 flex flex-col gap-4 relative">
+              <div className="flex flex-row flex-wrap lg:flex-col gap-2 sticky top-24 z-10 h-fit">
                 {availableCategories.map((catSlug) => (
                   <button
                     key={catSlug}
                     onClick={() => {
                       handleCategoryClick(catSlug);
                     }}
-                    className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all ${
+                    className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
                       currentCategorySlug === catSlug
                         ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
                         : "glass-card text-foreground hover:border-primary/50"
@@ -208,8 +262,8 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-            )}
-          </aside>
+            </aside>
+          )}
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col gap-6">
@@ -218,6 +272,15 @@ export default function Home() {
                 {/* CATEGORIES */}
                 <section className="text-center">
                   <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
+                    <CategoryCard
+                      title="All Stickers"
+                      image="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&q=80"
+                      onClick={() => {
+                        setCurrentCategorySlug("AllPacks");
+                        setCurrentSubCategorySlug(null);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    />
                     {cats?.map((c) => (
                       <CategoryCard
                         key={c.id}
@@ -226,45 +289,20 @@ export default function Home() {
                         onClick={() => handleCategoryClick(c.slug)}
                       />
                     ))}
+                    <CategoryCard
+                      title="All Stickers"
+                      image="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&q=80"
+                      onClick={() => {
+                        setCurrentCategorySlug("AllPacks");
+                        setCurrentSubCategorySlug(null);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    />
                   </div>
                 </section>
               </>
             ) : (
               <>
-                {/* Sub-Taxonomy Filter row */}
-                {availableSubCategories.length > 0 && (
-                  <div className="flex justify-end mb-4">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-card border rounded-md hover:bg-accent hover:text-accent-foreground text-sm">
-                          <Filter className="w-4 h-4" /> Filter
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setCurrentSubCategorySlug(null);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          All {getCategoryName(currentCategorySlug)}
-                        </DropdownMenuItem>
-                        {availableSubCategories.map((subSlug) => (
-                          <DropdownMenuItem
-                            key={subSlug}
-                            onClick={() => {
-                              setCurrentSubCategorySlug(subSlug);
-                              setCurrentPage(1);
-                            }}
-                          >
-                            {getSubCategoryName(subSlug)}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
-
                 {/* Pack Asset Grid */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-y-8">
                   {paginatedPacks.map((pack) => (

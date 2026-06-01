@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 export type Category = { id: string; name: string; slug: string };
 export type Subcategory = { id: string; category_id: string; name: string; slug: string };
 export type Product = {
@@ -14,36 +12,34 @@ export type Product = {
   created_at: string;
 };
 
-export async function fetchCategories() {
-  const { data, error } = await supabase.from("categories").select("*").order("name");
+import { supabase } from "@/integrations/supabase/client";
+
+export async function fetchCategories(): Promise<Category[]> {
+  const { data, error } = await supabase.from('categories').select('*');
   if (error) throw error;
-  return data as Category[];
+  return data || [];
 }
 
-export async function fetchSubcategories() {
-  const { data, error } = await supabase.from("subcategories").select("*").order("name");
+export async function fetchSubcategories(): Promise<Subcategory[]> {
+  const { data, error } = await supabase.from('subcategories').select('*');
   if (error) throw error;
-  return data as Subcategory[];
+  return data || [];
 }
 
-export async function fetchProducts() {
-  const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false });
+export async function fetchProducts(): Promise<Product[]> {
+  const { data, error } = await supabase.from('products').select('*');
   if (error) throw error;
-  return data as Product[];
+  return data || [];
 }
 
-export async function fetchFeaturedProducts() {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("is_featured", true)
-    .order("created_at", { ascending: false });
+export async function fetchFeaturedProducts(): Promise<Product[]> {
+  const { data, error } = await supabase.from('products').select('*').eq('is_featured', true);
   if (error) throw error;
-  return data as Product[];
+  return data || [];
 }
 
-export async function fetchProduct(id: string) {
-  const { data, error } = await supabase.from("products").select("*").eq("id", id).single();
+export async function fetchProduct(id: string): Promise<Product> {
+  const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
   if (error) throw error;
-  return data as Product;
+  return data;
 }
