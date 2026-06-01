@@ -252,19 +252,17 @@ export default function Home() {
           {selectedCategory !== "ALL" && (
             <aside className="lg:w-64 shrink-0 flex flex-col gap-4 relative">
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 sticky top-24 z-10 h-fit">
-                {availableCategories.map((catName) => (
+                {availableCategories.map((categoryString) => (
                   <button
-                    key={catName}
-                    onClick={() => {
-                      handleCategoryClick(catName);
-                    }}
+                    key={categoryString}
+                    onClick={() => setSelectedCategory(categoryString)}
                     className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
-                      selectedCategory === catName
+                      selectedCategory === categoryString
                         ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
                         : "glass-card text-foreground hover:border-primary/50"
                     }`}
                   >
-                    {getCategoryName(catName)}
+                    {categoryString}
                   </button>
                 ))}
               </div>
