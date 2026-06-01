@@ -8,9 +8,11 @@ export default function ProductCard({ product }: { product: Product }) {
   const inCart = useCart((s) => !!s.items[product.id]);
   const toggle = useCart((s) => s.toggle);
 
-  const computedImageSrc = product.thumbnail_url?.startsWith('http') 
+  const computedImageSrc = product.thumbnail_url?.startsWith?.('http') 
     ? product.thumbnail_url 
-    : supabase.storage.from('products').getPublicUrl(product.thumbnail_url).data.publicUrl;
+    : product.thumbnail_url
+      ? supabase.storage.from('products').getPublicUrl(product.thumbnail_url)?.data?.publicUrl || ""
+      : "";
 
   return (
     <div
