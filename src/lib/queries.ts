@@ -15,7 +15,7 @@ export type Product = {
 import { supabase } from "@/integrations/supabase/client";
 
 export async function fetchCategories(): Promise<Category[]> {
-  const { data, error } = await supabase.from('category').select('*');
+  const { data, error } = await supabase.from('categories').select('*');
   if (error) throw error;
   return data || [];
 }
