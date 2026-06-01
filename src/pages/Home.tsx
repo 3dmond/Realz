@@ -33,14 +33,14 @@ export default function Home() {
   const { data: subs } = useQuery({ queryKey: ["subcategories"], queryFn: fetchSubcategories });
   const { data: dbProducts } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
 
-  const [currentCategorySlug, setCurrentCategorySlug] = useState<string>("All");
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [currentSubCategorySlug, setCurrentSubCategorySlug] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   useEffect(() => {
     const handleReset = () => {
-      setCurrentCategorySlug("All");
+      setSelectedCategory("ALL");
       setCurrentSubCategorySlug(null);
       setCurrentPage(1);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -51,28 +51,28 @@ export default function Home() {
 
   // Dynamic derivations based on Categories from the DB
   const availableCategories = useMemo(() => {
-    if (!cats) return ["All"];
-    return ["All", ...cats.map((c) => c.slug)];
+    if (!cats) return ["ALL"];
+    const uniqueNames = Array.from(new Set(cats.map((c) => c.name)));
+    return ["ALL", ...uniqueNames];
   }, [cats]);
 
   const availableSubCategories = useMemo(() => {
-    if (currentCategorySlug === "All" || !subs) return [];
-    if (currentCategorySlug === "AllPacks") return subs.map((s) => s.slug);
-    return subs.filter((s) => s.category_id === currentCategorySlug).map((s) => s.slug);
-  }, [currentCategorySlug, subs]);
+    if (selectedCategory === "ALL" || !subs) return [];
+    const matchingCat = cats?.find((c) => c.name === selectedCategory);
+    if (!matchingCat) return [];
+    return subs.filter((s) => s.category_id === matchingCat.id).map((s) => s.slug);
+  }, [selectedCategory, subs, cats]);
 
   const visiblePacks = useMemo(() => {
     if (!dbProducts) return [];
     return dbProducts.filter((pack) => {
       const categoryMatch =
-        currentCategorySlug === "All" ||
-        currentCategorySlug === "AllPacks" ||
-        pack.category_id === currentCategorySlug;
+        selectedCategory === "ALL" || pack.category === selectedCategory;
       const subCategoryMatch =
         !currentSubCategorySlug || pack.subcategory_id === currentSubCategorySlug;
       return categoryMatch && subCategoryMatch;
     });
-  }, [dbProducts, currentCategorySlug, currentSubCategorySlug]);
+  }, [dbProducts, selectedCategory, currentSubCategorySlug]);
 
   const ITEMS_PER_PAGE = 100;
   const totalPages = Math.ceil(visiblePacks.length / ITEMS_PER_PAGE);
@@ -81,17 +81,15 @@ export default function Home() {
     return visiblePacks.slice(start, start + ITEMS_PER_PAGE);
   }, [visiblePacks, currentPage]);
 
-  const handleCategoryClick = (catSlug: string) => {
-    setCurrentCategorySlug(catSlug);
+  const handleCategoryClick = (catName: string) => {
+    setSelectedCategory(catName);
     setCurrentSubCategorySlug(null);
     setCurrentPage(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const getCategoryName = (slug: string) => {
-    if (slug === "All") return "All";
-    if (slug === "AllPacks") return "Packs";
-    return cats?.find((c) => c.slug === slug)?.name || slug;
+  const getCategoryName = (name: string) => {
+    return name;
   };
 
   const getSubCategoryName = (slug: string) => {
@@ -100,7 +98,7 @@ export default function Home() {
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
-      {currentCategorySlug === "All" && (
+      {selectedCategory === "ALL" && (
         <section className="relative flex min-h-[15vh] flex-col justify-center overflow-hidden">
           {/* Full-bleed background image with vibrant gradient fade */}
           <div className="absolute inset-0 z-0">
@@ -147,7 +145,8 @@ export default function Home() {
                         title={s.name}
                         image={`https://images.unsplash.com/photo-15${String(20000000 + i * 4321).slice(0, 8)}?w=600&q=80`}
                         onClick={() => {
-                          setCurrentCategorySlug(s.category_id);
+                          const matchingCat = cats?.find((c) => c.id === s.category_id);
+                          if (matchingCat) setSelectedCategory(matchingCat.name);
                           setCurrentSubCategorySlug(s.slug);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
@@ -158,7 +157,7 @@ export default function Home() {
                   <div className="mt-8 flex justify-end w-full">
                     <button
                       onClick={() => {
-                        setCurrentCategorySlug("AllPacks");
+                        setSelectedCategory("ALL");
                         setCurrentSubCategorySlug(null);
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
@@ -180,7 +179,7 @@ export default function Home() {
       )}
 
       {/* Category Hero Section for other pages */}
-      {currentCategorySlug !== "All" && (
+      {selectedCategory !== "ALL" && (
         <section className="relative flex flex-col justify-center overflow-hidden py-12">
           {/* Full-bleed background image with vibrant gradient fade */}
           <div className="absolute inset-0 z-0">
@@ -198,7 +197,7 @@ export default function Home() {
               <div className="flex flex-col w-full">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full">
                   <CategoryCard
-                    title={`All ${getCategoryName(currentCategorySlug)}`}
+                    title={`All ${getCategoryName(selectedCategory)}`}
                     image="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80"
                     onClick={() => {
                       setCurrentSubCategorySlug(null);
@@ -230,7 +229,7 @@ export default function Home() {
                       EXPLORE MORE&nbsp;
                     </span>
                     <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
-                      {getCategoryName(currentCategorySlug)} PACKS
+                      {getCategoryName(selectedCategory)} PACKS
                     </span>
                   </button>
                 </div>
@@ -243,22 +242,22 @@ export default function Home() {
       <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Navigational Sidebar */}
-          {currentCategorySlug !== "All" && (
+          {selectedCategory !== "ALL" && (
             <aside className="lg:w-64 shrink-0 flex flex-col gap-4 relative">
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 sticky top-24 z-10 h-fit">
-                {availableCategories.map((catSlug) => (
+                {availableCategories.map((catName) => (
                   <button
-                    key={catSlug}
+                    key={catName}
                     onClick={() => {
-                      handleCategoryClick(catSlug);
+                      handleCategoryClick(catName);
                     }}
                     className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
-                      currentCategorySlug === catSlug
+                      selectedCategory === catName
                         ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
                         : "glass-card text-foreground hover:border-primary/50"
                     }`}
                   >
-                    {getCategoryName(catSlug)}
+                    {getCategoryName(catName)}
                   </button>
                 ))}
               </div>
@@ -267,7 +266,7 @@ export default function Home() {
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col gap-6">
-            {currentCategorySlug === "All" ? (
+            {selectedCategory === "ALL" ? (
               <>
                 {/* CATEGORIES */}
                 <section className="text-center">
@@ -276,28 +275,22 @@ export default function Home() {
                       title="All Stickers"
                       image="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&q=80"
                       onClick={() => {
-                        setCurrentCategorySlug("AllPacks");
+                        setSelectedCategory("ALL");
                         setCurrentSubCategorySlug(null);
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
                     />
-                    {cats?.map((c) => (
-                      <CategoryCard
-                        key={c.id}
-                        title={c.name}
-                        image={CATEGORY_VISUALS[c.slug] ?? CATEGORY_VISUALS.anime}
-                        onClick={() => handleCategoryClick(c.slug)}
-                      />
-                    ))}
-                    <CategoryCard
-                      title="All Stickers"
-                      image="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&q=80"
-                      onClick={() => {
-                        setCurrentCategorySlug("AllPacks");
-                        setCurrentSubCategorySlug(null);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    />
+                    {Array.from(new Set(cats?.map((c) => c.name))).map((catName) => {
+                      const c = cats?.find(cat => cat.name === catName);
+                      return (
+                        <CategoryCard
+                          key={catName}
+                          title={catName}
+                          image={c ? CATEGORY_VISUALS[c.slug] ?? CATEGORY_VISUALS.anime : CATEGORY_VISUALS.anime}
+                          onClick={() => handleCategoryClick(catName)}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               </>

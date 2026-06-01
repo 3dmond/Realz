@@ -4,8 +4,8 @@ export type Product = {
   id: string;
   title: string;
   description: string | null;
-  thumbnail_url: string;
-  category_id: string | null;
+  image_url: string;
+  category: string;
   subcategory_id: string | null;
   keywords: string[];
   is_featured: boolean;
@@ -15,7 +15,7 @@ export type Product = {
 import { supabase } from "@/integrations/supabase/client";
 
 export async function fetchCategories(): Promise<Category[]> {
-  const { data, error } = await supabase.from('categories').select('*');
+  const { data, error } = await supabase.from('category').select('*');
   if (error) throw error;
   return data || [];
 }

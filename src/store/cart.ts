@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 export type CartItem = {
   id: string;
   title: string;
-  thumbnail_url: string;
+  image_url: string;
   quantity: number;
 };
 
@@ -63,10 +63,9 @@ export const useCart = create<CartState>()(
           return { items: { ...s.items, [id]: { ...s.items[id], quantity: qty } } };
         }),
       clear: () => set({ items: {} }),
-      totalQty: () =>
-        Object.values(get().items).reduce((a, b) => a + b.quantity, 0),
+      totalQty: () => Object.values(get().items).reduce((a, b) => a + b.quantity, 0),
       selectedIds: () => Object.keys(get().items),
     }),
-    { name: "realz-cart" }
-  )
+    { name: "realz-cart" },
+  ),
 );

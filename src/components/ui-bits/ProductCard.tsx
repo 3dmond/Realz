@@ -8,10 +8,10 @@ export default function ProductCard({ product }: { product: Product }) {
   const inCart = useCart((s) => !!s.items[product.id]);
   const toggle = useCart((s) => s.toggle);
 
-  const computedImageSrc = product.thumbnail_url?.startsWith?.('http') 
-    ? product.thumbnail_url 
-    : product.thumbnail_url
-      ? supabase.storage.from('products').getPublicUrl(product.thumbnail_url)?.data?.publicUrl || ""
+  const computedImageSrc = product.image_url?.startsWith?.('http') 
+    ? product.image_url 
+    : product.image_url
+      ? supabase.storage.from('products').getPublicUrl(product.image_url)?.data?.publicUrl || ""
       : "";
 
   return (
@@ -34,7 +34,7 @@ export default function ProductCard({ product }: { product: Product }) {
       <button
         onClick={(e) => {
           e.preventDefault();
-          toggle({ id: product.id, title: product.title, thumbnail_url: product.thumbnail_url });
+          toggle({ id: product.id, title: product.title, image_url: product.image_url });
         }}
         aria-label={inCart ? "Remove from selections" : "Add to selections"}
         className={`absolute bottom-2 right-2 z-20 grid h-9 w-9 place-items-center rounded-full transition ${
