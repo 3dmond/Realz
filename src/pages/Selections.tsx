@@ -211,7 +211,8 @@ export default function Selections() {
                       </button>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
 
               {totalPages > 1 && (
