@@ -67,7 +67,7 @@ export default function Home() {
     if (!dbProducts) return [];
     return dbProducts.filter((pack) => {
       const categoryMatch =
-        selectedCategory === "ALL" || pack.category === selectedCategory;
+        selectedCategory === "ALL" || pack.category?.toLowerCase() === selectedCategory.toLowerCase();
       const subCategoryMatch =
         !currentSubCategorySlug || pack.subcategory_id === currentSubCategorySlug;
       return categoryMatch && subCategoryMatch;
