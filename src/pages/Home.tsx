@@ -65,14 +65,21 @@ export default function Home() {
 
   const visiblePacks = useMemo(() => {
     if (!dbProducts) return [];
+    
+    const targetSubCategoryId = currentSubCategorySlug
+      ? subs?.find((s) => s.slug === currentSubCategorySlug)?.id
+      : null;
+
     return dbProducts.filter((pack) => {
       const categoryMatch =
         selectedCategory === "ALL" || pack.category?.toLowerCase() === selectedCategory.toLowerCase();
+        
       const subCategoryMatch =
-        !currentSubCategorySlug || pack.subcategory_id === currentSubCategorySlug;
+        !currentSubCategorySlug || pack.subcategory_id === targetSubCategoryId;
+        
       return categoryMatch && subCategoryMatch;
     });
-  }, [dbProducts, selectedCategory, currentSubCategorySlug]);
+  }, [dbProducts, selectedCategory, currentSubCategorySlug, subs]);
 
   const ITEMS_PER_PAGE = 100;
   const totalPages = Math.ceil(visiblePacks.length / ITEMS_PER_PAGE);
