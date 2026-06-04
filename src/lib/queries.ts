@@ -5,7 +5,7 @@ export type Product = {
   title: string;
   description: string | null;
   image_url: string;
-  category: string;
+  category_id: string;
   subcategory_id: string | null;
   keywords: string[];
   is_featured: boolean;

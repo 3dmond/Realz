@@ -42,25 +42,20 @@ export default function Home() {
 
   // Dynamic derivations based on Categories from the DB
   const availableCategories = useMemo(() => {
-    if (!cats) return ["ALL"];
-    const uniqueNames = Array.from(new Set(cats.map((c) => (c.name || "").trim())));
-    return ["ALL", ...uniqueNames];
+    if (!cats) return [];
+    return cats;
   }, [cats]);
 
   const availableSubCategories = useMemo(() => {
     if (selectedCategory === "ALL" || !subs) return [];
-    const matchingCat = cats?.find((c) => (c.name || "").trim().toLowerCase() === selectedCategory.toLowerCase());
-    if (!matchingCat) return [];
-    return subs.filter((s) => s.category_id === matchingCat.id).map((s) => s.slug);
-  }, [selectedCategory, subs, cats]);
+    return subs.filter((s) => s.category_id === selectedCategory).map((s) => s.slug);
+  }, [selectedCategory, subs]);
 
   const visiblePacks = useMemo(() => {
     if (!dbProducts || dbProducts.length === 0) return [];
     const targetSubCategoryId = currentSubCategorySlug ? subs?.find((s) => s.slug === currentSubCategorySlug)?.id : null;
     return dbProducts.filter((pack) => {
-      const prodCat = (pack.category || "").trim().toLowerCase();
-      const selCat = (selectedCategory || "").trim().toLowerCase();
-      const categoryMatch = selectedCategory === "ALL" || prodCat === selCat;
+      const categoryMatch = selectedCategory === "ALL" || pack.category_id === selectedCategory;
       const subCategoryMatch = !currentSubCategorySlug || pack.subcategory_id === targetSubCategoryId;
       return categoryMatch && subCategoryMatch;
     });
@@ -78,15 +73,17 @@ export default function Home() {
     return visiblePacks.slice(start, start + ITEMS_PER_PAGE);
   }, [visiblePacks, currentPage]);
 
-  const handleCategoryClick = (catName: string) => {
-    setSelectedCategory(catName);
+  const handleCategoryClick = (catId: string) => {
+    setSelectedCategory(catId);
     setCurrentSubCategorySlug(null);
     setCurrentPage(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const getCategoryName = (name: string) => {
-    return name;
+  const getCategoryName = (idOrName: string) => {
+    if (idOrName === "ALL") return "ALL";
+    const cat = cats?.find(c => c.id === idOrName);
+    return cat ? cat.name : "Category";
   };
 
   const getSubCategoryName = (slug: string) => {
@@ -223,17 +220,27 @@ export default function Home() {
           {selectedCategory !== "ALL" && (
             <aside className="lg:w-64 shrink-0 flex flex-col gap-4 relative">
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 sticky top-24 z-10 h-fit">
-                {availableCategories.map((categoryString) => (
+                <button
+                  onClick={() => setSelectedCategory("ALL")}
+                  className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
+                    selectedCategory === "ALL"
+                      ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
+                      : "glass-card text-foreground hover:border-primary/50"
+                  }`}
+                >
+                  ALL
+                </button>
+                {availableCategories.map((category) => (
                   <button
-                    key={categoryString}
-                    onClick={() => setSelectedCategory(categoryString)}
+                    key={category.id}
+                    onClick={() => handleCategoryClick(category.id)}
                     className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
-                      selectedCategory.toLowerCase() === categoryString.toLowerCase()
+                      selectedCategory === category.id
                         ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
                         : "glass-card text-foreground hover:border-primary/50"
                     }`}
                   >
-                    {categoryString}
+                    {category.name}
                   </button>
                 ))}
               </div>
@@ -253,16 +260,13 @@ export default function Home() {
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                   />
-                  {Array.from(new Set(cats?.map((c) => c.name))).map((catName) => {
-                    const c = cats?.find(cat => cat.name === catName);
-                    return (
-                      <CategoryCard
-                        key={catName}
-                        title={catName}
-                        onClick={() => handleCategoryClick(catName)}
-                      />
-                    );
-                  })}
+                  {availableCategories.map((cat) => (
+                    <CategoryCard
+                      key={cat.id}
+                      title={cat.name}
+                      onClick={() => handleCategoryClick(cat.id)}
+                    />
+                  ))}
                 </div>
               </section>
             )}
