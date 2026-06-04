@@ -106,7 +106,6 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center py-4 md:py-6">
               {/* Left-aligned content */}
               <div className="max-w-xl flex flex-col justify-center">
-                <p className="text-micro text-cyan-400 drop-shadow-md">Vol. 04 — Drop 26</p>
                 <h1 className="mt-2 font-black uppercase leading-[1.05] tracking-tight text-5xl sm:text-6xl md:text-7xl text-cyan-100 drop-shadow-lg">
                   Stuck on <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
