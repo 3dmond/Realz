@@ -102,18 +102,18 @@ export default function Home() {
 
           {/* Content */}
           <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8 h-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center py-2 sm:py-3 md:py-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center py-4 md:py-6">
               {/* Left-aligned content */}
               <div className="max-w-xl flex flex-col justify-center">
                 <p className="text-micro text-cyan-400 drop-shadow-md">Vol. 04 — Drop 26</p>
-                <h1 className="mt-2 font-black uppercase leading-[0.85] tracking-tight text-7xl sm:text-8xl md:text-9xl text-cyan-100 drop-shadow-lg">
+                <h1 className="mt-2 font-black uppercase leading-[1.05] tracking-tight text-5xl sm:text-6xl md:text-7xl text-cyan-100 drop-shadow-lg">
                   Stuck on <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
                     Real
                   </span>
                   ness.
                 </h1>
-                <p className="mt-3 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
+                <p className="mt-5 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
                   Cinematic sticker drops — anime, tech, streetwear, minimal. Bulk pricing, pay on
                   delivery, cult quality.
                 </p>
@@ -133,7 +133,13 @@ export default function Home() {
                     ))}
                   </div>
                   {featuredPacks.length === 0 && (
-                    <div className="text-sm text-cyan-100/50 mt-4 text-center">No featured packs found.</div>
+                    <div className="grid grid-cols-3 gap-4 w-full opacity-20">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="aspect-[4/5] rounded-xl bg-card border border-border animate-pulse flex items-center justify-center">
+                          <span className="text-[10px] tracking-widest font-black text-muted-foreground/40">DROP {i+1}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
 
                   <div className="mt-3 flex justify-end w-full">
