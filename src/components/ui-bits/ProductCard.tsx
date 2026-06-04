@@ -7,7 +7,8 @@ export default function ProductCard({ product }: { product: Product }) {
   const inCart = useCart((s) => !!s.items[product.id]);
   const toggle = useCart((s) => s.toggle);
 
-  const computedImageSrc = product.image_url || null;
+  const isValidImage = typeof product.image_url === "string" && product.image_url.trim().length > 0;
+  const computedImageSrc = isValidImage ? product.image_url : null;
 
   return (
     <div
@@ -24,7 +25,10 @@ export default function ProductCard({ product }: { product: Product }) {
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
         ) : (
-          <div className="h-full w-full bg-muted/20 animate-pulse" />
+          <div className="h-full w-full bg-muted/20 animate-pulse flex flex-col items-center justify-center border-0">
+            <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin mb-2" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No Asset</span>
+          </div>
         )}
       </Link>
       <div className="img-fade absolute inset-0 pointer-events-none" />

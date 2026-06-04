@@ -130,21 +130,15 @@ export default function Home() {
                     Featured Packs
                   </h3>
 
-                  {/* Static Grid */}
+                  {/* Featured Packs Grid */}
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    {subs?.slice(0, 3).map((s, i) => (
-                      <CategoryCard
-                        key={s.id}
-                        title={s.name}
-                        onClick={() => {
-                          const matchingCat = cats?.find((c) => c.id === s.category_id);
-                          if (matchingCat) setSelectedCategory(matchingCat.name);
-                          setCurrentSubCategorySlug(s.slug);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                      />
+                    {dbProducts?.filter(p => p.is_featured).slice(0, 3).map((pack) => (
+                      <ProductCard key={pack.id} product={pack} />
                     ))}
                   </div>
+                  {(!dbProducts || dbProducts.filter(p => p.is_featured).length === 0) && (
+                    <div className="text-sm text-cyan-100/50 mt-4 text-center">No featured packs found.</div>
+                  )}
 
                   <div className="mt-8 flex justify-end w-full">
                     <button
@@ -249,46 +243,39 @@ export default function Home() {
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col gap-6">
-            {selectedCategory === "ALL" ? (
+            {selectedCategory === "ALL" && (
+              <section className="text-center mb-8">
+                <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
+                  <CategoryCard
+                    title="All Stickers"
+                    onClick={() => {
+                      setSelectedCategory("ALL");
+                      setCurrentSubCategorySlug(null);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
+                  {Array.from(new Set(cats?.map((c) => c.name))).map((catName) => {
+                    const c = cats?.find(cat => cat.name === catName);
+                    return (
+                      <CategoryCard
+                        key={catName}
+                        title={catName}
+                        onClick={() => handleCategoryClick(catName)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Pack Asset Grid */}
+            {visiblePacks.length > 0 ? (
               <>
-                {/* CATEGORIES */}
-                <section className="text-center">
-                  <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
-                    <CategoryCard
-                      title="All Stickers"
-                      onClick={() => {
-                        setSelectedCategory("ALL");
-                        setCurrentSubCategorySlug(null);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    />
-                    {Array.from(new Set(cats?.map((c) => c.name))).map((catName) => {
-                      const c = cats?.find(cat => cat.name === catName);
-                      return (
-                        <CategoryCard
-                          key={catName}
-                          title={catName}
-                          onClick={() => handleCategoryClick(catName)}
-                        />
-                      );
-                    })}
-                  </div>
-                </section>
-              </>
-            ) : (
-              <>
-                {/* Pack Asset Grid */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-y-8">
                   {paginatedPacks.map((pack) => (
                     <ProductCard key={pack.id} product={pack} />
                   ))}
                 </div>
-
-                {visiblePacks.length === 0 && (
-                  <div className="py-20 text-center text-muted-foreground glass-panel rounded-xl mt-4">
-                    <p>No packs found matching this filter criteria.</p>
-                  </div>
-                )}
 
                 {totalPages > 1 && (
                   <div className="flex justify-center items-center gap-2 mt-8">
@@ -311,6 +298,10 @@ export default function Home() {
                   </div>
                 )}
               </>
+            ) : (
+              <div className="py-20 text-center text-muted-foreground glass-panel rounded-xl mt-4">
+                <p>No packs found matching this filter criteria.</p>
+              </div>
             )}
           </div>
         </div>
