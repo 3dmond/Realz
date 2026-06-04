@@ -238,7 +238,7 @@ export default function Home() {
             <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8">
               {availableSubCategories.length > 0 && (
                 <div className="flex flex-col w-full">
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full">
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 w-full">
                     <CategoryCard
                       title={`All ${getCategoryName(selectedCategory)}`}
                       onClick={() => {
@@ -283,7 +283,7 @@ export default function Home() {
 
       {selectedCategory === "ALL" ? (
         <section className="mx-auto w-full max-w-[1600px] px-4 pt-4 pb-8 sm:px-8 text-center mb-8">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 text-left">
             {availableCategories.map((cat) => (
               <CategoryCard
                 key={cat.id}

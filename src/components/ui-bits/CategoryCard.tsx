@@ -21,7 +21,7 @@ export default function CategoryCard({ title, image, to, onClick }: CategoryCard
         <div className="absolute inset-0 bg-muted/20 animate-pulse" />
       )}
       <div className="img-fade absolute inset-0" />
-      <span className="text-micro absolute bottom-2 left-2 text-accent z-10 transition-transform duration-300 group-hover:scale-110 group-hover:text-primary group-hover:translate-x-1 origin-left">{title}</span>
+      <span className="text-[9px] md:text-[10px] uppercase font-black tracking-widest absolute bottom-1.5 left-1.5 md:bottom-2 md:left-2 pr-1.5 text-accent z-10 transition-transform duration-300 group-hover:scale-110 group-hover:text-primary group-hover:translate-x-1 origin-left leading-tight break-words">{title}</span>
     </>
   );
 
