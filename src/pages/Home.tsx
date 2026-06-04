@@ -24,7 +24,7 @@ export default function Home() {
   const { data: subs } = useQuery({ queryKey: ["subcategories"], queryFn: fetchSubcategories });
   const { data: dbProducts } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
 
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [selectedCategory, setSelectedCategory] = useState<string | number>("ALL");
   const [currentSubCategorySlug, setCurrentSubCategorySlug] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
@@ -63,7 +63,7 @@ export default function Home() {
 
   const featuredPacks = useMemo(() => {
     if (!dbProducts) return [];
-    return dbProducts.filter(p => p.is_featured && (p.thumbnail_url || p.image_url)).slice(0, 3);
+    return dbProducts.filter(p => p.is_featured && p.image_url).slice(0, 3);
   }, [dbProducts]);
 
   const ITEMS_PER_PAGE = 100;
@@ -73,14 +73,14 @@ export default function Home() {
     return visiblePacks.slice(start, start + ITEMS_PER_PAGE);
   }, [visiblePacks, currentPage]);
 
-  const handleCategoryClick = (catId: string) => {
+  const handleCategoryClick = (catId: number) => {
     setSelectedCategory(catId);
     setCurrentSubCategorySlug(null);
     setCurrentPage(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const getCategoryName = (idOrName: string) => {
+  const getCategoryName = (idOrName: string | number) => {
     if (idOrName === "ALL") return "ALL";
     const cat = cats?.find(c => c.id === idOrName);
     return cat ? cat.name : "Category";

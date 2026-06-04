@@ -74,7 +74,7 @@ export default function Selections() {
 
       const rows = items.map((it) => ({
         order_id: order.id,
-        product_id: it.id,
+        product_id: it.id as any,
         quantity: it.quantity,
         calculated_price: +(it.quantity * unit).toFixed(2),
       }));

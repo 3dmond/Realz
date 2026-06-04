@@ -7,7 +7,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const inCart = useCart((s) => !!s.items[product.id]);
   const toggle = useCart((s) => s.toggle);
 
-  const src = product.thumbnail_url || product.image_url || null;
+  const src = product.image_url || null;
   const isValidImage = typeof src === "string" && src.trim().length > 0;
   const computedImageSrc = isValidImage ? src : null;
 

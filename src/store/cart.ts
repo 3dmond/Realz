@@ -2,21 +2,21 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type CartItem = {
-  id: string;
+  id: number;
   title: string;
   image_url: string;
   quantity: number;
 };
 
 type CartState = {
-  items: Record<string, CartItem>;
+  items: Record<number, CartItem>;
   add: (item: Omit<CartItem, "quantity">, qty?: number) => void;
-  remove: (id: string) => void;
+  remove: (id: number) => void;
   toggle: (item: Omit<CartItem, "quantity">) => void;
-  setQty: (id: string, qty: number) => void;
+  setQty: (id: number, qty: number) => void;
   clear: () => void;
   totalQty: () => number;
-  selectedIds: () => string[];
+  selectedIds: () => number[];
 };
 
 export const useCart = create<CartState>()(
@@ -64,7 +64,7 @@ export const useCart = create<CartState>()(
         }),
       clear: () => set({ items: {} }),
       totalQty: () => Object.values(get().items).reduce((a, b) => a + b.quantity, 0),
-      selectedIds: () => Object.keys(get().items),
+      selectedIds: () => Object.keys(get().items).map(Number),
     }),
     { name: "realz-cart" },
   ),

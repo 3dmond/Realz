@@ -9,10 +9,11 @@ import { toast } from "sonner";
 
 export default function Product() {
   const { id } = useParams<{ id: string }>();
+  const productId = Number(id);
   const { data: product, isLoading } = useQuery({
-    queryKey: ["product", id],
-    queryFn: () => fetchProduct(id!),
-    enabled: !!id,
+    queryKey: ["product", productId],
+    queryFn: () => fetchProduct(productId),
+    enabled: !isNaN(productId),
   });
   const [qty, setQty] = useState(1);
   const add = useCart((s) => s.add);
@@ -28,7 +29,7 @@ export default function Product() {
   const unit = unitPriceFor(qty);
   const tier = activeTier(qty);
 
-  const src = product.thumbnail_url || product.image_url || null;
+  const src = product.image_url || null;
   const isValidImage = typeof src === "string" && src.trim().length > 0;
   const computedImageSrc = isValidImage ? src : null;
 
