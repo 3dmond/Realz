@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Menu } from "lucide-react";
+import { Filter, Menu, X } from "lucide-react";
 import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/queries";
 import ProductCard from "@/components/ui-bits/ProductCard";
 import SectionTitle from "@/components/ui-bits/SectionTitle";
@@ -168,57 +168,117 @@ export default function Home() {
 
       {/* Category Hero Section for other pages */}
       {selectedCategory !== "ALL" && (
-        <section className="relative flex flex-col justify-center overflow-hidden py-12">
-          {/* Full-bleed background image with vibrant gradient fade */}
-          <div className="absolute inset-0 z-0 bg-muted/10">
-            <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background"></div>
-          </div>
-          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 neon-glow"></div>
+        <>
+          {/* Mobile Category Drawer Trigger */}
+          <button
+            className="md:hidden fixed top-6 left-4 z-50 rounded-md p-2 text-foreground"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open categories"
+          >
+            <Menu className="h-6 w-6 text-primary" />
+          </button>
 
-          <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8">
-            {availableSubCategories.length > 0 && (
-              <div className="flex flex-col w-full">
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full">
-                  <CategoryCard
-                    title={`All ${getCategoryName(selectedCategory)}`}
+          {/* Mobile Drawer Overlay */}
+          {isSidebarOpen && (
+            <div className="fixed inset-0 z-50 md:hidden">
+              <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+                onClick={() => setIsSidebarOpen(false)}
+              />
+              <div className="absolute left-0 top-0 h-full w-72 bg-background p-6 border-r border-border overflow-y-auto shadow-2xl">
+                <div className="flex items-center justify-between mb-8">
+                  <span className="font-black uppercase tracking-[0.2em] text-sm text-cyan-100">Categories</span>
+                  <button onClick={() => setIsSidebarOpen(false)} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <button
                     onClick={() => {
-                      setCurrentSubCategorySlug(null);
-                      setCurrentPage(1);
+                      setSelectedCategory("ALL");
+                      setIsSidebarOpen(false);
                     }}
-                  />
-                  {availableSubCategories.map((subSlug, i) => (
-                    <CategoryCard
-                      key={subSlug}
-                      title={getSubCategoryName(subSlug)}
+                    className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
+                      selectedCategory === "ALL"
+                        ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
+                        : "glass-card text-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    ALL
+                  </button>
+                  {availableCategories.map((category) => (
+                    <button
+                      key={category.id}
                       onClick={() => {
-                        setCurrentSubCategorySlug(subSlug);
+                        handleCategoryClick(category.id);
+                        setIsSidebarOpen(false);
+                      }}
+                      className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
+                        selectedCategory === category.id
+                          ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
+                          : "glass-card text-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <section className="relative flex flex-col justify-center overflow-hidden py-12 hidden md:flex">
+            {/* Full-bleed background image with vibrant gradient fade */}
+            <div className="absolute inset-0 z-0 bg-muted/10">
+              <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background"></div>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 neon-glow"></div>
+
+            <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8">
+              {availableSubCategories.length > 0 && (
+                <div className="flex flex-col w-full">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full">
+                    <CategoryCard
+                      title={`All ${getCategoryName(selectedCategory)}`}
+                      onClick={() => {
+                        setCurrentSubCategorySlug(null);
                         setCurrentPage(1);
                       }}
                     />
-                  ))}
+                    {availableSubCategories.map((subSlug, i) => (
+                      <CategoryCard
+                        key={subSlug}
+                        title={getSubCategoryName(subSlug)}
+                        onClick={() => {
+                          setCurrentSubCategorySlug(subSlug);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-8 flex justify-end w-full">
+                    <button
+                      onClick={() => {
+                        setCurrentSubCategorySlug(null);
+                        setCurrentPage(1);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors uppercase"
+                    >
+                      <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
+                        EXPLORE MORE&nbsp;
+                      </span>
+                      <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
+                        {getCategoryName(selectedCategory)} PACKS
+                      </span>
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-8 flex justify-end w-full">
-                  <button
-                    onClick={() => {
-                      setCurrentSubCategorySlug(null);
-                      setCurrentPage(1);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors uppercase"
-                  >
-                    <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
-                      EXPLORE MORE&nbsp;
-                    </span>
-                    <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
-                      {getCategoryName(selectedCategory)} PACKS
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
+              )}
+            </div>
+          </section>
+        </>
       )}
 
       {selectedCategory === "ALL" ? (
@@ -237,7 +297,7 @@ export default function Home() {
         <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Navigational Sidebar */}
-            <aside className="lg:w-64 shrink-0 flex flex-col gap-4 relative">
+            <aside className="hidden lg:flex w-64 shrink-0 flex-col gap-4 relative">
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 sticky top-24 z-10 h-fit">
                 <button
                   onClick={() => setSelectedCategory("ALL")}
@@ -270,7 +330,7 @@ export default function Home() {
               {/* Pack Asset Grid */}
               {visiblePacks.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-y-8">
+                  <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                     {paginatedPacks.map((pack) => (
                       <ProductCard key={pack.id} product={pack} />
                     ))}

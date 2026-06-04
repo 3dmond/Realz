@@ -41,13 +41,13 @@ export default function ProductCard({ product }: { product: Product }) {
           toggle({ id: product.id, title: product.title, image_url: src || "" });
         }}
         aria-label={inCart ? "Remove from selections" : "Add to selections"}
-        className={`absolute bottom-2 right-2 z-20 grid h-9 w-9 place-items-center rounded-full transition ${
+        className={`absolute bottom-2 right-2 z-20 grid h-7 w-7 sm:h-9 sm:w-9 place-items-center rounded-full transition ${
           inCart
             ? "bg-primary text-primary-foreground shadow-[0_0_18px_oklch(0.705_0.20_47/0.8)]"
             : "glass-card text-foreground hover:border-primary/60"
         }`}
       >
-        {inCart ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+        {inCart ? <Minus className="h-3 w-3 sm:h-4 sm:w-4" /> : <Plus className="h-3 w-3 sm:h-4 sm:w-4" />}
       </button>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { Menu, ShoppingBag, X } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/store/cart";
@@ -9,6 +9,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const count = useCart((s) => Object.keys(s.items).length);
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <header
@@ -16,14 +17,18 @@ export default function Header() {
       style={{ background: "oklch(0.135 0.025 265 / 0.7)" }}
     >
       <div className="mx-auto flex py-6 max-w-[1600px] items-center justify-between px-4 sm:px-8">
-        {/* Mobile menu button */}
-        <button
-          className="rounded-md p-2 text-foreground md:hidden"
-          onClick={() => setOpen(true)}
-          aria-label="Open menu"
-        >
-          <Menu className="h-6 w-6" />
-        </button>
+        {/* Mobile menu placeholder/button */}
+        <div className="md:hidden w-10 flex items-center">
+          {location.pathname !== "/" && (
+            <button
+              className="rounded-md p-2 -ml-2 text-foreground"
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          )}
+        </div>
 
         {/* Logo */}
         <Link
