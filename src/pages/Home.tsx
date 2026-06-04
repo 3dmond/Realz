@@ -43,34 +43,33 @@ export default function Home() {
   // Dynamic derivations based on Categories from the DB
   const availableCategories = useMemo(() => {
     if (!cats) return ["ALL"];
-    const uniqueNames = Array.from(new Set(cats.map((c) => c.name)));
+    const uniqueNames = Array.from(new Set(cats.map((c) => (c.name || "").trim())));
     return ["ALL", ...uniqueNames];
   }, [cats]);
 
   const availableSubCategories = useMemo(() => {
     if (selectedCategory === "ALL" || !subs) return [];
-    const matchingCat = cats?.find((c) => c.name === selectedCategory);
+    const matchingCat = cats?.find((c) => (c.name || "").trim().toLowerCase() === selectedCategory.toLowerCase());
     if (!matchingCat) return [];
     return subs.filter((s) => s.category_id === matchingCat.id).map((s) => s.slug);
   }, [selectedCategory, subs, cats]);
 
   const visiblePacks = useMemo(() => {
-    if (!dbProducts) return [];
-    
-    const targetSubCategoryId = currentSubCategorySlug
-      ? subs?.find((s) => s.slug === currentSubCategorySlug)?.id
-      : null;
-
+    if (!dbProducts || dbProducts.length === 0) return [];
+    const targetSubCategoryId = currentSubCategorySlug ? subs?.find((s) => s.slug === currentSubCategorySlug)?.id : null;
     return dbProducts.filter((pack) => {
-      const categoryMatch =
-        selectedCategory === "ALL" || pack.category?.toLowerCase() === selectedCategory.toLowerCase();
-        
-      const subCategoryMatch =
-        !currentSubCategorySlug || pack.subcategory_id === targetSubCategoryId;
-        
+      const prodCat = (pack.category || "").trim().toLowerCase();
+      const selCat = (selectedCategory || "").trim().toLowerCase();
+      const categoryMatch = selectedCategory === "ALL" || prodCat === selCat;
+      const subCategoryMatch = !currentSubCategorySlug || pack.subcategory_id === targetSubCategoryId;
       return categoryMatch && subCategoryMatch;
     });
   }, [dbProducts, selectedCategory, currentSubCategorySlug, subs]);
+
+  const featuredPacks = useMemo(() => {
+    if (!dbProducts) return [];
+    return dbProducts.filter(p => p.is_featured && p.image_url).slice(0, 3);
+  }, [dbProducts]);
 
   const ITEMS_PER_PAGE = 100;
   const totalPages = Math.ceil(visiblePacks.length / ITEMS_PER_PAGE);
@@ -132,11 +131,11 @@ export default function Home() {
 
                   {/* Featured Packs Grid */}
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    {dbProducts?.filter(p => p.is_featured).slice(0, 3).map((pack) => (
+                    {featuredPacks.map((pack) => (
                       <ProductCard key={pack.id} product={pack} />
                     ))}
                   </div>
-                  {(!dbProducts || dbProducts.filter(p => p.is_featured).length === 0) && (
+                  {featuredPacks.length === 0 && (
                     <div className="text-sm text-cyan-100/50 mt-4 text-center">No featured packs found.</div>
                   )}
 
@@ -229,7 +228,7 @@ export default function Home() {
                     key={categoryString}
                     onClick={() => setSelectedCategory(categoryString)}
                     className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
-                      selectedCategory === categoryString
+                      selectedCategory.toLowerCase() === categoryString.toLowerCase()
                         ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
                         : "glass-card text-foreground hover:border-primary/50"
                     }`}
