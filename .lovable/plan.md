@@ -39,15 +39,15 @@ Seed: ~6 categories, ~3 subcategories each, ~40 products with Unsplash thumbnail
 
 ## 4. Routes & pages
 
-| Path | File |
-|---|---|
-| `/` | `src/pages/Home.tsx` — hero, categories grid, packs grid, services masonry, featured stickers |
-| `/shop` | `src/pages/Shop.tsx` — sidebar icons, subcategory pill filters, keyword search, product grid w/ select state, pagination |
-| `/product/:id` | `src/pages/Product.tsx` — large image, metadata, quantity selector with live tier preview |
-| `/cart` | `src/pages/Cart.tsx` — line items, tiered pricing engine, Pay-on-Delivery form, success screen |
-| `/selections` | `src/pages/Selections.tsx` — 60/40 glass panels, bulk tier list, checkout accordion, gallery modal |
-| `/admin` | `src/pages/Admin.tsx` — metrics grid + orders table with status toggle |
-| `*` | `NotFound.tsx` |
+| Path           | File                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `/`            | `src/pages/Home.tsx` — hero, categories grid, packs grid, services masonry, featured stickers                            |
+| `/shop`        | `src/pages/Shop.tsx` — sidebar icons, subcategory pill filters, keyword search, product grid w/ select state, pagination |
+| `/product/:id` | `src/pages/Product.tsx` — large image, metadata, quantity selector with live tier preview                                |
+| `/cart`        | `src/pages/Cart.tsx` — line items, tiered pricing engine, Pay-on-Delivery form, success screen                           |
+| `/selections`  | `src/pages/Selections.tsx` — 60/40 glass panels, bulk tier list, checkout accordion, gallery modal                       |
+| `/admin`       | `src/pages/Admin.tsx` — metrics grid + orders table with status toggle                                                   |
+| `*`            | `NotFound.tsx`                                                                                                           |
 
 Shared: `Header` (sticky translucent, hamburger drawer on mobile, cart badge), `Footer` (pitch-black thin bar).
 

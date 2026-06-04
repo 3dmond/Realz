@@ -52,11 +52,11 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Cart */}
+        {/* Selections */}
         <button
-          onClick={() => navigate("/cart")}
+          onClick={() => navigate("/selections")}
           className="relative grid h-11 w-11 place-items-center rounded-full glass-card transition hover:border-primary/50"
-          aria-label="Cart"
+          aria-label="Selections"
         >
           <ShoppingBag className="h-5 w-5" />
           {count > 0 && (
