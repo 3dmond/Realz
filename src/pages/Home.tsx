@@ -96,9 +96,10 @@ export default function Home() {
         <section className="relative flex flex-col justify-center overflow-hidden">
           {/* Full-bleed background image with vibrant gradient fade */}
           <div className="absolute inset-0 z-0 bg-muted/10">
-            <div className="absolute inset-0 bg-gradient-to-r from-violet-950 via-fuchsia-900/60 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
           </div>
+          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 neon-glow"></div>
 
           {/* Content */}
           <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8 h-full">
@@ -171,9 +172,10 @@ export default function Home() {
         <section className="relative flex flex-col justify-center overflow-hidden py-12">
           {/* Full-bleed background image with vibrant gradient fade */}
           <div className="absolute inset-0 z-0 bg-muted/10">
-            <div className="absolute inset-0 bg-gradient-to-r from-violet-950 via-fuchsia-900/40 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background"></div>
           </div>
+          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 neon-glow"></div>
 
           <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8">
             {availableSubCategories.length > 0 && (

@@ -22,7 +22,7 @@ export default function ProductCard({ product }: { product: Product }) {
             src={computedImageSrc}
             alt={product.title}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 mix-blend-multiply bg-white rounded-xl"
           />
         ) : (
           <div className="h-full w-full bg-muted/20 animate-pulse flex flex-col items-center justify-center border-0">
