@@ -93,7 +93,7 @@ export default function Home() {
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
       {selectedCategory === "ALL" && (
-        <section className="relative flex min-h-[15vh] flex-col justify-center overflow-hidden">
+        <section className="relative flex flex-col justify-center overflow-hidden">
           {/* Full-bleed background image with vibrant gradient fade */}
           <div className="absolute inset-0 z-0 bg-muted/10">
             <div className="absolute inset-0 bg-gradient-to-r from-violet-950 via-fuchsia-900/60 to-transparent"></div>
@@ -102,18 +102,18 @@ export default function Home() {
 
           {/* Content */}
           <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8 h-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center py-6 sm:py-8 md:py-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center py-2 sm:py-3 md:py-4">
               {/* Left-aligned content */}
               <div className="max-w-xl flex flex-col justify-center">
                 <p className="text-micro text-cyan-400 drop-shadow-md">Vol. 04 — Drop 26</p>
-                <h1 className="mt-6 font-black uppercase leading-[0.85] tracking-tight text-7xl sm:text-8xl md:text-9xl text-cyan-100 drop-shadow-lg">
+                <h1 className="mt-2 font-black uppercase leading-[0.85] tracking-tight text-7xl sm:text-8xl md:text-9xl text-cyan-100 drop-shadow-lg">
                   Stuck on <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
                     Real
                   </span>
                   ness.
                 </h1>
-                <p className="mt-8 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
+                <p className="mt-3 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
                   Cinematic sticker drops — anime, tech, streetwear, minimal. Bulk pricing, pay on
                   delivery, cult quality.
                 </p>
@@ -122,7 +122,7 @@ export default function Home() {
               {/* Right-aligned Packs Grid */}
               <div className="hidden lg:flex flex-col items-end justify-center w-full">
                 <div className="w-full flex flex-col pl-4 lg:pl-16 pr-8 lg:pr-12">
-                  <h3 className="text-base font-black uppercase tracking-[0.25em] text-cyan-100 drop-shadow-md mb-6">
+                  <h3 className="text-base font-black uppercase tracking-[0.25em] text-cyan-100 drop-shadow-md mb-2">
                     Featured Packs
                   </h3>
 
@@ -136,7 +136,7 @@ export default function Home() {
                     <div className="text-sm text-cyan-100/50 mt-4 text-center">No featured packs found.</div>
                   )}
 
-                  <div className="mt-8 flex justify-end w-full">
+                  <div className="mt-3 flex justify-end w-full">
                     <button
                       onClick={() => {
                         setSelectedCategory("ALL");
@@ -215,8 +215,8 @@ export default function Home() {
       )}
 
       {selectedCategory === "ALL" ? (
-        <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8 text-center mb-8">
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
+        <section className="mx-auto w-full max-w-[1600px] px-4 pt-4 pb-8 sm:px-8 text-center mb-8">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
             {availableCategories.map((cat) => (
               <CategoryCard
                 key={cat.id}
