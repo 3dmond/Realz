@@ -115,8 +115,7 @@ export default function Home() {
                   ness.
                 </h1>
                 <p className="mt-5 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
-                  Cinematic sticker drops — anime, tech, streetwear, minimal. Bulk pricing, pay on
-                  delivery, cult quality.
+                  Bring life to your phone, laptop, car, kitchen, or home spaces. Save more when you collect more.
                 </p>
               </div>
 
