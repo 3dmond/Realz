@@ -214,10 +214,22 @@ export default function Home() {
         </section>
       )}
 
-      <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Navigational Sidebar */}
-          {selectedCategory !== "ALL" && (
+      {selectedCategory === "ALL" ? (
+        <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8 text-center mb-8">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
+            {availableCategories.map((cat) => (
+              <CategoryCard
+                key={cat.id}
+                title={cat.name}
+                onClick={() => handleCategoryClick(cat.id)}
+              />
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Navigational Sidebar */}
             <aside className="lg:w-64 shrink-0 flex flex-col gap-4 relative">
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 sticky top-24 z-10 h-fit">
                 <button
@@ -245,70 +257,48 @@ export default function Home() {
                 ))}
               </div>
             </aside>
-          )}
 
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col gap-6">
-            {selectedCategory === "ALL" && (
-              <section className="text-center mb-8">
-                <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
-                  <CategoryCard
-                    title="All Stickers"
-                    onClick={() => {
-                      setSelectedCategory("ALL");
-                      setCurrentSubCategorySlug(null);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                  />
-                  {availableCategories.map((cat) => (
-                    <CategoryCard
-                      key={cat.id}
-                      title={cat.name}
-                      onClick={() => handleCategoryClick(cat.id)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Pack Asset Grid */}
-            {visiblePacks.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-y-8">
-                  {paginatedPacks.map((pack) => (
-                    <ProductCard key={pack.id} product={pack} />
-                  ))}
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-8">
-                    {Array.from({ length: totalPages }).map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          setCurrentPage(i + 1);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        className={`w-10 h-10 rounded-full text-sm font-bold ${
-                          currentPage === i + 1
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-card hover:bg-accent"
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col gap-6">
+              {/* Pack Asset Grid */}
+              {visiblePacks.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-y-8">
+                    {paginatedPacks.map((pack) => (
+                      <ProductCard key={pack.id} product={pack} />
                     ))}
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="py-20 text-center text-muted-foreground glass-panel rounded-xl mt-4">
-                <p>No packs found matching this filter criteria.</p>
-              </div>
-            )}
+
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-8">
+                      {Array.from({ length: totalPages }).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            setCurrentPage(i + 1);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className={`w-10 h-10 rounded-full text-sm font-bold ${
+                            currentPage === i + 1
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card hover:bg-accent"
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="py-20 text-center text-muted-foreground glass-panel rounded-xl mt-4">
+                  <p>No packs found matching this filter criteria.</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }
