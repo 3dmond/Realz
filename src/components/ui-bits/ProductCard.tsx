@@ -2,17 +2,12 @@ import { Minus, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/store/cart";
 import type { Product } from "@/lib/queries";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function ProductCard({ product }: { product: Product }) {
   const inCart = useCart((s) => !!s.items[product.id]);
   const toggle = useCart((s) => s.toggle);
 
-  const computedImageSrc = product.image_url?.startsWith?.('http') 
-    ? product.image_url 
-    : product.image_url
-      ? supabase.storage.from('products').getPublicUrl(product.image_url)?.data?.publicUrl || ""
-      : "";
+  const computedImageSrc = product.image_url || null;
 
   return (
     <div
@@ -21,12 +16,16 @@ export default function ProductCard({ product }: { product: Product }) {
       }`}
     >
       <Link to={`/product/${product.id}`} className="absolute inset-0 z-0">
-        <img
-          src={computedImageSrc}
-          alt={product.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-        />
+        {computedImageSrc ? (
+          <img
+            src={computedImageSrc}
+            alt={product.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        ) : (
+          <div className="h-full w-full bg-muted/20 animate-pulse" />
+        )}
       </Link>
       <div className="img-fade absolute inset-0 pointer-events-none" />
       {inCart && <div className="absolute inset-0 bg-black/35 pointer-events-none" />}

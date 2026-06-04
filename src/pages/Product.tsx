@@ -6,7 +6,6 @@ import { fetchProduct } from "@/lib/queries";
 import { TIERS, activeTier, formatPrice, unitPriceFor } from "@/lib/pricing";
 import { useCart } from "@/store/cart";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function Product() {
   const { id } = useParams<{ id: string }>();
@@ -29,9 +28,7 @@ export default function Product() {
   const unit = unitPriceFor(qty);
   const tier = activeTier(qty);
 
-  const computedImageSrc = product.thumbnail_url?.startsWith('http') 
-    ? product.thumbnail_url 
-    : supabase.storage.from('products').getPublicUrl(product.thumbnail_url).data.publicUrl;
+  const computedImageSrc = product.image_url || null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
@@ -44,11 +41,15 @@ export default function Product() {
 
       <div className="grid gap-10 md:grid-cols-2">
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-card">
-          <img
-            src={computedImageSrc}
-            alt={product.title}
-            className="h-full w-full object-cover"
-          />
+          {computedImageSrc ? (
+            <img
+              src={computedImageSrc}
+              alt={product.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full bg-muted/20 animate-pulse" />
+          )}
           <div className="img-fade absolute inset-0" />
         </div>
 
@@ -117,7 +118,7 @@ export default function Product() {
           <button
             onClick={() => {
               add(
-                { id: product.id, title: product.title, thumbnail_url: product.thumbnail_url },
+                { id: product.id, title: product.title, image_url: product.image_url },
                 qty,
               );
               toast.success(`Added ${qty}× ${product.title}`);

@@ -157,9 +157,7 @@ export default function Selections() {
             <div className="animate-in fade-in slide-in-from-top-4 duration-300">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {paginatedItems.map((it) => {
-                  const computedImageSrc = it.thumbnail_url?.startsWith('http') 
-                    ? it.thumbnail_url 
-                    : supabase.storage.from('products').getPublicUrl(it.thumbnail_url).data.publicUrl;
+                  const computedImageSrc = it.image_url || null;
                   
                   return (
                     <div
@@ -167,12 +165,16 @@ export default function Selections() {
                       className="group relative aspect-[4/5] overflow-hidden rounded-xl bg-card border border-border transition"
                     >
                       <Link to={`/product/${it.id}`} className="absolute inset-0 z-0">
-                        <img
-                          src={computedImageSrc}
-                          alt={it.title}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
+                        {computedImageSrc ? (
+                          <img
+                            src={computedImageSrc}
+                            alt={it.title}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-muted/20 animate-pulse" />
+                        )}
                       </Link>
                     <div className="img-fade absolute inset-0 pointer-events-none" />
 

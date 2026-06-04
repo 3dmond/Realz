@@ -19,15 +19,6 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
-const CATEGORY_VISUALS: Record<string, string> = {
-  anime: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&q=80",
-  tech: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80",
-  minimalist: "https://images.unsplash.com/photo-1557672172-298e090bd0f1?w=800&q=80",
-  streetwear: "https://images.unsplash.com/photo-1520209759809-a9bcb6cb3241?w=800&q=80",
-  gaming: "https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=800&q=80",
-  nature: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",
-};
-
 export default function Home() {
   const { data: cats } = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
   const { data: subs } = useQuery({ queryKey: ["subcategories"], queryFn: fetchSubcategories });
@@ -108,12 +99,7 @@ export default function Home() {
       {selectedCategory === "ALL" && (
         <section className="relative flex min-h-[15vh] flex-col justify-center overflow-hidden">
           {/* Full-bleed background image with vibrant gradient fade */}
-          <div className="absolute inset-0 z-0">
-            <img
-              src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop"
-              alt="Sticker Hero"
-              className="h-full w-full object-cover opacity-70 mix-blend-screen"
-            />
+          <div className="absolute inset-0 z-0 bg-muted/10">
             <div className="absolute inset-0 bg-gradient-to-r from-violet-950 via-fuchsia-900/60 to-transparent"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
           </div>
@@ -150,7 +136,6 @@ export default function Home() {
                       <CategoryCard
                         key={s.id}
                         title={s.name}
-                        image={`https://images.unsplash.com/photo-15${String(20000000 + i * 4321).slice(0, 8)}?w=600&q=80`}
                         onClick={() => {
                           const matchingCat = cats?.find((c) => c.id === s.category_id);
                           if (matchingCat) setSelectedCategory(matchingCat.name);
@@ -189,12 +174,7 @@ export default function Home() {
       {selectedCategory !== "ALL" && (
         <section className="relative flex flex-col justify-center overflow-hidden py-12">
           {/* Full-bleed background image with vibrant gradient fade */}
-          <div className="absolute inset-0 z-0">
-            <img
-              src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2564&auto=format&fit=crop"
-              alt="Category Hero"
-              className="h-full w-full object-cover opacity-50 mix-blend-screen"
-            />
+          <div className="absolute inset-0 z-0 bg-muted/10">
             <div className="absolute inset-0 bg-gradient-to-r from-violet-950 via-fuchsia-900/40 to-transparent"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background"></div>
           </div>
@@ -205,7 +185,6 @@ export default function Home() {
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 w-full">
                   <CategoryCard
                     title={`All ${getCategoryName(selectedCategory)}`}
-                    image="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80"
                     onClick={() => {
                       setCurrentSubCategorySlug(null);
                       setCurrentPage(1);
@@ -215,7 +194,6 @@ export default function Home() {
                     <CategoryCard
                       key={subSlug}
                       title={getSubCategoryName(subSlug)}
-                      image={`https://images.unsplash.com/photo-15${String(30000000 + i * 4321).slice(0, 8)}?w=600&q=80`}
                       onClick={() => {
                         setCurrentSubCategorySlug(subSlug);
                         setCurrentPage(1);
@@ -278,7 +256,6 @@ export default function Home() {
                   <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 text-left">
                     <CategoryCard
                       title="All Stickers"
-                      image="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&q=80"
                       onClick={() => {
                         setSelectedCategory("ALL");
                         setCurrentSubCategorySlug(null);
@@ -291,7 +268,6 @@ export default function Home() {
                         <CategoryCard
                           key={catName}
                           title={catName}
-                          image={c ? CATEGORY_VISUALS[c.slug] ?? CATEGORY_VISUALS.anime : CATEGORY_VISUALS.anime}
                           onClick={() => handleCategoryClick(catName)}
                         />
                       );

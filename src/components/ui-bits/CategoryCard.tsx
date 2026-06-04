@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export type CategoryCardProps = {
   title: string;
-  image: string;
+  image?: string | null;
   to?: string;
   onClick?: () => void;
 };
@@ -10,12 +10,16 @@ export type CategoryCardProps = {
 export default function CategoryCard({ title, image, to, onClick }: CategoryCardProps) {
   const inner = (
     <>
-      <img
-        src={image}
-        alt={title}
-        loading="lazy"
-        className="img-fade-wrap absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-      />
+      {image ? (
+        <img
+          src={image}
+          alt={title}
+          loading="lazy"
+          className="img-fade-wrap absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-muted/20 animate-pulse" />
+      )}
       <div className="img-fade absolute inset-0" />
       <span className="text-micro absolute bottom-2 left-2 text-accent z-10">{title}</span>
     </>
