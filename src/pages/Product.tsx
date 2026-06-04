@@ -28,7 +28,9 @@ export default function Product() {
   const unit = unitPriceFor(qty);
   const tier = activeTier(qty);
 
-  const computedImageSrc = product.image_url || null;
+  const src = product.thumbnail_url || product.image_url || null;
+  const isValidImage = typeof src === "string" && src.trim().length > 0;
+  const computedImageSrc = isValidImage ? src : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
@@ -118,7 +120,7 @@ export default function Product() {
           <button
             onClick={() => {
               add(
-                { id: product.id, title: product.title, image_url: product.image_url },
+                { id: product.id, title: product.title, image_url: src || "" },
                 qty,
               );
               toast.success(`Added ${qty}× ${product.title}`);

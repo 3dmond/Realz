@@ -7,8 +7,9 @@ export default function ProductCard({ product }: { product: Product }) {
   const inCart = useCart((s) => !!s.items[product.id]);
   const toggle = useCart((s) => s.toggle);
 
-  const isValidImage = typeof product.image_url === "string" && product.image_url.trim().length > 0;
-  const computedImageSrc = isValidImage ? product.image_url : null;
+  const src = product.thumbnail_url || product.image_url || null;
+  const isValidImage = typeof src === "string" && src.trim().length > 0;
+  const computedImageSrc = isValidImage ? src : null;
 
   return (
     <div
@@ -37,7 +38,7 @@ export default function ProductCard({ product }: { product: Product }) {
       <button
         onClick={(e) => {
           e.preventDefault();
-          toggle({ id: product.id, title: product.title, image_url: product.image_url });
+          toggle({ id: product.id, title: product.title, image_url: src || "" });
         }}
         aria-label={inCart ? "Remove from selections" : "Add to selections"}
         className={`absolute bottom-2 right-2 z-20 grid h-9 w-9 place-items-center rounded-full transition ${

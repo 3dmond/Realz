@@ -63,7 +63,7 @@ export default function Home() {
 
   const featuredPacks = useMemo(() => {
     if (!dbProducts) return [];
-    return dbProducts.filter(p => p.is_featured && p.image_url).slice(0, 3);
+    return dbProducts.filter(p => p.is_featured && (p.thumbnail_url || p.image_url)).slice(0, 3);
   }, [dbProducts]);
 
   const ITEMS_PER_PAGE = 100;
