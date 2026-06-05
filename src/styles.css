@@ -39,16 +39,16 @@
   --font-display: "Archivo Black", "Inter", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
 
-  --animate-pulse-grow: pulse-grow 2s ease-in-out infinite;
+  --animate-pulse-grow: pulse-grow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 
   @keyframes pulse-grow {
     0%, 100% {
       transform: scale(1);
-      filter: drop-shadow(0 0 5px var(--color-primary-glow));
+      filter: drop-shadow(0 0 8px var(--color-primary-glow));
     }
     50% {
-      transform: scale(1.15);
-      filter: drop-shadow(0 0 20px var(--color-primary-glow));
+      transform: scale(1.08);
+      filter: drop-shadow(0 0 24px var(--color-primary-glow));
     }
   }
 }

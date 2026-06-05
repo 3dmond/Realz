@@ -112,7 +112,7 @@ export default function Home() {
                 ness.
               </h1>
               <p className="mt-6 md:mt-8 whitespace-nowrap text-[clamp(0.7rem,2vw,1.25rem)] font-bold opacity-90 text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] tracking-[0.02em] md:tracking-[0.05em] [word-spacing:0.1em] md:[word-spacing:0.25em]">
-                Bring <span className="text-primary inline-block animate-pulse-grow">life</span> to your phone, laptop, car, kitchen, and home spaces.
+                Bring <span className="text-primary inline-block animate-pulse-grow will-change-transform">life</span> to your phone, laptop, car, kitchen, and home spaces.
               </p>
             </div>
           </div>
