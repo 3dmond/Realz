@@ -86,6 +86,17 @@ export default function Home() {
     return cat ? cat.name : "Category";
   };
 
+  const getCategoryThumbnail = (categoryId: number | string) => {
+    const firstProduct = dbProducts?.find(p => p.category_id === categoryId && p.image_url);
+    return firstProduct?.image_url || null;
+  };
+
+  const getSubCategoryThumbnail = (slug: string) => {
+    const subId = subs?.find(s => s.slug === slug)?.id;
+    const firstProduct = dbProducts?.find(p => p.subcategory_id === subId && p.image_url);
+    return firstProduct?.image_url || null;
+  };
+
   const getSubCategoryName = (slug: string) => {
     return subs?.find((s) => s.slug === slug)?.name || slug;
   };
@@ -171,6 +182,7 @@ export default function Home() {
                   <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 w-full">
                     <CategoryCard
                       title={`All ${getCategoryName(selectedCategory)}`}
+                      image={getCategoryThumbnail(selectedCategory)}
                       onClick={() => {
                         setCurrentSubCategorySlug(null);
                         setCurrentPage(1);
@@ -180,6 +192,7 @@ export default function Home() {
                       <CategoryCard
                         key={subSlug}
                         title={getSubCategoryName(subSlug)}
+                        image={getSubCategoryThumbnail(subSlug)}
                         onClick={() => {
                           setCurrentSubCategorySlug(subSlug);
                           setCurrentPage(1);
@@ -279,6 +292,7 @@ export default function Home() {
               <CategoryCard
                 key={cat.id}
                 title={cat.name}
+                image={getCategoryThumbnail(cat.id)}
                 onClick={() => handleCategoryClick(cat.id)}
               />
             ))}
