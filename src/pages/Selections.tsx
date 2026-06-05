@@ -12,13 +12,13 @@ import ProductCard from "@/components/ui-bits/ProductCard";
 
 const checkoutSchema = z.object({
   customer_name: z.string().trim().min(2).max(100),
-  phone_number: z
+  customer_phone: z
     .string()
     .trim()
     .min(6)
     .max(20)
     .regex(/^[+\d\s\-()]+$/, "Invalid phone number"),
-  delivery_address: z.string().trim().min(8).max(500),
+  delivery_place: z.string().trim().min(8).max(500),
 });
 
 export default function Selections() {
@@ -35,7 +35,7 @@ export default function Selections() {
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{ phone: string } | null>(null);
-  const [form, setForm] = useState({ customer_name: "", phone_number: "", delivery_address: "" });
+  const [form, setForm] = useState({ customer_name: "", customer_phone: "", delivery_place: "" });
   const [showGrid, setShowGrid] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
@@ -63,26 +63,36 @@ export default function Selections() {
       const { data: order, error } = await supabase
         .from("orders")
         .insert({
-          ...parsed.data,
-          total_quantity: totalQty,
+          customer_name: parsed.data.customer_name,
+          customer_phone: parsed.data.customer_phone,
+          delivery_place: parsed.data.delivery_place,
           total_price: total,
-          status: "Pending Call",
         })
         .select()
         .single();
+      
+      console.log("Order submission response:", { order, error });
+      
       if (error) throw error;
 
-      const rows = items.map((it) => ({
-        order_id: order.id,
-        product_id: it.id as any,
-        quantity: it.quantity,
-        calculated_price: +(it.quantity * unit).toFixed(2),
-      }));
-      const { error: itemsErr } = await supabase.from("order_items").insert(rows);
-      if (itemsErr) throw itemsErr;
+      if (order) {
+        const orderItems = items.map((it) => ({
+          order_id: order.id,
+          product_id: it.id,
+          quantity: it.quantity,
+          unit_price: unit,
+        }));
+
+        const { error: itemsErr } = await supabase
+          .from("order_items")
+          .insert(orderItems as any);
+
+        if (itemsErr) throw itemsErr;
+      }
 
       clear();
-      setSuccess({ phone: parsed.data.phone_number });
+      localStorage.removeItem("realz-cart");
+      setSuccess({ phone: parsed.data.customer_phone });
     } catch (err) {
       console.error(err);
       toast.error("Could not place order. Please try again.");
@@ -283,8 +293,8 @@ export default function Selections() {
                 PHONE NUMBER
               </label>
               <Input
-                value={form.phone_number}
-                onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
+                value={form.customer_phone}
+                onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
                 className="mt-1 h-12 bg-white/5 border-border/50 focus-visible:ring-primary rounded-xl"
                 placeholder="+254..."
                 inputMode="tel"
@@ -295,8 +305,8 @@ export default function Selections() {
                 DELIVERY ADDRESS
               </label>
               <Textarea
-                value={form.delivery_address}
-                onChange={(e) => setForm({ ...form, delivery_address: e.target.value })}
+                value={form.delivery_place}
+                onChange={(e) => setForm({ ...form, delivery_place: e.target.value })}
                 className="mt-1 bg-white/5 border-border/50 focus-visible:ring-primary rounded-xl p-4"
                 placeholder="Area, building, house number..."
                 rows={3}
