@@ -60,12 +60,12 @@ export default function Header() {
         {/* Selections */}
         <button
           onClick={() => navigate("/selections")}
-          className="relative grid h-9 w-9 place-items-center rounded-full glass-card transition hover:border-primary/50"
+          className="relative grid h-14 w-14 place-items-center rounded-full glass-card transition hover:border-primary/50"
           aria-label="Selections"
         >
-          <ShoppingBag className="h-4 w-4" />
+          <ShoppingBag className="h-8 w-8" />
           {count > 0 && (
-            <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-[0_0_12px_oklch(0.705_0.20_47/0.8)]">
+            <span className="absolute -right-1 -top-1 grid h-6 w-6 place-items-center rounded-full bg-primary text-[11px] font-black text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]">
               {count}
             </span>
           )}
