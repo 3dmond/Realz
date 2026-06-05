@@ -16,7 +16,7 @@ export default function Header() {
       className="sticky top-0 z-40 border-b border-border/50 backdrop-blur-xl"
       style={{ background: "oklch(0.135 0.025 265 / 0.7)" }}
     >
-      <div className="mx-auto flex py-6 max-w-[1600px] items-center justify-between px-4 sm:px-8">
+      <div className="mx-auto flex py-4 max-w-[1600px] items-center justify-between px-4 sm:px-8">
         {/* Mobile menu placeholder/button */}
         <div className="md:hidden w-10 flex items-center">
           {location.pathname !== "/" && (
@@ -37,7 +37,7 @@ export default function Header() {
             setOpen(false);
             window.dispatchEvent(new CustomEvent("reset-home"));
           }}
-          className="realz-logo text-7xl sm:text-8xl md:text-9xl leading-[0.85] tracking-tight text-white drop-shadow-[0_0_15px_oklch(0.705_0.20_47/0.5)]"
+          className="realz-logo text-5xl sm:text-6xl md:text-7xl leading-[0.85] tracking-tight text-white drop-shadow-[0_0_15px_oklch(0.705_0.20_47/0.5)]"
         >
           Rea<span className="lz text-primary">lz</span>
         </Link>
@@ -60,12 +60,12 @@ export default function Header() {
         {/* Selections */}
         <button
           onClick={() => navigate("/selections")}
-          className="relative grid h-11 w-11 place-items-center rounded-full glass-card transition hover:border-primary/50"
+          className="relative grid h-9 w-9 place-items-center rounded-full glass-card transition hover:border-primary/50"
           aria-label="Selections"
         >
-          <ShoppingBag className="h-5 w-5" />
+          <ShoppingBag className="h-4 w-4" />
           {count > 0 && (
-            <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-primary text-[10px] font-black text-primary-foreground shadow-[0_0_12px_oklch(0.705_0.20_47/0.8)]">
+            <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-[0_0_12px_oklch(0.705_0.20_47/0.8)]">
               {count}
             </span>
           )}
