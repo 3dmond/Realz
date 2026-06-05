@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/queries";
 import ProductCard from "@/components/ui-bits/ProductCard";
@@ -10,13 +11,25 @@ export default function Home() {
   const { data: subs } = useQuery({ queryKey: ["subcategories"], queryFn: fetchSubcategories });
   const { data: dbProducts } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string | number>("ALL");
   const [currentSubCategorySlug, setCurrentSubCategorySlug] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
+  // Sync state with URL params
+  useEffect(() => {
+    const catParam = searchParams.get("category");
+    if (catParam) {
+      setSelectedCategory(isNaN(Number(catParam)) ? catParam : Number(catParam));
+    } else {
+      setSelectedCategory("ALL");
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const handleReset = () => {
+      setSearchParams({});
       setSelectedCategory("ALL");
       setCurrentSubCategorySlug(null);
       setCurrentPage(1);
