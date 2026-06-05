@@ -40,16 +40,13 @@ export default function Header() {
       <div className="mx-auto flex py-4 max-w-[1600px] items-center justify-between px-4 sm:px-8">
         {/* 1. Mobile Burger Menu Trigger - Absolute top-level flex row, decoupled from drawer */}
         <div className="md:hidden w-10 flex items-center">
-          {/* 2. Condition: Hidden ONLY on root homepage, rendered on all sub-pages/views */}
-          {(location.pathname !== "/" || location.search !== "") && (
-            <button
-              onClick={() => setOpen(true)}
-              className="relative z-50 pointer-events-auto rounded-md p-2 -ml-2 text-foreground cursor-pointer transition-colors hover:text-primary"
-              aria-label="Open menu"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
-          )}
+          <button
+            onClick={() => setOpen(true)}
+            className="relative z-50 pointer-events-auto rounded-md p-2 -ml-2 text-foreground cursor-pointer transition-colors hover:text-primary"
+            aria-label="Open menu"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
         </div>
 
         {/* Logo */}
