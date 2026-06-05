@@ -1,23 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/queries";
 import ProductCard from "@/components/ui-bits/ProductCard";
-import SectionTitle from "@/components/ui-bits/SectionTitle";
 import CategoryCard from "@/components/ui-bits/CategoryCard";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 
 export default function Home() {
   const { data: cats } = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
@@ -61,11 +47,6 @@ export default function Home() {
     });
   }, [dbProducts, selectedCategory, currentSubCategorySlug, subs]);
 
-  const featuredPacks = useMemo(() => {
-    if (!dbProducts) return [];
-    return dbProducts.filter(p => p.is_featured && p.image_url).slice(0, 3);
-  }, [dbProducts]);
-
   const ITEMS_PER_PAGE = 100;
   const totalPages = Math.ceil(visiblePacks.length / ITEMS_PER_PAGE);
   const paginatedPacks = useMemo(() => {
@@ -104,10 +85,16 @@ export default function Home() {
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
       {/* Dynamic Hero Section - Sticky reveal base */}
-      <section className={`sticky top-16 z-0 w-full flex flex-col justify-center overflow-hidden transition-all duration-300 ease-out ${selectedCategory === 'ALL' ? 'py-12 md:py-20' : 'py-2 md:py-4'}`}>
-        {/* Full-bleed background image with vibrant gradient fade */}
-        <div className="absolute inset-0 z-0 bg-muted/10">
-          <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
+      <section className={`sticky top-16 z-0 w-full flex flex-col justify-center overflow-hidden transition-all duration-300 ease-out ${selectedCategory === 'ALL' ? 'py-12 md:py-24' : 'py-2 md:py-4'}`}>
+        {/* Layered Background Effect */}
+        <div className="absolute inset-0 z-0 bg-neutral-950">
+          {/* Layer 1: Glowing Neon Core */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.15),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.15),transparent_40%),radial-gradient(circle_at_center,rgba(236,72,153,0.1),transparent_50%)] animate-pulse [animation-duration:8s]"></div>
+          
+          {/* Layer 2: Texture Overlay */}
+          <div className="absolute inset-0 bg-[url('/assets/sticker-bg-dark.jpg')] bg-cover bg-center mix-blend-overlay opacity-30"></div>
+          
+          {/* Ambient Fades */}
           <div className={`absolute inset-0 bg-gradient-to-t from-background ${selectedCategory === 'ALL' ? 'via-background/40' : 'via-background/60'} to-transparent`}></div>
         </div>
         <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 neon-glow"></div>
@@ -115,62 +102,18 @@ export default function Home() {
         {/* Content */}
         <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8 h-full">
           {/* Hero Branding - only for ALL */}
-          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 items-center ${selectedCategory === 'ALL' ? '' : 'hidden'}`}>
-            {/* Left-aligned content */}
-            <div className="max-w-xl flex flex-col justify-center">
-              <h1 className="mt-2 font-black uppercase leading-[1.05] tracking-tight text-5xl sm:text-6xl md:text-7xl text-cyan-100 drop-shadow-lg">
+          <div className={`flex flex-col items-center text-center ${selectedCategory === 'ALL' ? '' : 'hidden'}`}>
+            <div className="max-w-3xl flex flex-col justify-center items-center">
+              <h1 className="mt-2 font-black uppercase leading-[1.05] tracking-tight text-6xl sm:text-7xl md:text-8xl text-cyan-100 drop-shadow-[0_0_30px_rgba(34,211,238,0.4)]">
                 Stuck on <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
                   Real
                 </span>
                 ness.
               </h1>
-              <p className="mt-5 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
+              <p className="mt-6 text-balance text-lg font-medium opacity-90 sm:text-xl text-fuchsia-200 drop-shadow-md">
                 Bring life to your phone, laptop, car, kitchen, or home spaces. Save more when you collect more.
               </p>
-            </div>
-
-            {/* Right-aligned Packs Grid */}
-            <div className="hidden lg:flex flex-col items-end justify-center w-full">
-              <div className="w-full flex flex-col pl-4 lg:pl-16 pr-8 lg:pr-12">
-                <h3 className="text-base font-black uppercase tracking-[0.25em] text-cyan-100 drop-shadow-md mb-2">
-                  Featured Packs
-                </h3>
-
-                {/* Featured Packs Grid */}
-                <div className="grid grid-cols-3 gap-4 w-full">
-                  {featuredPacks.map((pack) => (
-                    <ProductCard key={pack.id} product={pack} />
-                  ))}
-                </div>
-                {featuredPacks.length === 0 && (
-                  <div className="grid grid-cols-3 gap-4 w-full opacity-20">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="aspect-[4/5] rounded-xl bg-card border border-border animate-pulse flex items-center justify-center">
-                        <span className="text-[10px] tracking-widest font-black text-muted-foreground/40">DROP {i+1}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-3 flex justify-end w-full">
-                  <button
-                    onClick={() => {
-                      setSelectedCategory("ALL");
-                      setCurrentSubCategorySlug(null);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors"
-                  >
-                    <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
-                      EXPLORE&nbsp;
-                    </span>
-                    <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
-                      MORE
-                    </span>
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
