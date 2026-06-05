@@ -39,9 +39,9 @@ export default function Header() {
       style={{ background: "oklch(0.135 0.025 265 / 0.7)" }}
     >
       <div className="mx-auto flex py-4 max-w-[1600px] items-center justify-between px-4 sm:px-8">
-        {/* Mobile menu - Contextual Visibility */}
+        {/* Mobile menu - Always Rendered in Layout, Contextually Visible */}
         <div className="md:hidden w-10 flex items-center">
-          {!isHomePage && (
+          {(location.pathname !== "/" || location.search !== "") && (
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <button
@@ -80,7 +80,7 @@ export default function Header() {
                           setOpen(false);
                         }}
                         className={`relative z-50 pointer-events-auto flex items-center px-4 py-3 rounded-xl text-lg font-black uppercase tracking-tight transition-colors ${
-                          location.pathname === "/" ? "text-primary bg-primary/10" : "text-foreground hover:bg-accent/50"
+                          location.pathname === "/" && location.search === "" ? "text-primary bg-primary/10" : "text-foreground hover:bg-accent/50"
                         }`}
                       >
                         All Stickers

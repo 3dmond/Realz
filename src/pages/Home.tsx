@@ -182,67 +182,6 @@ export default function Home() {
 
       {/* Main Content Wrapper - Slides over Hero */}
       <div className="relative z-10 bg-background pt-6 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] rounded-t-3xl transition-all duration-300 ease-out">
-        {/* Mobile Category Drawer Trigger and Overlay */}
-        {selectedCategory !== "ALL" && (
-          <>
-            <button
-              className="md:hidden fixed top-6 left-4 z-50 rounded-md p-2 text-foreground"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label="Open categories"
-            >
-              <Menu className="h-6 w-6 text-primary" />
-            </button>
-
-            {isSidebarOpen && (
-              <div className="fixed inset-0 z-50 md:hidden">
-                <div
-                  className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-                  onClick={() => setIsSidebarOpen(false)}
-                />
-                <div className="absolute left-0 top-0 h-full w-72 bg-background p-6 border-r border-border overflow-y-auto shadow-2xl">
-                  <div className="flex items-center justify-between mb-8">
-                    <span className="font-black uppercase tracking-[0.2em] text-sm text-cyan-100">Categories</span>
-                    <button onClick={() => setIsSidebarOpen(false)} className="text-muted-foreground hover:text-foreground">
-                      <X className="h-6 w-6" />
-                    </button>
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    <button
-                      onClick={() => {
-                        setSelectedCategory("ALL");
-                        setIsSidebarOpen(false);
-                      }}
-                      className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
-                        selectedCategory === "ALL"
-                          ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
-                          : "glass-card text-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      ALL
-                    </button>
-                    {availableCategories.map((category) => (
-                      <button
-                        key={category.id}
-                        onClick={() => {
-                          handleCategoryClick(category.id);
-                          setIsSidebarOpen(false);
-                        }}
-                        className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
-                          selectedCategory === category.id
-                            ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
-                            : "glass-card text-foreground hover:border-primary/50"
-                        }`}
-                      >
-                        {category.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
         {selectedCategory === "ALL" ? (
           <section className="mx-auto w-full max-w-[1600px] px-4 pt-4 pb-8 sm:px-8 text-center mb-8">
             <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 text-left">
