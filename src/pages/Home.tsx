@@ -103,8 +103,8 @@ export default function Home() {
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
-      {/* Dynamic Hero Section */}
-      <section className={`relative flex flex-col justify-center overflow-hidden transition-all duration-200 ${selectedCategory === 'ALL' ? 'py-12 md:py-20' : 'py-2 md:py-4'}`}>
+      {/* Dynamic Hero Section - Sticky reveal base */}
+      <section className={`sticky top-16 z-0 w-full flex flex-col justify-center overflow-hidden transition-all duration-300 ease-out ${selectedCategory === 'ALL' ? 'py-12 md:py-20' : 'py-2 md:py-4'}`}>
         {/* Full-bleed background image with vibrant gradient fade */}
         <div className="absolute inset-0 z-0 bg-muted/10">
           <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
@@ -224,36 +224,90 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Mobile Category Drawer Trigger and Overlay */}
-      {selectedCategory !== "ALL" && (
-        <>
-          <button
-            className="md:hidden fixed top-6 left-4 z-50 rounded-md p-2 text-foreground"
-            onClick={() => setIsSidebarOpen(true)}
-            aria-label="Open categories"
-          >
-            <Menu className="h-6 w-6 text-primary" />
-          </button>
+      {/* Main Content Wrapper - Slides over Hero */}
+      <div className="relative z-10 bg-background pt-6 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] rounded-t-3xl transition-all duration-300 ease-out">
+        {/* Mobile Category Drawer Trigger and Overlay */}
+        {selectedCategory !== "ALL" && (
+          <>
+            <button
+              className="md:hidden fixed top-6 left-4 z-50 rounded-md p-2 text-foreground"
+              onClick={() => setIsSidebarOpen(true)}
+              aria-label="Open categories"
+            >
+              <Menu className="h-6 w-6 text-primary" />
+            </button>
 
-          {isSidebarOpen && (
-            <div className="fixed inset-0 z-50 md:hidden">
-              <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-                onClick={() => setIsSidebarOpen(false)}
-              />
-              <div className="absolute left-0 top-0 h-full w-72 bg-background p-6 border-r border-border overflow-y-auto shadow-2xl">
-                <div className="flex items-center justify-between mb-8">
-                  <span className="font-black uppercase tracking-[0.2em] text-sm text-cyan-100">Categories</span>
-                  <button onClick={() => setIsSidebarOpen(false)} className="text-muted-foreground hover:text-foreground">
-                    <X className="h-6 w-6" />
-                  </button>
+            {isSidebarOpen && (
+              <div className="fixed inset-0 z-50 md:hidden">
+                <div
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+                  onClick={() => setIsSidebarOpen(false)}
+                />
+                <div className="absolute left-0 top-0 h-full w-72 bg-background p-6 border-r border-border overflow-y-auto shadow-2xl">
+                  <div className="flex items-center justify-between mb-8">
+                    <span className="font-black uppercase tracking-[0.2em] text-sm text-cyan-100">Categories</span>
+                    <button onClick={() => setIsSidebarOpen(false)} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory("ALL");
+                        setIsSidebarOpen(false);
+                      }}
+                      className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
+                        selectedCategory === "ALL"
+                          ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
+                          : "glass-card text-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      ALL
+                    </button>
+                    {availableCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => {
+                          handleCategoryClick(category.id);
+                          setIsSidebarOpen(false);
+                        }}
+                        className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
+                          selectedCategory === category.id
+                            ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
+                            : "glass-card text-foreground hover:border-primary/50"
+                        }`}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-col gap-4">
+              </div>
+            )}
+          </>
+        )}
+
+        {selectedCategory === "ALL" ? (
+          <section className="mx-auto w-full max-w-[1600px] px-4 pt-4 pb-8 sm:px-8 text-center mb-8">
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 text-left">
+              {availableCategories.map((cat) => (
+                <CategoryCard
+                  key={cat.id}
+                  title={cat.name}
+                  image={getCategoryThumbnail(cat.id)}
+                  onClick={() => handleCategoryClick(cat.id)}
+                />
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Navigational Sidebar */}
+              <aside className="hidden lg:flex w-64 shrink-0 flex-col gap-4 relative">
+                <div className="flex flex-row flex-wrap lg:flex-col gap-2 sticky top-24 z-10 h-fit">
                   <button
-                    onClick={() => {
-                      setSelectedCategory("ALL");
-                      setIsSidebarOpen(false);
-                    }}
+                    onClick={() => setSelectedCategory("ALL")}
                     className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
                       selectedCategory === "ALL"
                         ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
@@ -265,10 +319,7 @@ export default function Home() {
                   {availableCategories.map((category) => (
                     <button
                       key={category.id}
-                      onClick={() => {
-                        handleCategoryClick(category.id);
-                        setIsSidebarOpen(false);
-                      }}
+                      onClick={() => handleCategoryClick(category.id)}
                       className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
                         selectedCategory === category.id
                           ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
@@ -279,98 +330,50 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+              </aside>
 
-      {selectedCategory === "ALL" ? (
-        <section className="mx-auto w-full max-w-[1600px] px-4 pt-4 pb-8 sm:px-8 text-center mb-8">
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 text-left">
-            {availableCategories.map((cat) => (
-              <CategoryCard
-                key={cat.id}
-                title={cat.name}
-                image={getCategoryThumbnail(cat.id)}
-                onClick={() => handleCategoryClick(cat.id)}
-              />
-            ))}
-          </div>
-        </section>
-      ) : (
-        <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Navigational Sidebar */}
-            <aside className="hidden lg:flex w-64 shrink-0 flex-col gap-4 relative">
-              <div className="flex flex-row flex-wrap lg:flex-col gap-2 sticky top-24 z-10 h-fit">
-                <button
-                  onClick={() => setSelectedCategory("ALL")}
-                  className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
-                    selectedCategory === "ALL"
-                      ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
-                      : "glass-card text-foreground hover:border-primary/50"
-                  }`}
-                >
-                  ALL
-                </button>
-                {availableCategories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => handleCategoryClick(category.id)}
-                    className={`text-left px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-all rounded-lg ${
-                      selectedCategory === category.id
-                        ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
-                        : "glass-card text-foreground hover:border-primary/50"
-                    }`}
-                  >
-                    {category.name}
-                  </button>
-                ))}
-              </div>
-            </aside>
-
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col gap-6">
-              {/* Pack Asset Grid */}
-              {visiblePacks.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                    {paginatedPacks.map((pack) => (
-                      <ProductCard key={pack.id} product={pack} />
-                    ))}
-                  </div>
-
-                  {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-8">
-                      {Array.from({ length: totalPages }).map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            setCurrentPage(i + 1);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }}
-                          className={`w-10 h-10 rounded-full text-sm font-bold ${
-                            currentPage === i + 1
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-card hover:bg-accent"
-                          }`}
-                        >
-                          {i + 1}
-                        </button>
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col gap-6">
+                {/* Pack Asset Grid */}
+                {visiblePacks.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+                      {paginatedPacks.map((pack) => (
+                        <ProductCard key={pack.id} product={pack} />
                       ))}
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="py-20 text-center text-muted-foreground glass-panel rounded-xl mt-4">
-                  <p>No packs found matching this filter criteria.</p>
-                </div>
-              )}
+
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 mt-8">
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setCurrentPage(i + 1);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            className={`w-10 h-10 rounded-full text-sm font-bold ${
+                              currentPage === i + 1
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-card hover:bg-accent"
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-20 text-center text-muted-foreground glass-panel rounded-xl mt-4">
+                    <p>No packs found matching this filter criteria.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }
