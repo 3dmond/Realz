@@ -92,7 +92,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.15),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.15),transparent_40%),radial-gradient(circle_at_center,rgba(236,72,153,0.1),transparent_50%)] animate-pulse [animation-duration:8s]"></div>
           
           {/* Layer 2: Texture Overlay */}
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1549887534-1541e9326642?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center bg-no-repeat opacity-55 mix-blend-screen saturate-150 contrast-110"></div>
+          <div className="absolute inset-0 bg-[url('/grafitti.jpg')] bg-cover bg-center bg-no-repeat opacity-55 mix-blend-screen saturate-150 contrast-110"></div>
           
           {/* Ambient Fades */}
           <div className={`absolute inset-0 bg-gradient-to-t from-background ${selectedCategory === 'ALL' ? 'via-background/40' : 'via-background/60'} to-transparent`}></div>
