@@ -112,7 +112,7 @@ export default function Home() {
                 ness.
               </h1>
               <p className="mt-6 text-balance text-lg font-bold opacity-90 sm:text-xl text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-                Bring life to your phone, laptop, car, kitchen, and home spaces.
+                Bring <span className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">life</span> to your phone, laptop, car, kitchen, and home spaces.
               </p>
             </div>
           </div>
