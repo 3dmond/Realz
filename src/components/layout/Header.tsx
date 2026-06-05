@@ -41,7 +41,7 @@ export default function Header() {
         {/* 1. Mobile Burger Menu Trigger - Absolute top-level flex row, decoupled from drawer */}
         <div className="md:hidden w-10 flex items-center">
           {/* 2. Condition: Hidden ONLY on root homepage, rendered on all sub-pages/views */}
-          {location.pathname !== "/" && (
+          {(location.pathname !== "/" || location.search !== "") && (
             <button
               onClick={() => setOpen(true)}
               className="relative z-50 pointer-events-auto rounded-md p-2 -ml-2 text-foreground cursor-pointer transition-colors hover:text-primary"
