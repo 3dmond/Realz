@@ -104,14 +104,14 @@ export default function Home() {
           {/* Hero Branding - only for ALL */}
           <div className={`flex flex-col items-center text-center ${selectedCategory === 'ALL' ? '' : 'hidden'}`}>
             <div className="max-w-3xl flex flex-col justify-center items-center">
-              <h1 className="mt-2 font-black uppercase leading-[1.05] tracking-tight text-6xl sm:text-7xl md:text-8xl text-cyan-100 drop-shadow-[0_0_30px_rgba(34,211,238,0.4)]">
-                Stuck on <br />
+              <h1 className="mt-2 font-black uppercase leading-tight tracking-[0.2em] text-5xl sm:text-6xl md:text-7xl text-cyan-100 drop-shadow-[0_0_30px_rgba(34,211,238,0.4)] whitespace-nowrap [word-spacing:0.4em]">
+                Stuck on&nbsp;
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
                   Real
                 </span>
                 ness.
               </h1>
-              <p className="mt-6 text-balance text-lg font-bold opacity-90 sm:text-xl text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
+              <p className="mt-8 whitespace-nowrap text-lg font-bold opacity-90 sm:text-xl text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] tracking-[0.05em] [word-spacing:0.25em]">
                 Bring <span className="text-primary inline-block animate-pulse-grow">life</span> to your phone, laptop, car, kitchen, and home spaces.
               </p>
             </div>
