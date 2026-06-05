@@ -92,83 +92,128 @@ export default function Home() {
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
-      {selectedCategory === "ALL" && (
-        <section className="relative flex flex-col justify-center overflow-hidden">
-          {/* Full-bleed background image with vibrant gradient fade */}
-          <div className="absolute inset-0 z-0 bg-muted/10">
-            <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
-          </div>
-          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 neon-glow"></div>
+      {/* Dynamic Hero Section */}
+      <section className={`relative flex flex-col justify-center overflow-hidden transition-all duration-200 ${selectedCategory === 'ALL' ? 'py-12 md:py-20' : 'py-2 md:py-4'}`}>
+        {/* Full-bleed background image with vibrant gradient fade */}
+        <div className="absolute inset-0 z-0 bg-muted/10">
+          <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
+          <div className={`absolute inset-0 bg-gradient-to-t from-background ${selectedCategory === 'ALL' ? 'via-background/40' : 'via-background/60'} to-transparent`}></div>
+        </div>
+        <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 neon-glow"></div>
 
-          {/* Content */}
-          <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8 h-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center py-4 md:py-6">
-              {/* Left-aligned content */}
-              <div className="max-w-xl flex flex-col justify-center">
-                <h1 className="mt-2 font-black uppercase leading-[1.05] tracking-tight text-5xl sm:text-6xl md:text-7xl text-cyan-100 drop-shadow-lg">
-                  Stuck on <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
-                    Real
-                  </span>
-                  ness.
-                </h1>
-                <p className="mt-5 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
-                  Bring life to your phone, laptop, car, kitchen, or home spaces. Save more when you collect more.
-                </p>
-              </div>
+        {/* Content */}
+        <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8 h-full">
+          {/* Hero Branding - only for ALL */}
+          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 items-center ${selectedCategory === 'ALL' ? '' : 'hidden'}`}>
+            {/* Left-aligned content */}
+            <div className="max-w-xl flex flex-col justify-center">
+              <h1 className="mt-2 font-black uppercase leading-[1.05] tracking-tight text-5xl sm:text-6xl md:text-7xl text-cyan-100 drop-shadow-lg">
+                Stuck on <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_25px_rgba(34,211,238,0.7)]">
+                  Real
+                </span>
+                ness.
+              </h1>
+              <p className="mt-5 text-balance text-base font-medium opacity-90 sm:text-lg text-fuchsia-200 drop-shadow-md">
+                Bring life to your phone, laptop, car, kitchen, or home spaces. Save more when you collect more.
+              </p>
+            </div>
 
-              {/* Right-aligned Packs Grid */}
-              <div className="hidden lg:flex flex-col items-end justify-center w-full">
-                <div className="w-full flex flex-col pl-4 lg:pl-16 pr-8 lg:pr-12">
-                  <h3 className="text-base font-black uppercase tracking-[0.25em] text-cyan-100 drop-shadow-md mb-2">
-                    Featured Packs
-                  </h3>
+            {/* Right-aligned Packs Grid */}
+            <div className="hidden lg:flex flex-col items-end justify-center w-full">
+              <div className="w-full flex flex-col pl-4 lg:pl-16 pr-8 lg:pr-12">
+                <h3 className="text-base font-black uppercase tracking-[0.25em] text-cyan-100 drop-shadow-md mb-2">
+                  Featured Packs
+                </h3>
 
-                  {/* Featured Packs Grid */}
-                  <div className="grid grid-cols-3 gap-4 w-full">
-                    {featuredPacks.map((pack) => (
-                      <ProductCard key={pack.id} product={pack} />
+                {/* Featured Packs Grid */}
+                <div className="grid grid-cols-3 gap-4 w-full">
+                  {featuredPacks.map((pack) => (
+                    <ProductCard key={pack.id} product={pack} />
+                  ))}
+                </div>
+                {featuredPacks.length === 0 && (
+                  <div className="grid grid-cols-3 gap-4 w-full opacity-20">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="aspect-[4/5] rounded-xl bg-card border border-border animate-pulse flex items-center justify-center">
+                        <span className="text-[10px] tracking-widest font-black text-muted-foreground/40">DROP {i+1}</span>
+                      </div>
                     ))}
                   </div>
-                  {featuredPacks.length === 0 && (
-                    <div className="grid grid-cols-3 gap-4 w-full opacity-20">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="aspect-[4/5] rounded-xl bg-card border border-border animate-pulse flex items-center justify-center">
-                          <span className="text-[10px] tracking-widest font-black text-muted-foreground/40">DROP {i+1}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                )}
 
-                  <div className="mt-3 flex justify-end w-full">
-                    <button
-                      onClick={() => {
-                        setSelectedCategory("ALL");
-                        setCurrentSubCategorySlug(null);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors"
-                    >
-                      <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
-                        EXPLORE&nbsp;
-                      </span>
-                      <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
-                        MORE
-                      </span>
-                    </button>
-                  </div>
+                <div className="mt-3 flex justify-end w-full">
+                  <button
+                    onClick={() => {
+                      setSelectedCategory("ALL");
+                      setCurrentSubCategorySlug(null);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors"
+                  >
+                    <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
+                      EXPLORE&nbsp;
+                    </span>
+                    <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
+                      MORE
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        </section>
-      )}
 
-      {/* Category Hero Section for other pages */}
+          {/* Subcategories - only for NOT ALL and only for MD+ */}
+          {selectedCategory !== "ALL" && (
+            <div className="hidden md:flex flex-col w-full">
+              {availableSubCategories.length > 0 && (
+                <div className="flex flex-col w-full">
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 w-full">
+                    <CategoryCard
+                      title={`All ${getCategoryName(selectedCategory)}`}
+                      onClick={() => {
+                        setCurrentSubCategorySlug(null);
+                        setCurrentPage(1);
+                      }}
+                    />
+                    {availableSubCategories.map((subSlug, i) => (
+                      <CategoryCard
+                        key={subSlug}
+                        title={getSubCategoryName(subSlug)}
+                        onClick={() => {
+                          setCurrentSubCategorySlug(subSlug);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-8 flex justify-end w-full">
+                    <button
+                      onClick={() => {
+                        setCurrentSubCategorySlug(null);
+                        setCurrentPage(1);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors uppercase"
+                    >
+                      <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
+                        EXPLORE MORE&nbsp;
+                      </span>
+                      <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
+                        {getCategoryName(selectedCategory)} PACKS
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Mobile Category Drawer Trigger and Overlay */}
       {selectedCategory !== "ALL" && (
         <>
-          {/* Mobile Category Drawer Trigger */}
           <button
             className="md:hidden fixed top-6 left-4 z-50 rounded-md p-2 text-foreground"
             onClick={() => setIsSidebarOpen(true)}
@@ -177,7 +222,6 @@ export default function Home() {
             <Menu className="h-6 w-6 text-primary" />
           </button>
 
-          {/* Mobile Drawer Overlay */}
           {isSidebarOpen && (
             <div className="fixed inset-0 z-50 md:hidden">
               <div
@@ -225,58 +269,6 @@ export default function Home() {
               </div>
             </div>
           )}
-
-          <section className="relative flex flex-col justify-center overflow-hidden py-12 hidden md:flex">
-            {/* Full-bleed background image with vibrant gradient fade */}
-            <div className="absolute inset-0 z-0 bg-muted/10">
-              <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-violet-950/40 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background"></div>
-            </div>
-            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 neon-glow"></div>
-
-            <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8">
-              {availableSubCategories.length > 0 && (
-                <div className="flex flex-col w-full">
-                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 w-full">
-                    <CategoryCard
-                      title={`All ${getCategoryName(selectedCategory)}`}
-                      onClick={() => {
-                        setCurrentSubCategorySlug(null);
-                        setCurrentPage(1);
-                      }}
-                    />
-                    {availableSubCategories.map((subSlug, i) => (
-                      <CategoryCard
-                        key={subSlug}
-                        title={getSubCategoryName(subSlug)}
-                        onClick={() => {
-                          setCurrentSubCategorySlug(subSlug);
-                          setCurrentPage(1);
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-8 flex justify-end w-full">
-                    <button
-                      onClick={() => {
-                        setCurrentSubCategorySlug(null);
-                        setCurrentPage(1);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className="group explore-underline text-micro-sm inline-flex items-baseline gap-1 transition-colors uppercase"
-                    >
-                      <span className="text-white group-hover:text-orange-500 transition-colors duration-300">
-                        EXPLORE MORE&nbsp;
-                      </span>
-                      <span className="text-orange-500 group-hover:text-white transition-colors duration-300">
-                        {getCategoryName(selectedCategory)} PACKS
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
         </>
       )}
 
