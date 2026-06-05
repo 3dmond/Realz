@@ -85,7 +85,7 @@ export default function Home() {
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
       {/* Dynamic Hero Section - Sticky reveal base */}
-      <section className={`sticky top-16 z-0 w-full flex flex-col justify-center overflow-hidden transition-all duration-300 ease-out ${selectedCategory === 'ALL' ? 'py-12 md:py-24' : 'py-2 md:py-4'}`}>
+      <section className={`sticky top-16 z-0 w-full flex flex-col justify-center overflow-hidden transition-all duration-300 ease-out ${selectedCategory === 'ALL' ? 'py-8 md:py-12' : 'py-2 md:py-4'}`}>
         {/* Layered Background Effect */}
         <div className="absolute inset-0 z-0 bg-neutral-950">
           {/* Layer 1: Glowing Neon Core */}
