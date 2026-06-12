@@ -14,9 +14,7 @@ const checkoutSchema = z.object({
   customer_phone: z
     .string()
     .trim()
-    .min(6)
-    .max(20)
-    .regex(/^[+\d\s\-()]+$/, "Invalid phone number"),
+    .regex(/^\d{9}$/, "Phone number must be exactly 9 digits"),
   delivery_place: z.string().trim().min(8).max(500),
 });
 
@@ -55,7 +53,7 @@ export default function Selections() {
         .from("orders")
         .insert({
           customer_name: parsed.data.customer_name,
-          phone_number: parsed.data.customer_phone,
+          phone_number: "0" + parsed.data.customer_phone,
           delivery_address: parsed.data.delivery_place,
           total_price: total,
           total_quantity: totalQty,
@@ -84,7 +82,7 @@ export default function Selections() {
 
       clear();
       localStorage.removeItem("realz-cart");
-      setSuccess({ phone: parsed.data.customer_phone });
+      setSuccess({ phone: "0" + parsed.data.customer_phone });
     } catch (err) {
       console.error(err);
       toast.error("Could not place order. Please try again.");
@@ -218,26 +216,48 @@ export default function Selections() {
             CHECKOUT — SECURE
           </p>
           
-          <div className="mt-6 flex items-baseline justify-between border-b border-white/10 pb-4">
-            <span className="text-sm text-muted-foreground font-medium uppercase tracking-widest">{totalQty} units</span>
-            <span className="text-4xl font-black text-primary drop-shadow-[0_0_15px_theme(colors.primary.DEFAULT)] tracking-tighter">
-              {formatPrice(total)}
-            </span>
-          </div>
-
-          {breakdown.length > 1 && (
-            <div className="mt-4 px-4 py-3 bg-black border border-white/5 text-xs text-muted-foreground animate-in fade-in slide-in-from-top-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2">Receipt Breakdown</p>
-              <div className="flex flex-col gap-1.5 font-medium tracking-wide">
-                {breakdown.map((b, i) => (
-                  <div key={i} className="flex justify-between items-center">
-                    <span>{b.qty} × {b.price.toFixed(2)} KSh</span>
-                    <span className="text-foreground/80">{(b.qty * b.price).toFixed(2)} KSh</span>
-                  </div>
-                ))}
-              </div>
+          {/* Black-and-White Thermal Ticket Module */}
+          <div className="mt-6 bg-[#f4f4f5] p-6 text-black font-mono border border-black shadow-[0_0_20px_rgba(0,0,0,0.5)] relative">
+            <div className="absolute top-0 left-0 right-0 h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjQiPjxwb2x5Z29uIHBvaW50cz0iMCwwIDQsNCA4LDAiIGZpbGw9IiMwYTBiMTQiLz48L3N2Zz4=')] repeat-x" />
+            
+            <div className="text-center mb-6 mt-2">
+              <p className="text-sm font-black uppercase tracking-widest border-b-2 border-black pb-2 inline-block">ORDER SUMMARY</p>
             </div>
-          )}
+
+            <div className="flex items-baseline justify-between border-b border-dashed border-black/40 pb-4">
+              <span className="text-xs font-bold uppercase tracking-widest">TOTAL ITEMS</span>
+              <span className="text-xl font-black tracking-tighter">
+                {totalQty}
+              </span>
+            </div>
+
+            {breakdown.length > 1 && (
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-black/60 mb-2">RECEIPT BREAKDOWN</p>
+                <div className="flex flex-col gap-1.5 font-medium tracking-wide text-xs">
+                  {breakdown.map((b, i) => (
+                    <div key={i} className="flex justify-between items-center">
+                      <span>{b.qty} × {b.price.toFixed(2)} KSh</span>
+                      <span className="font-bold">{(b.qty * b.price).toFixed(2)} KSh</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="mt-4 pt-4 border-t border-dashed border-black/40 flex items-baseline justify-between">
+              <span className="text-sm font-bold uppercase tracking-widest">TOTAL DUE</span>
+              <span className="text-2xl font-black tracking-tighter">
+                {formatPrice(total)}
+              </span>
+            </div>
+
+            <div className="mt-6 text-center text-black/40 text-[10px] tracking-[0.4em] font-bold">
+              -----------------
+            </div>
+            
+            <div className="absolute bottom-0 left-0 right-0 h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjQiPjxwb2x5Z29uIHBvaW50cz0iMCw0IDQsMCA4LDQiIGZpbGw9IiMwYTBiMTQiLz48L3N2Zz4=')] repeat-x" />
+          </div>
 
           {/* Industrial Progress-Step Pills */}
           <div className="mt-8 relative">
@@ -279,23 +299,30 @@ export default function Selections() {
               <label className="text-micro text-muted-foreground group-focus-within:text-primary transition-colors block mb-1">
                 PHONE NUMBER
               </label>
-              <Input
-                value={form.customer_phone}
-                onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
-                className="h-10 bg-transparent border-0 border-b-2 border-white/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all font-medium text-lg placeholder:text-muted-foreground/30"
-                placeholder="+254..."
-                inputMode="tel"
-              />
+              <div className="flex items-center bg-transparent border-b-2 border-white/20 group-focus-within:border-primary group-focus-within:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all">
+                <span className="text-lg font-medium text-muted-foreground mr-1 select-none">0</span>
+                <Input
+                  value={form.customer_phone}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 9);
+                    setForm({ ...form, customer_phone: val });
+                  }}
+                  className="h-10 bg-transparent border-0 rounded-none px-0 focus-visible:ring-0 transition-all font-medium text-lg placeholder:text-muted-foreground/30 flex-1"
+                  placeholder="712345678"
+                  inputMode="numeric"
+                  maxLength={9}
+                />
+              </div>
             </div>
             <div className="relative group">
               <label className="text-micro text-muted-foreground group-focus-within:text-primary transition-colors block mb-1">
-                DELIVERY ADDRESS
+                LOCATION
               </label>
               <Textarea
                 value={form.delivery_place}
                 onChange={(e) => setForm({ ...form, delivery_place: e.target.value })}
                 className="bg-transparent border-0 border-b-2 border-white/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all font-medium text-lg resize-none placeholder:text-muted-foreground/30"
-                placeholder="Area, building, house number..."
+                placeholder="Enter your general area or neighborhood (e.g. Nairobi Central, Roysambu, Westlands)"
                 rows={2}
               />
             </div>
