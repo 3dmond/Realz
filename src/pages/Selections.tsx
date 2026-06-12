@@ -134,10 +134,10 @@ export default function Selections() {
   }
 
   return (
-    <div 
+    <div
       className="relative min-h-screen w-full font-sans bg-[#0a0b14]"
       style={{
-        backgroundImage: `radial-gradient(rgba(10, 11, 20, 0.85), rgba(5, 5, 10, 0.95)), url("data:image/svg+xml,%3Csvg viewBox='0%200%20200%20200'%20xmlns='http://www.w3.org/200%252fsvg'%3E%3Cfilter%20id='noiseFilter'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.65'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23noiseFilter)'%20opacity='0.025'/%3E%3C/svg%3E")`
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c13.866 0 25-11.134 25-25h-2c0 12.761-10.239 23-23 23v2zm15 32c0-14.359-11.641-26-26-26v2c13.255 0 24 10.745 24 24h2zm-26 36c25.405 0 46-20.595 46-46h-2c0 24.301-19.699 44-44 44v2zm50-46c0 27.614-22.386 50-50 50v2c28.719 0 52-23.281 52-52h-2zm-50 62c34.242 0 62-27.758 62-62h-2c0 33.137-26.863 60-60 60v2zm66-62c0 36.451-29.549 66-66 66v2c37.555 0 68-30.445 68-68h-2z' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3C/svg%3E")`
       }}
     >
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-8">
