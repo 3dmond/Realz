@@ -93,42 +93,56 @@ export default function Selections() {
 
   if (success) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center">
-        <p className="text-micro text-accent">ORDER CONFIRMED</p>
-        <h1 className="mt-6 text-4xl sm:text-5xl font-black uppercase tracking-tight">
-          It's locked in.
-        </h1>
-        <p className="mt-6 max-w-md text-muted-foreground font-medium">
-          Order placed! We will call you on{" "}
-          <span className="text-primary font-bold">{success.phone}</span> within 10 minutes to
-          confirm your delivery details.
-        </p>
-        <button
-          onClick={() => navigate("/")}
-          className="mt-10 rounded-none border border-primary bg-primary/10 px-10 py-4 text-sm font-black uppercase tracking-[0.25em] text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_30px_theme(colors.primary.DEFAULT)]"
-        >
-          Explore More Stickers
-        </button>
+      <div
+        className="relative min-h-screen w-full font-sans bg-[#0a0b14] flex flex-col items-center justify-center"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c13.866 0 25-11.134 25-25h-2c0 12.761-10.239 23-23 23v2zm15 32c0-14.359-11.641-26-26-26v2c13.255 0 24 10.745 24 24h2zm-26 36c25.405 0 46-20.595 46-46h-2c0 24.301-19.699 44-44 44v2zm50-46c0 27.614-22.386 50-50 50v2c28.719 0 52-23.281 52-52h-2zm-50 62c34.242 0 62-27.758 62-62h-2c0 33.137-26.863 60-60 60v2zm66-62c0 36.451-29.549 66-66 66v2c37.555 0 68-30.445 68-68h-2z' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3C/svg%3E")`
+        }}
+      >
+        <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center">
+          <p className="text-micro text-accent">ORDER CONFIRMED</p>
+          <h1 className="mt-6 text-4xl sm:text-5xl font-black uppercase tracking-tight">
+            It's locked in.
+          </h1>
+          <p className="mt-6 max-w-md text-muted-foreground font-medium">
+            Order placed! We will call you on{" "}
+            <span className="text-primary font-bold">{success.phone}</span> within 10 minutes to
+            confirm your delivery details.
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="mt-10 rounded-none border border-primary bg-primary/10 px-10 py-4 text-sm font-black uppercase tracking-[0.25em] text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_30px_theme(colors.primary.DEFAULT)]"
+          >
+            Explore More Stickers
+          </button>
+        </div>
       </div>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center">
-        <p className="text-micro text-muted-foreground">EMPTY</p>
-        <h1 className="mt-6 text-4xl sm:text-5xl font-black uppercase tracking-tight">
-          Nothing here yet.
-        </h1>
-        <p className="mt-4 text-muted-foreground font-medium">
-          Pick a few stickers from the catalog.
-        </p>
-        <Link
-          to="/"
-          className="mt-10 rounded-none border border-primary bg-primary/10 px-10 py-4 text-sm font-black uppercase tracking-[0.25em] text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_30px_theme(colors.primary.DEFAULT)]"
-        >
-          Browse Stickers
-        </Link>
+      <div
+        className="relative min-h-screen w-full font-sans bg-[#0a0b14] flex flex-col items-center justify-center"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c13.866 0 25-11.134 25-25h-2c0 12.761-10.239 23-23 23v2zm15 32c0-14.359-11.641-26-26-26v2c13.255 0 24 10.745 24 24h2zm-26 36c25.405 0 46-20.595 46-46h-2c0 24.301-19.699 44-44 44v2zm50-46c0 27.614-22.386 50-50 50v2c28.719 0 52-23.281 52-52h-2zm-50 62c34.242 0 62-27.758 62-62h-2c0 33.137-26.863 60-60 60v2zm66-62c0 36.451-29.549 66-66 66v2c37.555 0 68-30.445 68-68h-2z' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3C/svg%3E")`
+        }}
+      >
+        <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center">
+          <p className="text-micro text-muted-foreground">EMPTY</p>
+          <h1 className="mt-6 text-4xl sm:text-5xl font-black uppercase tracking-tight">
+            Nothing here yet.
+          </h1>
+          <p className="mt-4 text-muted-foreground font-medium">
+            Pick a few stickers from the catalog.
+          </p>
+          <Link
+            to="/"
+            className="mt-10 rounded-none border border-primary bg-primary/10 px-10 py-4 text-sm font-black uppercase tracking-[0.25em] text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_30px_theme(colors.primary.DEFAULT)]"
+          >
+            Browse Stickers
+          </Link>
+        </div>
       </div>
     );
   }
