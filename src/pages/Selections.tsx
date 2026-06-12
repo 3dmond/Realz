@@ -271,7 +271,7 @@ export default function Selections() {
                     className={`px-1 py-3 text-center flex flex-col justify-center transition-all border ${
                       isActive
                         ? "bg-primary border-primary text-primary-foreground font-black shadow-[0_0_20px_theme(colors.primary.DEFAULT)] scale-105"
-                        : "bg-[#0a0b14] border-white/10 text-muted-foreground/50"
+                        : "bg-black/40 backdrop-blur-sm border-white/10 text-muted-foreground/50"
                     }`}
                   >
                     <div className="text-[10px] uppercase tracking-widest">{t.label}</div>
