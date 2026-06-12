@@ -134,8 +134,14 @@ export default function Selections() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-8 font-sans">
-      <div className="flex flex-col md:flex-row items-baseline justify-between mb-8">
+    <div 
+      className="relative min-h-screen w-full font-sans bg-[#0a0b14]"
+      style={{
+        backgroundImage: `radial-gradient(rgba(10, 11, 20, 0.85), rgba(5, 5, 10, 0.95)), url("data:image/svg+xml,%3Csvg viewBox='0%200%20200%20200'%20xmlns='http://www.w3.org/200%252fsvg'%3E%3Cfilter%20id='noiseFilter'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.65'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23noiseFilter)'%20opacity='0.025'/%3E%3C/svg%3E")`
+      }}
+    >
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-8">
+        <div className="flex flex-col md:flex-row items-baseline justify-between mb-8">
         <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tight">Your Selections</h1>
         <p className="mt-2 text-sm text-muted-foreground font-medium uppercase tracking-widest">
           Active tier: <span className="text-primary font-bold">{tier.label}</span> // Avg{" "}
@@ -341,6 +347,7 @@ export default function Selections() {
           </form>
         </div>
       </div>
+    </div>
     </div>
   );
 }
