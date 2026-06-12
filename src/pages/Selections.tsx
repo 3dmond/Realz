@@ -1,14 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Minus, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { useCart } from "@/store/cart";
-import { TIERS, activeTier, formatPrice, subtotal, unitPriceFor, getBreakdown } from "@/lib/pricing";
+import { TIERS, activeTier, formatPrice, subtotal, getBreakdown } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import ProductCard from "@/components/ui-bits/ProductCard";
 
 const checkoutSchema = z.object({
   customer_name: z.string().trim().min(2).max(100),
@@ -37,16 +36,7 @@ export default function Selections() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{ phone: string } | null>(null);
   const [form, setForm] = useState({ customer_name: "", customer_phone: "", delivery_place: "" });
-  const [showGrid, setShowGrid] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
-
-  const ITEMS_PER_PAGE = 20;
-  const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return items.slice(start, start + ITEMS_PER_PAGE);
-  }, [items, currentPage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +107,7 @@ export default function Selections() {
         </p>
         <button
           onClick={() => navigate("/")}
-          className="mt-10 rounded-full bg-primary px-8 py-3 text-sm font-black uppercase tracking-[0.25em] text-primary-foreground neon-glow transition-transform hover:scale-105"
+          className="mt-10 rounded-none border border-primary bg-primary/10 px-10 py-4 text-sm font-black uppercase tracking-[0.25em] text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_30px_theme(colors.primary.DEFAULT)]"
         >
           Explore More Stickers
         </button>
@@ -137,7 +127,7 @@ export default function Selections() {
         </p>
         <Link
           to="/"
-          className="mt-10 rounded-full bg-primary px-8 py-3 text-sm font-black uppercase tracking-[0.25em] text-primary-foreground neon-glow transition-transform hover:scale-105"
+          className="mt-10 rounded-none border border-primary bg-primary/10 px-10 py-4 text-sm font-black uppercase tracking-[0.25em] text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_30px_theme(colors.primary.DEFAULT)]"
         >
           Browse Stickers
         </Link>
@@ -146,126 +136,99 @@ export default function Selections() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
-      <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">Your Selections</h1>
-      <p className="mt-2 text-sm text-muted-foreground font-medium">
-        Active tier: <span className="text-primary font-bold">{tier.label}</span> · Avg{" "}
-        {formatPrice(averageUnit)} per sticker
-      </p>
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-8 font-sans">
+      <div className="flex flex-col md:flex-row items-baseline justify-between mb-8">
+        <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tight">Your Selections</h1>
+        <p className="mt-2 text-sm text-muted-foreground font-medium uppercase tracking-widest">
+          Active tier: <span className="text-primary font-bold">{tier.label}</span> // Avg{" "}
+          {formatPrice(averageUnit)}
+        </p>
+      </div>
 
-      <div className="mt-10 grid gap-10 md:grid-cols-[1.4fr_1fr]">
-        <div className="flex flex-col gap-6">
-          <button
-            onClick={() => setShowGrid(!showGrid)}
-            className="flex items-center justify-between w-full p-6 bg-card border border-border rounded-2xl hover:bg-accent/5 transition-colors group"
-          >
-            <span className="text-lg font-black uppercase tracking-widest text-foreground group-hover:text-primary transition-colors">
-              {showGrid ? "Hide Selections" : "View Selections"}
-            </span>
-            {showGrid ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
-          </button>
+      <div className="grid gap-10 md:grid-cols-[6fr_4fr] items-start">
+        {/* Left Panel: Sticker Tape Review Roll */}
+        <div className="flex flex-wrap content-start justify-center md:justify-start gap-6 p-4 sm:p-8 relative min-h-[500px]">
+          {items.map((it, i) => {
+            const computedImageSrc = it.image_url || null;
+            // Generate pseudo-random but stable rotations and offsets
+            const rotateAngles = ["rotate-[-4deg]", "rotate-[3deg]", "rotate-[-2deg]", "rotate-[5deg]", "rotate-[-6deg]", "rotate-[2deg]"];
+            const mtOffsets = ["mt-0", "mt-4", "mt-8", "mt-2", "mt-6", "mt-0"];
+            const rot = rotateAngles[i % rotateAngles.length];
+            const mt = mtOffsets[i % mtOffsets.length];
+            
+            return (
+              <div
+                key={it.id}
+                className={`group relative w-32 sm:w-40 aspect-[4/5] overflow-hidden bg-[#0a0b14] border border-white/10 shadow-black/90 shadow-2xl transition-all duration-500 hover:rotate-0 hover:scale-110 hover:z-50 ${rot} ${mt}`}
+              >
+                <Link to={`/product/${it.id}`} className="absolute inset-0 z-0">
+                  {computedImageSrc ? (
+                    <img
+                      src={computedImageSrc}
+                      alt={it.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-700 opacity-90 group-hover:opacity-100"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-muted/20 animate-pulse" />
+                  )}
+                </Link>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0b14] via-transparent to-transparent opacity-90 pointer-events-none" />
 
-          {showGrid && (
-            <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {paginatedItems.map((it) => {
-                  const computedImageSrc = it.image_url || null;
-                  
-                  return (
-                    <div
-                      key={it.id}
-                      className="group relative aspect-[4/5] overflow-hidden rounded-xl bg-card border border-border transition"
-                    >
-                      <Link to={`/product/${it.id}`} className="absolute inset-0 z-0">
-                        {computedImageSrc ? (
-                          <img
-                            src={computedImageSrc}
-                            alt={it.title}
-                            loading="lazy"
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-muted/20 animate-pulse" />
-                        )}
-                      </Link>
-                    <div className="img-fade absolute inset-0 pointer-events-none" />
-
-                    <div className="absolute top-2 left-2 z-30 pointer-events-none">
-                      <span className="bg-black/60 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded-full border border-white/10 shadow-lg">
-                        QTY: {it.quantity}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        remove(it.id);
-                      }}
-                      className="absolute top-2 right-2 z-30 grid h-8 w-8 place-items-center rounded-full bg-destructive/80 text-white shadow-lg transition-transform hover:scale-110 hover:bg-destructive"
-                      aria-label="Remove selection"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-
-                    <div className="absolute bottom-3 left-0 right-0 px-3 z-30 flex justify-center items-center gap-3">
-                      <button
-                        onClick={() => setQty(it.id, it.quantity - 1)}
-                        className="grid h-7 w-7 place-items-center rounded-full bg-black/40 backdrop-blur-md text-white border border-white/10 hover:bg-black/60 transition-colors"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="min-w-[1.5rem] text-center text-xs font-black text-white drop-shadow-md">
-                        {it.quantity}
-                      </span>
-                      <button
-                        onClick={() => setQty(it.id, it.quantity + 1)}
-                        className="grid h-7 w-7 place-items-center rounded-full bg-black/40 backdrop-blur-md text-white border border-white/10 hover:bg-black/60 transition-colors"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              </div>
-
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-8">
-                  {Array.from({ length: totalPages }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`w-10 h-10 rounded-full text-sm font-bold transition-all ${
-                        currentPage === i + 1
-                          ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.5)]"
-                          : "bg-card hover:bg-accent text-foreground"
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                <div className="absolute top-2 left-2 z-30 pointer-events-none">
+                  <span className="bg-black text-primary text-[10px] font-black px-2 py-1 border border-primary/20 shadow-[0_0_10px_theme(colors.primary.DEFAULT)/0.5]">
+                    {it.quantity}x
+                  </span>
                 </div>
-              )}
-            </div>
-          )}
+
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    remove(it.id);
+                  }}
+                  className="absolute top-2 right-2 z-30 grid h-7 w-7 place-items-center bg-destructive/80 text-white shadow-lg transition-transform hover:scale-110 hover:bg-destructive rounded-none"
+                  aria-label="Remove selection"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+
+                <div className="absolute bottom-2 left-0 right-0 px-2 z-30 flex justify-between items-center">
+                  <button
+                    onClick={() => setQty(it.id, it.quantity - 1)}
+                    className="grid h-7 w-7 place-items-center bg-black/60 backdrop-blur-md text-white border border-white/10 hover:bg-black/90 transition-colors rounded-none"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => setQty(it.id, it.quantity + 1)}
+                    className="grid h-7 w-7 place-items-center bg-black/60 backdrop-blur-md text-white border border-white/10 hover:bg-black/90 transition-colors rounded-none"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Checkout panel */}
-        <div className="glass-panel rounded-2xl p-6 border border-primary/10 shadow-2xl h-fit sticky top-24">
-          <p className="text-micro text-accent tracking-[0.2em] font-black">
-            CHECKOUT — PAY ON DELIVERY
+        {/* Right Panel: Checkout */}
+        <div className="p-8 border-t-[3px] border-t-primary border-l border-r border-b border-primary/20 shadow-2xl h-fit sticky top-24 bg-[#0a0b14] backdrop-blur-xl">
+          <p className="text-micro text-primary tracking-[0.2em] font-black flex items-center gap-2">
+            <span className="w-2 h-2 bg-primary animate-pulse shadow-[0_0_8px_theme(colors.primary.DEFAULT)]" />
+            CHECKOUT — SECURE
           </p>
-          <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-sm text-muted-foreground font-medium">{totalQty} stickers</span>
-            <span className="text-3xl font-black text-primary drop-shadow-[0_0_15px_oklch(0.705_0.20_47/0.3)]">
+          
+          <div className="mt-6 flex items-baseline justify-between border-b border-white/10 pb-4">
+            <span className="text-sm text-muted-foreground font-medium uppercase tracking-widest">{totalQty} units</span>
+            <span className="text-4xl font-black text-primary drop-shadow-[0_0_15px_theme(colors.primary.DEFAULT)] tracking-tighter">
               {formatPrice(total)}
             </span>
           </div>
 
           {breakdown.length > 1 && (
-            <div className="mt-3 px-4 py-3 bg-black/20 rounded-xl border border-white/5 text-xs text-muted-foreground animate-in fade-in slide-in-from-top-2">
+            <div className="mt-4 px-4 py-3 bg-black border border-white/5 text-xs text-muted-foreground animate-in fade-in slide-in-from-top-2">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2">Receipt Breakdown</p>
-              <div className="flex flex-col gap-1.5 font-medium">
+              <div className="flex flex-col gap-1.5 font-medium tracking-wide">
                 {breakdown.map((b, i) => (
                   <div key={i} className="flex justify-between items-center">
                     <span>{b.qty} × {b.price.toFixed(2)} KSh</span>
@@ -276,67 +239,76 @@ export default function Selections() {
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-3 gap-1.5">
-            {TIERS.map((t) => (
-              <div
-                key={t.label}
-                className={`rounded-lg px-2 py-2 text-center flex flex-col justify-center transition-all ${
-                  t === tier
-                    ? "bg-primary text-primary-foreground font-black shadow-[0_0_15px_oklch(0.705_0.20_47/0.4)] scale-[1.02]"
-                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
-                }`}
-              >
-                <div className="text-[10px] uppercase tracking-widest opacity-90">{t.label}</div>
-                <div className="mt-1 text-[10px] font-black leading-tight">{t.description}</div>
-              </div>
-            ))}
+          {/* Industrial Progress-Step Pills */}
+          <div className="mt-8 relative">
+            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/10 -translate-y-1/2 z-0" />
+            <div className="relative z-10 grid grid-cols-3 gap-2">
+              {TIERS.map((t) => {
+                const isActive = t === tier;
+                return (
+                  <div
+                    key={t.label}
+                    className={`px-1 py-3 text-center flex flex-col justify-center transition-all border ${
+                      isActive
+                        ? "bg-primary border-primary text-primary-foreground font-black shadow-[0_0_20px_theme(colors.primary.DEFAULT)] scale-105"
+                        : "bg-[#0a0b14] border-white/10 text-muted-foreground/50"
+                    }`}
+                  >
+                    <div className="text-[10px] uppercase tracking-widest">{t.label}</div>
+                    <div className="mt-1 text-[10px] font-black leading-tight">{t.description}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+          {/* Cinematic Minimalist Form Fields */}
+          <form onSubmit={handleSubmit} className="mt-10 space-y-8">
+            <div className="relative group">
+              <label className="text-micro text-muted-foreground group-focus-within:text-primary transition-colors block mb-1">
                 NAME
               </label>
               <Input
                 value={form.customer_name}
                 onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
-                className="mt-1 h-12 bg-white/5 border-border/50 focus-visible:ring-primary rounded-xl"
+                className="h-10 bg-transparent border-0 border-b-2 border-white/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all font-medium text-lg placeholder:text-muted-foreground/30"
                 placeholder="Full name"
               />
             </div>
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <div className="relative group">
+              <label className="text-micro text-muted-foreground group-focus-within:text-primary transition-colors block mb-1">
                 PHONE NUMBER
               </label>
               <Input
                 value={form.customer_phone}
                 onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
-                className="mt-1 h-12 bg-white/5 border-border/50 focus-visible:ring-primary rounded-xl"
+                className="h-10 bg-transparent border-0 border-b-2 border-white/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all font-medium text-lg placeholder:text-muted-foreground/30"
                 placeholder="+254..."
                 inputMode="tel"
               />
             </div>
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <div className="relative group">
+              <label className="text-micro text-muted-foreground group-focus-within:text-primary transition-colors block mb-1">
                 DELIVERY ADDRESS
               </label>
               <Textarea
                 value={form.delivery_place}
                 onChange={(e) => setForm({ ...form, delivery_place: e.target.value })}
-                className="mt-1 bg-white/5 border-border/50 focus-visible:ring-primary rounded-xl p-4"
+                className="bg-transparent border-0 border-b-2 border-white/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all font-medium text-lg resize-none placeholder:text-muted-foreground/30"
                 placeholder="Area, building, house number..."
-                rows={3}
+                rows={2}
               />
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-full bg-primary py-4 text-sm font-black uppercase tracking-[0.25em] text-primary-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_oklch(0.705_0.20_47/0.7)] disabled:opacity-60 neon-glow"
+              className="mt-10 w-full bg-primary py-6 text-xl font-black uppercase tracking-[0.15em] text-primary-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_40px_theme(colors.primary.DEFAULT)] disabled:opacity-60 neon-glow rounded-none"
+              style={{ fontFamily: "'Archivo Black', system-ui, sans-serif" }}
             >
-              {submitting ? "Processing…" : "Confirm Order"}
+              {submitting ? "PROCESSING..." : "CONFIRM ORDER"}
             </button>
-            <p className="text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+            <p className="text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mt-4">
               We'll call you within 10 min to confirm
             </p>
           </form>
@@ -345,4 +317,3 @@ export default function Selections() {
     </div>
   );
 }
-
