@@ -157,7 +157,7 @@ export default function Selections() {
             return (
               <div
                 key={it.id}
-                className={`group relative w-32 sm:w-40 aspect-[4/5] overflow-hidden bg-[#0a0b14] border border-white/10 shadow-black/90 shadow-2xl transition-all duration-500 hover:rotate-0 hover:scale-110 hover:z-50 ${rot} ${mt}`}
+                className={`group relative w-32 sm:w-40 aspect-[4/5] overflow-hidden bg-black/40 backdrop-blur-sm border border-white/10 shadow-black/90 shadow-2xl transition-all duration-500 hover:rotate-0 hover:scale-110 hover:z-50 ${rot} ${mt}`}
               >
                 <Link to={`/product/${it.id}`} className="absolute inset-0 z-0">
                   {computedImageSrc ? (
