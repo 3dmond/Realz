@@ -20,10 +20,11 @@ export default function ProductCard({ product }: { product: Product }) {
       <Link to={`/product/${product.id}`} className="absolute inset-0 z-0">
         {computedImageSrc ? (
           <img
-            src={computedImageSrc}
+            src={computedImageSrc.includes('unsplash.com') ? computedImageSrc + (computedImageSrc.includes('?') ? '&' : '?') + 'w=400&q=75&auto=format&fit=crop' : computedImageSrc}
             alt={product.title}
             loading="lazy"
-            className="h-full w-full object-contain p-2.5 transition-transform duration-700 group-hover:scale-110 mix-blend-multiply bg-white rounded-xl"
+            decoding="async"
+            className="h-full w-full object-contain p-2.5 transition-transform duration-200 ease-out group-hover:scale-[1.02] mix-blend-multiply bg-white rounded-xl"
           />
         ) : (
           <div className="h-full w-full bg-muted/20 animate-pulse flex flex-col items-center justify-center border-0">

@@ -12,10 +12,11 @@ export default function CategoryCard({ title, image, to, onClick }: CategoryCard
     <>
       {image ? (
         <img
-          src={image}
+          src={image.includes('unsplash.com') ? image + (image.includes('?') ? '&' : '?') + 'w=400&q=75&auto=format&fit=crop' : image}
           alt={title}
           loading="lazy"
-          className="img-fade-wrap absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+          decoding="async"
+          className="img-fade-wrap absolute inset-0 h-full w-full object-cover transition-transform duration-200 ease-out group-hover:scale-[1.02]"
         />
       ) : (
         <div className="absolute inset-0 bg-muted/20 animate-pulse" />

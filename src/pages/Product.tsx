@@ -46,8 +46,10 @@ export default function Product() {
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-card">
           {computedImageSrc ? (
             <img
-              src={computedImageSrc}
+              src={computedImageSrc.includes('unsplash.com') ? computedImageSrc + (computedImageSrc.includes('?') ? '&' : '?') + 'w=800&q=80&auto=format' : computedImageSrc}
               alt={product.title}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
             />
           ) : (
