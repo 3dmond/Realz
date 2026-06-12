@@ -76,7 +76,7 @@ The granular line-item lookup grid connecting orders to our product rows.
 * `quantity` (integer) — The volume breakdown for this particular sticker choice.
 * `calculated_price` (numeric) — The dynamic step-bracket price assigned at checkout confirmation.
 
-# 📱 Client-Side Responsive Layout & Viewport Architecture
+# Client-Side Responsive Layout & Viewport Architecture
 
 Realz enforces an adaptive, mobile-first presentation architecture. Instead of just compressing a desktop window to fit smaller screens, the client interface alters its structural layout, component trees, and navigation lifecycles depending on whether the user is browsing on a phone or PC.
 
