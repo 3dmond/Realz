@@ -288,62 +288,79 @@ export default function Selections() {
             </div>
           </div>
 
-          {/* Cinematic Minimalist Form Fields */}
-          <form onSubmit={handleSubmit} className="mt-10 space-y-8">
-            <div className="relative group">
-              <label className="text-micro text-muted-foreground group-focus-within:text-primary transition-colors block mb-1">
-                NAME
-              </label>
-              <Input
-                value={form.customer_name}
-                onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
-                className="h-10 bg-transparent border-0 border-b-2 border-white/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all font-medium text-lg placeholder:text-muted-foreground/30"
-                placeholder="Full name"
-              />
-            </div>
-            <div className="relative group">
-              <label className="text-micro text-muted-foreground group-focus-within:text-primary transition-colors block mb-1">
-                PHONE NUMBER
-              </label>
-              <div className="flex items-center bg-transparent border-b-2 border-white/20 group-focus-within:border-primary group-focus-within:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all">
-                <span className="text-lg font-medium text-muted-foreground mr-1 select-none">0</span>
+          {/* Lined Notebook Diary Sheet Form */}
+          <form 
+            onSubmit={handleSubmit} 
+            className="mt-10 relative bg-[#fdfbf7] shadow-2xl border border-black/10 w-full rounded-sm overflow-hidden"
+            style={{
+              backgroundImage: "repeating-linear-gradient(transparent, transparent 39px, #cbd5e1 39px, #cbd5e1 40px)",
+              backgroundSize: "100% 40px",
+              backgroundPosition: "0 0px",
+            }}
+          >
+            {/* Red Margin Line */}
+            <div className="absolute top-0 bottom-0 left-[40px] w-[1px] bg-red-400/60 z-0" />
+
+            <div className="relative z-10 pt-[40px] pb-[40px]">
+              
+              <div className="h-[80px] px-4 pl-[50px] relative group">
+                <label className="text-[10px] font-black text-black/60 uppercase tracking-widest absolute top-0 pt-[10px] leading-none transition-colors group-focus-within:text-blue-900">
+                  NAME
+                </label>
                 <Input
-                  value={form.customer_phone}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 9);
-                    setForm({ ...form, customer_phone: val });
-                  }}
-                  className="h-10 bg-transparent border-0 rounded-none px-0 focus-visible:ring-0 transition-all font-medium text-lg placeholder:text-muted-foreground/30 flex-1"
-                  placeholder="712345678"
-                  inputMode="numeric"
-                  maxLength={9}
+                  value={form.customer_name}
+                  onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
+                  className="absolute bottom-0 left-[50px] right-4 w-[calc(100%-66px)] h-[40px] bg-transparent border-0 rounded-none px-0 focus-visible:ring-0 shadow-none font-mono text-xl text-[#0a192f] placeholder:text-black/20"
+                  placeholder="Full name"
                 />
               </div>
-            </div>
-            <div className="relative group">
-              <label className="text-micro text-muted-foreground group-focus-within:text-primary transition-colors block mb-1">
-                LOCATION
-              </label>
-              <Textarea
-                value={form.delivery_place}
-                onChange={(e) => setForm({ ...form, delivery_place: e.target.value })}
-                className="bg-transparent border-0 border-b-2 border-white/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[0_4px_15px_-3px_theme(colors.primary.DEFAULT)] transition-all font-medium text-lg resize-none placeholder:text-muted-foreground/30"
-                placeholder="Enter your general area or neighborhood (e.g. Nairobi Central, Roysambu, Westlands)"
-                rows={2}
-              />
-            </div>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-10 w-full bg-primary py-6 text-xl font-black uppercase tracking-[0.15em] text-primary-foreground transition-all hover:scale-[1.02] hover:shadow-[0_0_40px_theme(colors.primary.DEFAULT)] disabled:opacity-60 neon-glow rounded-none"
-              style={{ fontFamily: "'Archivo Black', system-ui, sans-serif" }}
-            >
-              {submitting ? "PROCESSING..." : "CONFIRM ORDER"}
-            </button>
-            <p className="text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mt-4">
-              We'll call you within 10 min to confirm
-            </p>
+              <div className="h-[80px] px-4 pl-[50px] relative group">
+                <label className="text-[10px] font-black text-black/60 uppercase tracking-widest absolute top-0 pt-[10px] leading-none transition-colors group-focus-within:text-blue-900">
+                  PHONE NUMBER
+                </label>
+                <div className="absolute bottom-0 left-[50px] right-4 flex items-center h-[40px] w-[calc(100%-66px)]">
+                  <span className="text-xl font-mono text-black/40 mr-1 select-none leading-[40px]">0</span>
+                  <Input
+                    value={form.customer_phone}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      setForm({ ...form, customer_phone: val });
+                    }}
+                    className="h-[40px] bg-transparent border-0 rounded-none px-0 focus-visible:ring-0 shadow-none font-mono text-xl text-[#0a192f] placeholder:text-black/20 flex-1"
+                    placeholder="712345678"
+                    inputMode="numeric"
+                    maxLength={9}
+                  />
+                </div>
+              </div>
+
+              <div className="h-[120px] px-4 pl-[50px] relative group">
+                <label className="text-[10px] font-black text-black/60 uppercase tracking-widest absolute top-0 pt-[10px] leading-none transition-colors group-focus-within:text-blue-900">
+                  LOCATION
+                </label>
+                <Textarea
+                  value={form.delivery_place}
+                  onChange={(e) => setForm({ ...form, delivery_place: e.target.value })}
+                  className="absolute bottom-0 left-[50px] right-4 w-[calc(100%-66px)] h-[80px] bg-transparent border-0 rounded-none px-0 py-0 leading-[40px] focus-visible:ring-0 shadow-none font-mono text-xl text-[#0a192f] resize-none placeholder:text-black/20 overflow-hidden"
+                  placeholder="Enter your general area or neighborhood (e.g. Nairobi Central, Roysambu, Westlands)"
+                />
+              </div>
+
+              <div className="mt-[40px] px-4 pl-[50px]">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-[#0a0b14] py-4 text-xl font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-900/20 disabled:opacity-60 rounded-none border border-black/20 relative z-20"
+                  style={{ fontFamily: "'Archivo Black', system-ui, sans-serif" }}
+                >
+                  {submitting ? "PROCESSING..." : "CONFIRM ORDER"}
+                </button>
+                <p className="text-center text-[10px] font-black uppercase tracking-widest text-black/40 mt-[20px] leading-[20px] relative z-20">
+                  We'll call you within 10 min to confirm
+                </p>
+              </div>
+            </div>
           </form>
         </div>
       </div>
