@@ -102,7 +102,7 @@ export default function Product() {
           </div>
 
           {/* Tier ladder preview */}
-          <div className="mt-4 grid grid-cols-4 gap-2">
+          <div className="mt-4 grid grid-cols-3 gap-2">
             {TIERS.map((t) => (
               <div
                 key={t.label}
@@ -113,7 +113,7 @@ export default function Product() {
                 }`}
               >
                 <div>{t.label}</div>
-                <div className="mt-1 text-sm font-black">{formatPrice(t.unitPrice)}</div>
+                <div className="mt-1 text-xs font-black">{t.description}</div>
               </div>
             ))}
           </div>

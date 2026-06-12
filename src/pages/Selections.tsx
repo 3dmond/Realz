@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Minus, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { z } from "zod";
 import { useCart } from "@/store/cart";
-import { TIERS, activeTier, formatPrice, subtotal, unitPriceFor } from "@/lib/pricing";
+import { TIERS, activeTier, formatPrice, subtotal, unitPriceFor, getBreakdown } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,9 +29,10 @@ export default function Selections() {
   const clear = useCart((s) => s.clear);
 
   const totalQty = items.reduce((a, b) => a + b.quantity, 0);
-  const unit = unitPriceFor(totalQty);
   const total = subtotal(totalQty);
   const tier = activeTier(totalQty);
+  const breakdown = getBreakdown(totalQty);
+  const averageUnit = totalQty > 0 ? +(total / totalQty).toFixed(2) : 0;
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{ phone: string } | null>(null);
@@ -64,9 +65,10 @@ export default function Selections() {
         .from("orders")
         .insert({
           customer_name: parsed.data.customer_name,
-          customer_phone: parsed.data.customer_phone,
-          delivery_place: parsed.data.delivery_place,
+          phone_number: parsed.data.customer_phone,
+          delivery_address: parsed.data.delivery_place,
           total_price: total,
+          total_quantity: totalQty,
         })
         .select()
         .single();
@@ -80,7 +82,7 @@ export default function Selections() {
           order_id: order.id,
           product_id: it.id,
           quantity: it.quantity,
-          unit_price: unit,
+          unit_price: averageUnit,
         }));
 
         const { error: itemsErr } = await supabase
@@ -147,8 +149,8 @@ export default function Selections() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
       <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">Your Selections</h1>
       <p className="mt-2 text-sm text-muted-foreground font-medium">
-        Bulk tier active: <span className="text-primary font-bold">{tier.label}</span> ·{" "}
-        {formatPrice(unit)} per sticker
+        Active tier: <span className="text-primary font-bold">{tier.label}</span> · Avg{" "}
+        {formatPrice(averageUnit)} per sticker
       </p>
 
       <div className="mt-10 grid gap-10 md:grid-cols-[1.4fr_1fr]">
@@ -260,18 +262,32 @@ export default function Selections() {
             </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-4 gap-1">
+          {breakdown.length > 1 && (
+            <div className="mt-3 px-4 py-3 bg-black/20 rounded-xl border border-white/5 text-xs text-muted-foreground animate-in fade-in slide-in-from-top-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2">Receipt Breakdown</p>
+              <div className="flex flex-col gap-1.5 font-medium">
+                {breakdown.map((b, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <span>{b.qty} × {b.price.toFixed(2)} KSh</span>
+                    <span className="text-foreground/80">{(b.qty * b.price).toFixed(2)} KSh</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 grid grid-cols-3 gap-1.5">
             {TIERS.map((t) => (
               <div
                 key={t.label}
-                className={`rounded-md px-1 py-2 text-center text-[9px] uppercase tracking-widest transition-all ${
+                className={`rounded-lg px-2 py-2 text-center flex flex-col justify-center transition-all ${
                   t === tier
-                    ? "bg-primary text-primary-foreground font-black shadow-[0_0_10px_oklch(0.705_0.20_47/0.4)]"
-                    : "bg-white/5 text-muted-foreground"
+                    ? "bg-primary text-primary-foreground font-black shadow-[0_0_15px_oklch(0.705_0.20_47/0.4)] scale-[1.02]"
+                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
                 }`}
               >
-                <div>{t.label.split(" ")[0]}</div>
-                <div className="mt-0.5 text-xs font-black">{formatPrice(t.unitPrice)}</div>
+                <div className="text-[10px] uppercase tracking-widest opacity-90">{t.label}</div>
+                <div className="mt-1 text-[10px] font-black leading-tight">{t.description}</div>
               </div>
             ))}
           </div>
@@ -329,3 +345,4 @@ export default function Selections() {
     </div>
   );
 }
+
