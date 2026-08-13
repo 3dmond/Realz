@@ -17,17 +17,17 @@ export default function ProductCard({ product }: { product: Product }) {
         inCart ? "neon-glow" : "border border-border"
       }`}
     >
-      <Link to={`/product/${product.id}`} className="absolute inset-0 z-0">
+      <Link to={`/product/${product.id}`} className="absolute inset-0 z-0 flex flex-col p-4">
         {computedImageSrc ? (
           <img
             src={computedImageSrc.includes('unsplash.com') ? computedImageSrc + (computedImageSrc.includes('?') ? '&' : '?') + 'w=400&q=75&auto=format&fit=crop' : computedImageSrc}
             alt={product.title}
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-contain p-2.5 transition-transform duration-200 ease-out group-hover:scale-[1.02] mix-blend-multiply bg-white rounded-xl"
+            className="h-full w-full object-contain transition-transform duration-200 ease-out group-hover:scale-[1.02]"
           />
         ) : (
-          <div className="h-full w-full bg-muted/20 animate-pulse flex flex-col items-center justify-center border-0">
+          <div className="h-full w-full bg-muted/20 animate-pulse flex flex-col items-center justify-center border-0 rounded-lg">
             <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin mb-2" />
             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No Asset</span>
           </div>
