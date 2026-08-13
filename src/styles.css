@@ -219,6 +219,15 @@
     font-weight: 900;
   }
 
+  /* Physical sticker die-cut drop shadow */
+  .sticker-shadow {
+    filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.75)) drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5));
+    transition: filter 0.3s ease, transform 0.3s ease;
+  }
+  .sticker-shadow:hover {
+    filter: drop-shadow(0 25px 35px rgba(249, 115, 22, 0.35)) drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+  }
+
   /* Hide scrollbar utility */
   .no-scrollbar::-webkit-scrollbar {
     display: none;

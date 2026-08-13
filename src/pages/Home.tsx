@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { Sparkles, Flame, Laptop, Smartphone, Car, BookOpen, ShieldCheck, Truck, Tag } from "lucide-react";
+import { useSearchParams, Link } from "react-router-dom";
+import { Flame, Laptop, Smartphone, Car, BookOpen, ShieldCheck, Truck, Tag } from "lucide-react";
 import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/queries";
 import { formatCategoryTitle } from "@/lib/utils";
 import ProductCard from "@/components/ui-bits/ProductCard";
@@ -59,6 +59,14 @@ export default function Home() {
     });
   }, [dbProducts, selectedCategory, currentSubCategorySlug, subs]);
 
+  // Deterministic hero sticker selection (top featured products with valid image URLs)
+  const heroStickers = useMemo(() => {
+    if (!dbProducts) return [];
+    const valid = dbProducts.filter((p) => typeof p.image_url === "string" && p.image_url.trim().length > 0);
+    const featured = valid.filter((p) => p.is_featured);
+    return featured.length >= 4 ? featured.slice(0, 4) : valid.slice(0, 4);
+  }, [dbProducts]);
+
   const trendingProducts = useMemo(() => {
     if (!dbProducts) return [];
     const featured = dbProducts.filter((p) => p.is_featured);
@@ -110,48 +118,109 @@ export default function Home() {
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
-      {/* Brand Hero Section */}
-      <section className={`relative w-full flex flex-col justify-center overflow-hidden transition-all duration-300 ease-out ${selectedCategory === 'ALL' ? 'py-12 md:py-20' : 'py-6 md:py-8'}`}>
-        {/* Background Layers */}
-        <div className="absolute inset-0 z-0 bg-neutral-950">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.2),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.2),transparent_45%),radial-gradient(circle_at_center,rgba(249,115,22,0.15),transparent_50%)] animate-pulse [animation-duration:8s]"></div>
-          {/* Graffiti texture with dark overlay for readability */}
-          <div className="absolute inset-0 bg-[url('/grafitti.jpg')] bg-cover bg-center bg-no-repeat opacity-40 mix-blend-screen saturate-150"></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-background/60 to-background"></div>
-        </div>
-        <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-primary/0 via-primary/60 to-primary/0 neon-glow"></div>
-
-        {/* Hero Content */}
-        <div className="relative z-10 mx-auto w-full max-w-[1600px] px-4 sm:px-8 h-full">
-          <div className={`flex flex-col items-center text-center ${selectedCategory === 'ALL' ? '' : 'hidden'}`}>
-            <div className="max-w-4xl flex flex-col justify-center items-center">
-              <span className="text-micro text-primary flex items-center gap-2 mb-3 bg-primary/10 border border-primary/20 px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(249,115,22,0.2)]">
-                <Sparkles className="h-3 w-3 animate-spin" /> BOLD CULTURAL STICKER DROPS
-              </span>
-              <h1 className="mt-2 font-black uppercase leading-none tracking-tight text-[clamp(2.2rem,7vw,5.5rem)] text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.2)]">
-                Stuck on{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-orange-500 drop-shadow-[0_0_30px_rgba(34,211,238,0.6)]">
-                  Realness
+      {/* Product-First Sticker Showcase Hero */}
+      <section className="relative w-full border-b border-border/40 py-8 md:py-12 overflow-hidden bg-gradient-to-b from-background via-card/30 to-background">
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-8">
+          {selectedCategory === "ALL" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              {/* Editorial Statement (35-40% width on desktop) */}
+              <div className="lg:col-span-5 flex flex-col justify-center text-left">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-2">
+                  CURATED VINYL DROPS
                 </span>
-              </h1>
-              <p className="mt-6 max-w-2xl text-[clamp(0.85rem,2vw,1.25rem)] font-medium text-muted-foreground leading-relaxed">
-                Stickers that express who you are. Bring personality to your phone, laptop, car, kitchen, and personal spaces.
-              </p>
-              
-              <button
-                onClick={() => {
-                  const el = document.getElementById("catalog-grid");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="mt-8 rounded-full bg-primary px-8 py-4 text-xs md:text-sm font-black uppercase tracking-[0.2em] text-primary-foreground transition-all duration-300 hover:scale-105 neon-glow cursor-pointer"
-              >
-                Shop the Collection
-              </button>
-            </div>
-          </div>
+                <h1 className="font-black uppercase leading-tight tracking-tight text-3xl sm:text-4xl md:text-5xl text-white">
+                  PUT SOMETHING<br />
+                  <span className="text-primary">ON IT.</span>
+                </h1>
+                <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-md">
+                  Express identity, culture, and attitude on your laptop, phone, car, and personal setups.
+                </p>
+                
+                <button
+                  onClick={() => {
+                    const el = document.getElementById("trending-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors cursor-pointer group w-fit"
+                >
+                  <span>SHOP THE DROPS</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+              </div>
 
-          {/* Subcategories Filter Banner when a main Category is selected */}
-          {selectedCategory !== "ALL" && (
+              {/* Physical Layered Sticker Wall Showcase (60-65% width on desktop) */}
+              <div className="lg:col-span-7 relative w-full aspect-[4/3] max-w-2xl mx-auto flex items-center justify-center min-h-[260px] sm:min-h-[320px] md:min-h-[380px]">
+                {heroStickers.length > 0 ? (
+                  <>
+                    {/* Dominant Hero Sticker 1 (Center Foreground) */}
+                    {heroStickers[0] && (
+                      <Link
+                        to={`/product/${heroStickers[0].id}`}
+                        title={heroStickers[0].title}
+                        className="absolute z-30 w-44 sm:w-56 md:w-64 sticker-shadow hover:-translate-y-2 hover:scale-105 transition-all duration-300 -rotate-3 hover:rotate-0"
+                      >
+                        <img
+                          src={heroStickers[0].image_url}
+                          alt={heroStickers[0].title}
+                          className="w-full h-full object-contain pointer-events-auto"
+                        />
+                      </Link>
+                    )}
+
+                    {/* Hero Sticker 2 (Top Left Overlapping Behind) */}
+                    {heroStickers[1] && (
+                      <Link
+                        to={`/product/${heroStickers[1].id}`}
+                        title={heroStickers[1].title}
+                        className="absolute top-2 left-2 sm:left-6 z-20 w-36 sm:w-44 md:w-52 sticker-shadow hover:-translate-y-2 hover:scale-105 transition-all duration-300 -rotate-12 hover:rotate-[-6deg]"
+                      >
+                        <img
+                          src={heroStickers[1].image_url}
+                          alt={heroStickers[1].title}
+                          className="w-full h-full object-contain pointer-events-auto"
+                        />
+                      </Link>
+                    )}
+
+                    {/* Hero Sticker 3 (Bottom Right Overlapping Front) */}
+                    {heroStickers[2] && (
+                      <Link
+                        to={`/product/${heroStickers[2].id}`}
+                        title={heroStickers[2].title}
+                        className="absolute bottom-2 right-2 sm:right-6 z-30 w-36 sm:w-44 md:w-48 sticker-shadow hover:-translate-y-2 hover:scale-105 transition-all duration-300 rotate-6 hover:rotate-3"
+                      >
+                        <img
+                          src={heroStickers[2].image_url}
+                          alt={heroStickers[2].title}
+                          className="w-full h-full object-contain pointer-events-auto"
+                        />
+                      </Link>
+                    )}
+
+                    {/* Hero Sticker 4 (Top Right Background Accent) */}
+                    {heroStickers[3] && (
+                      <Link
+                        to={`/product/${heroStickers[3].id}`}
+                        title={heroStickers[3].title}
+                        className="absolute top-4 right-6 sm:right-12 z-10 w-28 sm:w-36 md:w-40 opacity-90 sticker-shadow hover:-translate-y-2 hover:scale-105 transition-all duration-300 rotate-12 hover:rotate-6"
+                      >
+                        <img
+                          src={heroStickers[3].image_url}
+                          alt={heroStickers[3].title}
+                          className="w-full h-full object-contain pointer-events-auto"
+                        />
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  <div className="w-full h-full bg-muted/10 animate-pulse rounded-2xl flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Loading Showcase…</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Subcategory Header Banner when filtering a specific category */
             <div className="flex flex-col w-full">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-foreground flex items-center gap-2">
@@ -194,7 +263,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Main Content Area */}
+      {/* Main Storefront & Catalog Sections */}
       <div className="relative z-10 bg-background pt-4 pb-16">
         {selectedCategory === "ALL" && (
           <>
@@ -420,7 +489,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 6. Brand Perks & Trust Features Banner */}
+        {/* Brand Perks & Trust Features Banner */}
         <section className="mx-auto w-full max-w-[1600px] px-4 py-12 sm:px-8 mt-8 border-t border-border/40">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="glass-card p-6 rounded-2xl flex items-center gap-4">
