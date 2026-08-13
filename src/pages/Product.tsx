@@ -43,19 +43,18 @@ export default function Product() {
       </Link>
 
       <div className="grid gap-10 md:grid-cols-2">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-card">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-card border border-border/40 p-6 flex items-center justify-center">
           {computedImageSrc ? (
             <img
               src={computedImageSrc.includes('unsplash.com') ? computedImageSrc + (computedImageSrc.includes('?') ? '&' : '?') + 'w=800&q=80&auto=format' : computedImageSrc}
               alt={product.title}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain transition-transform duration-300 ease-out hover:scale-[1.02]"
             />
           ) : (
-            <div className="h-full w-full bg-muted/20 animate-pulse" />
+            <div className="h-full w-full bg-muted/20 animate-pulse rounded-xl" />
           )}
-          <div className="img-fade absolute inset-0" />
         </div>
 
         <div className="flex flex-col">
