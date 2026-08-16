@@ -1,8 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap');
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+
+.font-marker {
+  font-family: "Permanent Marker", cursive, sans-serif;
+}
 
 /*
  * Realz design system — cinematic dark theme.
@@ -36,8 +41,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-footer: var(--footer);
-  --font-display: "Archivo Black", "Inter", system-ui, sans-serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Archivo Black", "Urbanist", system-ui, sans-serif;
+  --font-sans: "Urbanist", system-ui, sans-serif;
 
   --animate-pulse-grow: pulse-grow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 

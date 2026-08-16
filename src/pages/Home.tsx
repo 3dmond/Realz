@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, Link } from "react-router-dom";
-import { Flame, Laptop, Smartphone, Car, BookOpen, ShieldCheck, Truck, Tag } from "lucide-react";
+import { Flame, Laptop, Smartphone, Car, BookOpen, ShieldCheck, Truck, Tag, ArrowDown } from "lucide-react";
 import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/queries";
 import { formatCategoryTitle } from "@/lib/utils";
 import ProductCard from "@/components/ui-bits/ProductCard";
@@ -59,11 +59,11 @@ export default function Home() {
     });
   }, [dbProducts, selectedCategory, currentSubCategorySlug, subs]);
 
-  // Deterministic hero sticker selection (top products with valid image URLs)
+  // Deterministic hero sticker selection (top 16 products with valid image URLs for dense sticker bomb)
   const heroStickers = useMemo(() => {
     if (!dbProducts) return [];
     const valid = dbProducts.filter((p) => typeof p.image_url === "string" && p.image_url.trim().length > 0);
-    return valid.length >= 10 ? valid.slice(0, 10) : valid;
+    return valid.length >= 16 ? valid.slice(0, 16) : valid;
   }, [dbProducts]);
 
   const trendingProducts = useMemo(() => {
@@ -115,40 +115,49 @@ export default function Home() {
     return formatCategoryTitle(raw);
   };
 
-  // Sticker Wall Position Configs matching screenshot layout
-  const stickerWallPositions = [
-    { top: "5%", left: "32%", width: "w-28 sm:w-36 md:w-48", rotate: "-rotate-6", zIndex: "z-20", scale: "scale-100" },
-    { top: "2%", left: "54%", width: "w-32 sm:w-40 md:w-52", rotate: "rotate-6", zIndex: "z-20", scale: "scale-105" },
-    { top: "4%", left: "75%", width: "w-36 sm:w-44 md:w-56", rotate: "-rotate-3", zIndex: "z-20", scale: "scale-110" },
-    { top: "35%", left: "28%", width: "w-32 sm:w-40 md:w-52", rotate: "-rotate-12", zIndex: "z-30", scale: "scale-105" },
-    { top: "30%", left: "46%", width: "w-40 sm:w-52 md:w-64", rotate: "rotate-3", zIndex: "z-30", scale: "scale-125" },
-    { top: "36%", left: "68%", width: "w-36 sm:w-44 md:w-56", rotate: "-rotate-6", zIndex: "z-30", scale: "scale-110" },
-    { top: "32%", left: "84%", width: "w-32 sm:w-40 md:w-48", rotate: "rotate-6", zIndex: "z-20", scale: "scale-100" },
-    { top: "68%", left: "34%", width: "w-32 sm:w-40 md:w-48", rotate: "rotate-6", zIndex: "z-20", scale: "scale-100" },
-    { top: "65%", left: "52%", width: "w-28 sm:w-36 md:w-44", rotate: "-rotate-6", zIndex: "z-20", scale: "scale-95" },
-    { top: "66%", left: "68%", width: "w-32 sm:w-40 md:w-48", rotate: "rotate-12", zIndex: "z-20", scale: "scale-105" },
+  // Organic Sticker Bomb Position Configurations (16 overlapping positions)
+  const stickerBombPositions = [
+    { top: "8%", right: "30%", width: "w-40 sm:w-52 md:w-60", rotate: "-rotate-6", zIndex: "z-30" },
+    { top: "14%", right: "12%", width: "w-44 sm:w-56 md:w-64", rotate: "rotate-12", zIndex: "z-30" },
+    { top: "2%", right: "-3%", width: "w-40 sm:w-52 md:w-60", rotate: "-rotate-12", zIndex: "z-20" },
+    { top: "46%", right: "24%", width: "w-48 sm:w-60 md:w-68", rotate: "rotate-3", zIndex: "z-40" },
+    { top: "44%", right: "2%", width: "w-44 sm:w-56 md:w-64", rotate: "-rotate-18", zIndex: "z-30" },
+    { top: "4%", right: "46%", width: "w-32 sm:w-40 md:w-48", rotate: "-rotate-25", zIndex: "z-20" },
+    { top: "28%", right: "38%", width: "w-36 sm:w-44 md:w-52", rotate: "rotate-18", zIndex: "z-35" },
+    { top: "32%", right: "18%", width: "w-36 sm:w-44 md:w-52", rotate: "-rotate-6", zIndex: "z-25" },
+    { top: "64%", right: "40%", width: "w-36 sm:w-44 md:w-52", rotate: "rotate-12", zIndex: "z-25" },
+    { top: "0%", right: "22%", width: "w-28 sm:w-36 md:w-40", rotate: "rotate-6", zIndex: "z-10" },
+    { top: "22%", right: "34%", width: "w-28 sm:w-32 md:w-36", rotate: "-rotate-15", zIndex: "z-15" },
+    { top: "38%", right: "28%", width: "w-32 sm:w-36 md:w-44", rotate: "rotate-22", zIndex: "z-45" },
+    { top: "68%", right: "16%", width: "w-32 sm:w-36 md:w-44", rotate: "-rotate-8", zIndex: "z-20" },
+    { top: "62%", right: "-4%", width: "w-32 sm:w-40 md:w-48", rotate: "rotate-15", zIndex: "z-10" },
+    { top: "-2%", right: "6%", width: "w-28 sm:w-36 md:w-40", rotate: "-rotate-20", zIndex: "z-10" },
+    { top: "72%", right: "32%", width: "w-28 sm:w-32 md:w-40", rotate: "rotate-6", zIndex: "z-30" },
   ];
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
-      {/* Full-Width Wide Sticker Wall Hero */}
-      <section className="relative w-full border-b border-border/40 py-10 md:py-16 overflow-hidden bg-[#0b0b0d] min-h-[440px] md:min-h-[540px] flex items-center">
+      {/* Full-Width Organic Sticker Bomb Hero Section */}
+      <section className="relative w-full border-b border-border/40 py-4 md:py-6 overflow-hidden bg-[#0b0b0d] min-h-[75vh] h-[75vh] max-h-[720px] flex items-center">
         {/* Subtle Ambient Glow */}
-        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_60%_50%,rgba(249,115,22,0.06),transparent_65%)] pointer-events-none" />
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_70%_50%,rgba(249,115,22,0.08),transparent_65%)] pointer-events-none" />
 
-        <div className="w-full relative z-10 px-4 sm:px-8">
+        <div className="w-full relative z-10 px-4 sm:px-8 h-full flex items-center">
           {selectedCategory === "ALL" ? (
-            <div className="relative w-full min-h-[380px] md:min-h-[460px] flex items-center">
-              {/* Left Editorial Statement Box */}
-              <div className="relative z-30 max-w-lg lg:max-w-xl bg-gradient-to-r from-[#0b0b0d] via-[#0b0b0d]/95 to-transparent rounded-3xl p-6 sm:p-8 backdrop-blur-[2px]">
-                <h1 className="font-black uppercase tracking-tight text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white leading-[0.95] drop-shadow-md">
-                  STICKERS FOR<br />
-                  PEOPLE WITH<br />
-                  <span className="text-primary brush-underline">SOMETHING</span><br />
-                  TO SAY.
+            <div className="relative w-full h-full flex items-center">
+              {/* Left Editorial Statement Box with strong gradient backdrop */}
+              <div className="relative z-30 max-w-xl lg:max-w-2xl bg-gradient-to-r from-[#0b0b0d] via-[#0b0b0d]/95 to-transparent rounded-3xl p-6 sm:p-8 backdrop-blur-[4px]">
+                <h1 className="font-marker uppercase tracking-tight text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-white leading-[0.92] drop-shadow-lg -rotate-2 origin-left">
+                  SLAP YOUR VIBE<br />
+                  <span className="relative inline-block text-primary">
+                    ON IT.
+                    <svg className="absolute -bottom-2 sm:-bottom-4 left-0 w-full h-4 sm:h-6 text-primary overflow-visible" viewBox="0 0 100 12" fill="none" preserveAspectRatio="none">
+                      <path d="M2 8 C 30 2, 70 12, 98 4" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+                    </svg>
+                  </span>
                 </h1>
-                <p className="mt-4 text-xs sm:text-sm text-muted-foreground/90 font-medium max-w-sm leading-relaxed">
-                  Express identity, culture and attitude on your laptop, phone, car and personal setups.
+                <p className="mt-6 text-xs sm:text-sm text-muted-foreground/90 font-medium max-w-md leading-relaxed font-sans">
+                  Premium vinyl drops. Upgrade your laptop, phone, or ride with art that actually speaks for you.
                 </p>
                 
                 <button
@@ -156,31 +165,31 @@ export default function Home() {
                     const el = document.getElementById("trending-section");
                     if (el) el.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className="mt-6 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors cursor-pointer group w-fit"
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors cursor-pointer group w-fit font-sans"
                 >
-                  <span className="border-b-2 border-primary pb-0.5">EXPLORE ALL STICKERS</span>
+                  <span className="border-b-2 border-primary pb-0.5">CLAIM YOUR STICKERS</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </button>
               </div>
 
-              {/* Full-Width Wide Sticker Wall (Right & Center Background) */}
-              <div className="absolute inset-0 z-10 pointer-events-auto overflow-hidden">
+              {/* Organic "Sticker Bomb" Cluster (Right Side Absolute Layering) */}
+              <div className="absolute inset-0 z-10 pointer-events-auto overflow-hidden flex items-center justify-end">
                 {heroStickers.length > 0 &&
                   heroStickers.map((pack, idx) => {
-                    const pos = stickerWallPositions[idx % stickerWallPositions.length];
+                    const pos = stickerBombPositions[idx % stickerBombPositions.length];
                     return (
                       <Link
                         key={pack.id}
                         to={`/product/${pack.id}`}
                         title={pack.title}
-                        style={{ top: pos.top, left: pos.left }}
-                        className={`absolute ${pos.zIndex} ${pos.width} ${pos.rotate} ${pos.scale} sticker-die-cut hover:-translate-y-2 hover:scale-110 transition-all duration-300 pointer-events-auto`}
+                        style={{ top: pos.top, right: pos.right }}
+                        className={`absolute ${pos.zIndex} ${pos.width} ${pos.rotate} sticker-die-cut hover:-translate-y-3 hover:scale-110 hover:z-50 transition-all duration-300 pointer-events-auto`}
                       >
                         <img
                           src={pack.image_url}
                           alt={pack.title}
                           loading="eager"
-                          className="w-full h-full object-contain"
+                          className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.85)]"
                         />
                       </Link>
                     );
@@ -228,6 +237,21 @@ export default function Home() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Minimalist Bottom Line & Sleek Scroll Indicator */}
+        <div className="absolute bottom-0 left-0 w-full flex justify-center translate-y-1/2 z-40 pointer-events-auto">
+          <div className="h-[1px] w-full bg-white/10 absolute top-1/2 -z-10" />
+          <button
+            onClick={() => {
+              const el = document.getElementById("trending-section");
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            }}
+            title="Scroll to Trending Drops"
+            className="bg-[#0b0b0d] border border-white/15 rounded-full p-2.5 shadow-lg animate-bounce hover:border-primary/60 transition-colors cursor-pointer group"
+          >
+            <ArrowDown className="w-4 h-4 text-white/80 group-hover:text-primary transition-colors" />
+          </button>
         </div>
       </section>
 
