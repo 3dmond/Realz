@@ -59,12 +59,11 @@ export default function Home() {
     });
   }, [dbProducts, selectedCategory, currentSubCategorySlug, subs]);
 
-  // Deterministic hero sticker selection (top featured products with valid image URLs)
+  // Deterministic hero sticker selection (top products with valid image URLs)
   const heroStickers = useMemo(() => {
     if (!dbProducts) return [];
     const valid = dbProducts.filter((p) => typeof p.image_url === "string" && p.image_url.trim().length > 0);
-    const featured = valid.filter((p) => p.is_featured);
-    return featured.length >= 4 ? featured.slice(0, 4) : valid.slice(0, 4);
+    return valid.length >= 10 ? valid.slice(0, 10) : valid;
   }, [dbProducts]);
 
   const trendingProducts = useMemo(() => {
@@ -116,24 +115,40 @@ export default function Home() {
     return formatCategoryTitle(raw);
   };
 
+  // Sticker Wall Position Configs matching screenshot layout
+  const stickerWallPositions = [
+    { top: "5%", left: "32%", width: "w-28 sm:w-36 md:w-48", rotate: "-rotate-6", zIndex: "z-20", scale: "scale-100" },
+    { top: "2%", left: "54%", width: "w-32 sm:w-40 md:w-52", rotate: "rotate-6", zIndex: "z-20", scale: "scale-105" },
+    { top: "4%", left: "75%", width: "w-36 sm:w-44 md:w-56", rotate: "-rotate-3", zIndex: "z-20", scale: "scale-110" },
+    { top: "35%", left: "28%", width: "w-32 sm:w-40 md:w-52", rotate: "-rotate-12", zIndex: "z-30", scale: "scale-105" },
+    { top: "30%", left: "46%", width: "w-40 sm:w-52 md:w-64", rotate: "rotate-3", zIndex: "z-30", scale: "scale-125" },
+    { top: "36%", left: "68%", width: "w-36 sm:w-44 md:w-56", rotate: "-rotate-6", zIndex: "z-30", scale: "scale-110" },
+    { top: "32%", left: "84%", width: "w-32 sm:w-40 md:w-48", rotate: "rotate-6", zIndex: "z-20", scale: "scale-100" },
+    { top: "68%", left: "34%", width: "w-32 sm:w-40 md:w-48", rotate: "rotate-6", zIndex: "z-20", scale: "scale-100" },
+    { top: "65%", left: "52%", width: "w-28 sm:w-36 md:w-44", rotate: "-rotate-6", zIndex: "z-20", scale: "scale-95" },
+    { top: "66%", left: "68%", width: "w-32 sm:w-40 md:w-48", rotate: "rotate-12", zIndex: "z-20", scale: "scale-105" },
+  ];
+
   return (
     <div className="w-full flex flex-col min-h-screen bg-background">
-      {/* Product-First Sticker Showcase Hero */}
-      <section className="relative w-full border-b border-border/40 py-8 md:py-12 overflow-hidden bg-gradient-to-b from-background via-card/30 to-background">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-8">
+      {/* Full-Width Wide Sticker Wall Hero */}
+      <section className="relative w-full border-b border-border/40 py-10 md:py-16 overflow-hidden bg-[#0b0b0d] min-h-[440px] md:min-h-[540px] flex items-center">
+        {/* Subtle Ambient Glow */}
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_60%_50%,rgba(249,115,22,0.06),transparent_65%)] pointer-events-none" />
+
+        <div className="w-full relative z-10 px-4 sm:px-8">
           {selectedCategory === "ALL" ? (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* Editorial Statement (35-40% width on desktop) */}
-              <div className="lg:col-span-5 flex flex-col justify-center text-left">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-2">
-                  CURATED VINYL DROPS
-                </span>
-                <h1 className="font-black uppercase leading-tight tracking-tight text-3xl sm:text-4xl md:text-5xl text-white">
-                  PUT SOMETHING<br />
-                  <span className="text-primary">ON IT.</span>
+            <div className="relative w-full min-h-[380px] md:min-h-[460px] flex items-center">
+              {/* Left Editorial Statement Box */}
+              <div className="relative z-30 max-w-lg lg:max-w-xl bg-gradient-to-r from-[#0b0b0d] via-[#0b0b0d]/95 to-transparent rounded-3xl p-6 sm:p-8 backdrop-blur-[2px]">
+                <h1 className="font-black uppercase tracking-tight text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white leading-[0.95] drop-shadow-md">
+                  STICKERS FOR<br />
+                  PEOPLE WITH<br />
+                  <span className="text-primary brush-underline">SOMETHING</span><br />
+                  TO SAY.
                 </h1>
-                <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-md">
-                  Express identity, culture, and attitude on your laptop, phone, car, and personal setups.
+                <p className="mt-4 text-xs sm:text-sm text-muted-foreground/90 font-medium max-w-sm leading-relaxed">
+                  Express identity, culture and attitude on your laptop, phone, car and personal setups.
                 </p>
                 
                 <button
@@ -143,80 +158,33 @@ export default function Home() {
                   }}
                   className="mt-6 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors cursor-pointer group w-fit"
                 >
-                  <span>SHOP THE DROPS</span>
+                  <span className="border-b-2 border-primary pb-0.5">EXPLORE ALL STICKERS</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </button>
               </div>
 
-              {/* Physical Layered Sticker Wall Showcase (60-65% width on desktop) */}
-              <div className="lg:col-span-7 relative w-full aspect-[4/3] max-w-2xl mx-auto flex items-center justify-center min-h-[260px] sm:min-h-[320px] md:min-h-[380px]">
-                {heroStickers.length > 0 ? (
-                  <>
-                    {/* Dominant Hero Sticker 1 (Center Foreground) */}
-                    {heroStickers[0] && (
+              {/* Full-Width Wide Sticker Wall (Right & Center Background) */}
+              <div className="absolute inset-0 z-10 pointer-events-auto overflow-hidden">
+                {heroStickers.length > 0 &&
+                  heroStickers.map((pack, idx) => {
+                    const pos = stickerWallPositions[idx % stickerWallPositions.length];
+                    return (
                       <Link
-                        to={`/product/${heroStickers[0].id}`}
-                        title={heroStickers[0].title}
-                        className="absolute z-30 w-44 sm:w-56 md:w-64 sticker-shadow hover:-translate-y-2 hover:scale-105 transition-all duration-300 -rotate-3 hover:rotate-0"
+                        key={pack.id}
+                        to={`/product/${pack.id}`}
+                        title={pack.title}
+                        style={{ top: pos.top, left: pos.left }}
+                        className={`absolute ${pos.zIndex} ${pos.width} ${pos.rotate} ${pos.scale} sticker-die-cut hover:-translate-y-2 hover:scale-110 transition-all duration-300 pointer-events-auto`}
                       >
                         <img
-                          src={heroStickers[0].image_url}
-                          alt={heroStickers[0].title}
-                          className="w-full h-full object-contain pointer-events-auto"
+                          src={pack.image_url}
+                          alt={pack.title}
+                          loading="eager"
+                          className="w-full h-full object-contain"
                         />
                       </Link>
-                    )}
-
-                    {/* Hero Sticker 2 (Top Left Overlapping Behind) */}
-                    {heroStickers[1] && (
-                      <Link
-                        to={`/product/${heroStickers[1].id}`}
-                        title={heroStickers[1].title}
-                        className="absolute top-2 left-2 sm:left-6 z-20 w-36 sm:w-44 md:w-52 sticker-shadow hover:-translate-y-2 hover:scale-105 transition-all duration-300 -rotate-12 hover:rotate-[-6deg]"
-                      >
-                        <img
-                          src={heroStickers[1].image_url}
-                          alt={heroStickers[1].title}
-                          className="w-full h-full object-contain pointer-events-auto"
-                        />
-                      </Link>
-                    )}
-
-                    {/* Hero Sticker 3 (Bottom Right Overlapping Front) */}
-                    {heroStickers[2] && (
-                      <Link
-                        to={`/product/${heroStickers[2].id}`}
-                        title={heroStickers[2].title}
-                        className="absolute bottom-2 right-2 sm:right-6 z-30 w-36 sm:w-44 md:w-48 sticker-shadow hover:-translate-y-2 hover:scale-105 transition-all duration-300 rotate-6 hover:rotate-3"
-                      >
-                        <img
-                          src={heroStickers[2].image_url}
-                          alt={heroStickers[2].title}
-                          className="w-full h-full object-contain pointer-events-auto"
-                        />
-                      </Link>
-                    )}
-
-                    {/* Hero Sticker 4 (Top Right Background Accent) */}
-                    {heroStickers[3] && (
-                      <Link
-                        to={`/product/${heroStickers[3].id}`}
-                        title={heroStickers[3].title}
-                        className="absolute top-4 right-6 sm:right-12 z-10 w-28 sm:w-36 md:w-40 opacity-90 sticker-shadow hover:-translate-y-2 hover:scale-105 transition-all duration-300 rotate-12 hover:rotate-6"
-                      >
-                        <img
-                          src={heroStickers[3].image_url}
-                          alt={heroStickers[3].title}
-                          className="w-full h-full object-contain pointer-events-auto"
-                        />
-                      </Link>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-full bg-muted/10 animate-pulse rounded-2xl flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Loading Showcase…</span>
-                  </div>
-                )}
+                    );
+                  })}
               </div>
             </div>
           ) : (

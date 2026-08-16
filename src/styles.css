@@ -219,13 +219,32 @@
     font-weight: 900;
   }
 
-  /* Physical sticker die-cut drop shadow */
-  .sticker-shadow {
-    filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.75)) drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5));
+  /* Physical sticker die-cut white outline & drop shadow */
+  .sticker-shadow,
+  .sticker-die-cut {
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.85)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
     transition: filter 0.3s ease, transform 0.3s ease;
   }
-  .sticker-shadow:hover {
-    filter: drop-shadow(0 25px 35px rgba(249, 115, 22, 0.35)) drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+  .sticker-shadow:hover,
+  .sticker-die-cut:hover {
+    filter: drop-shadow(0 20px 32px rgba(249, 115, 22, 0.4)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.8));
+  }
+
+  /* Orange brush stroke underline for editorial headline */
+  .brush-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .brush-underline::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: -2px;
+    right: -2px;
+    height: 6px;
+    background: #f97316;
+    border-radius: 3px;
+    transform: rotate(-0.8deg);
   }
 
   /* Hide scrollbar utility */
