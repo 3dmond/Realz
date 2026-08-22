@@ -6,6 +6,7 @@ import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/querie
 import { formatCategoryTitle } from "@/lib/utils";
 import ProductCard from "@/components/ui-bits/ProductCard";
 import CategoryCard from "@/components/ui-bits/CategoryCard";
+import Connect from "@/components/ui-bits/Connect";
 
 export default function Home() {
   const { data: cats } = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
@@ -41,29 +42,33 @@ export default function Home() {
 
   const availableCategories = useMemo(() => {
     if (!cats) return [];
-    return cats;
+    return cats.filter((c) => c.name.toLowerCase() !== "uncategorized");
   }, [cats]);
 
   const availableSubCategories = useMemo(() => {
-    if (selectedCategory === "ALL" || !subs) return [];
-    return subs.filter((s) => s.category_id === selectedCategory).map((s) => s.slug);
-  }, [selectedCategory, subs]);
+    if (!subs || selectedCategory === "ALL") return [];
+    return subs
+      .filter((s) => s.category_id === selectedCategory)
+      .map((s) => s.slug);
+  }, [subs, selectedCategory]);
 
   const visiblePacks = useMemo(() => {
-    if (!dbProducts || dbProducts.length === 0) return [];
-    const targetSubCategoryId = currentSubCategorySlug ? subs?.find((s) => s.slug === currentSubCategorySlug)?.id : null;
-    return dbProducts.filter((pack) => {
-      const categoryMatch = selectedCategory === "ALL" || pack.category_id === selectedCategory;
-      const subCategoryMatch = !currentSubCategorySlug || pack.subcategory_id === targetSubCategoryId;
-      return categoryMatch && subCategoryMatch;
+    if (!dbProducts) return [];
+    return dbProducts.filter((p) => {
+      if (selectedCategory !== "ALL" && p.category_id !== selectedCategory) return false;
+      if (currentSubCategorySlug) {
+        const sub = subs?.find((s) => s.slug === currentSubCategorySlug);
+        if (sub && p.subcategory_id !== sub.id) return false;
+      }
+      return true;
     });
   }, [dbProducts, selectedCategory, currentSubCategorySlug, subs]);
 
-  // Deterministic hero sticker selection (top 16 products with valid image URLs for dense sticker bomb)
+  // Safe hero sticker sampling
   const heroStickers = useMemo(() => {
     if (!dbProducts) return [];
     const valid = dbProducts.filter((p) => typeof p.image_url === "string" && p.image_url.trim().length > 0);
-    return valid.length >= 16 ? valid.slice(0, 16) : valid;
+    return valid;
   }, [dbProducts]);
 
   const trendingProducts = useMemo(() => {
@@ -89,7 +94,7 @@ export default function Home() {
     }
     setCurrentSubCategorySlug(null);
     setCurrentPage(1);
-    const el = document.getElementById("catalog-grid");
+    const el = document.getElementById("trending-section");
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -115,81 +120,121 @@ export default function Home() {
     return formatCategoryTitle(raw);
   };
 
-  // Organic Sticker Bomb Position Configurations (16 overlapping positions)
-  const stickerBombPositions = [
-    { top: "8%", right: "30%", width: "w-40 sm:w-52 md:w-60", rotate: "-rotate-6", zIndex: "z-30" },
-    { top: "14%", right: "12%", width: "w-44 sm:w-56 md:w-64", rotate: "rotate-12", zIndex: "z-30" },
-    { top: "2%", right: "-3%", width: "w-40 sm:w-52 md:w-60", rotate: "-rotate-12", zIndex: "z-20" },
-    { top: "46%", right: "24%", width: "w-48 sm:w-60 md:w-68", rotate: "rotate-3", zIndex: "z-40" },
-    { top: "44%", right: "2%", width: "w-44 sm:w-56 md:w-64", rotate: "-rotate-18", zIndex: "z-30" },
-    { top: "4%", right: "46%", width: "w-32 sm:w-40 md:w-48", rotate: "-rotate-25", zIndex: "z-20" },
-    { top: "28%", right: "38%", width: "w-36 sm:w-44 md:w-52", rotate: "rotate-18", zIndex: "z-35" },
-    { top: "32%", right: "18%", width: "w-36 sm:w-44 md:w-52", rotate: "-rotate-6", zIndex: "z-25" },
-    { top: "64%", right: "40%", width: "w-36 sm:w-44 md:w-52", rotate: "rotate-12", zIndex: "z-25" },
-    { top: "0%", right: "22%", width: "w-28 sm:w-36 md:w-40", rotate: "rotate-6", zIndex: "z-10" },
-    { top: "22%", right: "34%", width: "w-28 sm:w-32 md:w-36", rotate: "-rotate-15", zIndex: "z-15" },
-    { top: "38%", right: "28%", width: "w-32 sm:w-36 md:w-44", rotate: "rotate-22", zIndex: "z-45" },
-    { top: "68%", right: "16%", width: "w-32 sm:w-36 md:w-44", rotate: "-rotate-8", zIndex: "z-20" },
-    { top: "62%", right: "-4%", width: "w-32 sm:w-40 md:w-48", rotate: "rotate-15", zIndex: "z-10" },
-    { top: "-2%", right: "6%", width: "w-28 sm:w-36 md:w-40", rotate: "-rotate-20", zIndex: "z-10" },
-    { top: "72%", right: "32%", width: "w-28 sm:w-32 md:w-40", rotate: "rotate-6", zIndex: "z-30" },
-  ];
+  // 18 Columns x 8 Rows = 144 positions with alternating brick stagger
+  const proceduralStickerPositions = useMemo(() => {
+    const COLS = 18;
+    const ROWS = 8;
+    const items = [];
+    let index = 0;
+
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        // Row-stagger offset (shifts every odd row by half a column to break vertical lanes)
+        const rowOffset = r % 2 === 1 ? (100 / COLS) / 2 : 0;
+        const baseLeft = (c / COLS) * 100 + rowOffset;
+        const baseTop = (r / ROWS) * 100;
+
+        // Organic deterministic jitter
+        const jitterX = ((Math.sin(index * 127.1) * 43758.5453) % 1) * 3.5 - 1.75;
+        const jitterY = ((Math.cos(index * 269.5) * 43758.5453) % 1) * 4.5 - 2.25;
+        const rotation = Math.floor(((Math.sin(index * 311.7) * 43758.5453) % 1) * 60) - 30; // -30deg to +30deg
+
+        // Size tiers: varied to allow natural interlocking
+        const sizeTier =
+          index % 5 === 0
+            ? "w-24 md:w-28 h-24 md:h-28"
+            : index % 3 === 0
+            ? "w-20 md:w-24 h-20 md:h-24"
+            : index % 2 === 0
+            ? "w-16 md:w-20 h-16 md:h-20"
+            : "w-14 md:w-16 h-14 md:h-16";
+
+        // Varied z-index for overlapping depth
+        const zIndex = index % 4 === 0 ? "z-10" : "z-0";
+
+        items.push({
+          id: `sticker-dense-${index}`,
+          left: `${baseLeft + jitterX}%`,
+          top: `${baseTop + jitterY}%`,
+          rotation: `${rotation}deg`,
+          sizeTier,
+          zIndex,
+          mobile: index % 8 === 0,
+        });
+        index++;
+      }
+    }
+    return items;
+  }, []);
 
   return (
-    <div className="w-full flex flex-col min-h-screen bg-background">
-      {/* Full-Width Organic Sticker Bomb Hero Section */}
-      <section className="relative w-full border-b border-border/40 py-4 md:py-6 overflow-hidden bg-[#0b0b0d] min-h-[75vh] h-[75vh] max-h-[720px] flex items-center">
-        {/* Subtle Ambient Glow */}
-        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_70%_50%,rgba(249,115,22,0.08),transparent_65%)] pointer-events-none" />
+    <div className="relative w-full flex flex-col min-h-screen bg-background overflow-hidden">
+      {/* Ambient Atmospheric Glowing Orbs */}
+      <div className="fixed top-[-15%] left-[-10%] w-[60vw] h-[60vw] bg-accent/15 rounded-full blur-[140px] pointer-events-none -z-50 animate-pulse [animation-duration:10s]" />
+      <div className="fixed top-[25%] right-[-10%] w-[55vw] h-[55vw] bg-primary/15 rounded-full blur-[140px] pointer-events-none -z-50" />
+      <div className="fixed bottom-[-15%] left-[5%] w-[50vw] h-[50vw] bg-fuchsia-500/10 rounded-full blur-[140px] pointer-events-none -z-50" />
 
-        <div className="w-full relative z-10 px-4 sm:px-8 h-full flex items-center">
+      {/* Tactile Vinyl Noise Overlay */}
+      <div className="fixed inset-0 bg-noise pointer-events-none -z-40" />
+
+      {/* Compact Sticker-Bombed Dark Brick Wall Banner Section */}
+      <section className="relative overflow-hidden w-full h-[340px] md:h-[380px] min-h-0 flex items-center justify-center py-2 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900/90 via-[#0a0b12]/95 to-black shadow-[inset_0_0_100px_rgba(0,0,0,0.85)] border-b border-white/5">
+        {/* Brick Texture Grid Overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-15 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] z-0" />
+
+        <div className="w-full relative z-10 px-4 sm:px-8 h-full flex items-center justify-center">
           {selectedCategory === "ALL" ? (
-            <div className="relative w-full h-full flex items-center">
-              {/* Left Editorial Statement Box with strong gradient backdrop */}
-              <div className="relative z-30 max-w-xl lg:max-w-2xl bg-gradient-to-r from-[#0b0b0d] via-[#0b0b0d]/95 to-transparent rounded-3xl p-6 sm:p-8 backdrop-blur-[4px]">
-                <h1 className="font-marker uppercase tracking-tight text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-white leading-[0.92] drop-shadow-lg -rotate-2 origin-left">
+            <div className="relative w-full h-full flex items-center justify-center">
+              {/* Low-Profile Centered Floating Callout Placard */}
+              <div className="relative z-20 max-w-xs md:max-w-sm w-full py-3 px-5 md:px-6 rounded-xl bg-slate-950/90 backdrop-blur-md border border-white/15 shadow-2xl ring-1 ring-orange-500/20 text-center md:text-left">
+                <h1 className="font-black uppercase tracking-tight text-2xl md:text-3xl text-white leading-tight mb-1">
                   SLAP YOUR VIBE<br />
-                  <span className="relative inline-block text-primary">
+                  <span className="text-orange-500 underline decoration-wavy decoration-orange-500/60 inline-block mt-0.5">
                     ON IT.
-                    <svg className="absolute -bottom-2 sm:-bottom-4 left-0 w-full h-4 sm:h-6 text-primary overflow-visible" viewBox="0 0 100 12" fill="none" preserveAspectRatio="none">
-                      <path d="M2 8 C 30 2, 70 12, 98 4" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-                    </svg>
                   </span>
                 </h1>
-                <p className="mt-6 text-xs sm:text-sm text-muted-foreground/90 font-medium max-w-md leading-relaxed font-sans">
+                <p className="text-[11px] leading-snug text-slate-300 font-medium my-2 font-sans">
                   Premium vinyl drops. Upgrade your laptop, phone, or ride with art that actually speaks for you.
                 </p>
-                
+
                 <button
                   onClick={() => {
                     const el = document.getElementById("trending-section");
                     if (el) el.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className="mt-6 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors cursor-pointer group w-fit font-sans"
+                  className="text-[10px] font-mono font-bold tracking-widest text-orange-400 hover:text-orange-300 uppercase inline-flex items-center gap-1 mt-1 transition-colors cursor-pointer group"
                 >
-                  <span className="border-b-2 border-primary pb-0.5">CLAIM YOUR STICKERS</span>
+                  <span className="border-b border-orange-500/40 pb-0.5">CLAIM YOUR STICKERS</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </button>
               </div>
 
-              {/* Organic "Sticker Bomb" Cluster (Right Side Absolute Layering) */}
-              <div className="absolute inset-0 z-10 pointer-events-auto overflow-hidden flex items-center justify-end">
+              {/* Algorithmic Full-Wall Jitter Sticker Engine */}
+              <div className="absolute inset-0 w-full h-full z-10 pointer-events-auto overflow-visible">
                 {heroStickers.length > 0 &&
-                  heroStickers.map((pack, idx) => {
-                    const pos = stickerBombPositions[idx % stickerBombPositions.length];
+                  proceduralStickerPositions.map((pos, idx) => {
+                    const pack = heroStickers[idx % heroStickers.length];
+                    if (!pack) return null;
+
                     return (
                       <Link
-                        key={pack.id}
+                        key={`${pack.id}-${idx}`}
                         to={`/product/${pack.id}`}
                         title={pack.title}
-                        style={{ top: pos.top, right: pos.right }}
-                        className={`absolute ${pos.zIndex} ${pos.width} ${pos.rotate} sticker-die-cut hover:-translate-y-3 hover:scale-110 hover:z-50 transition-all duration-300 pointer-events-auto`}
+                        style={{
+                          left: pos.left,
+                          top: pos.top,
+                          transform: `rotate(${pos.rotation})`,
+                        }}
+                        className={`absolute ${pos.zIndex} ${pos.sizeTier} ${
+                          pos.mobile ? "block" : "hidden sm:block"
+                        } hover:scale-125 hover:z-30 transition-transform duration-200 cursor-pointer pointer-events-auto`}
                       >
                         <img
                           src={pack.image_url}
                           alt={pack.title}
                           loading="eager"
-                          className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.85)]"
+                          className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.7)]"
                         />
                       </Link>
                     );
@@ -238,53 +283,51 @@ export default function Home() {
             </div>
           )}
         </div>
-
-        {/* Minimalist Bottom Line & Sleek Scroll Indicator */}
-        <div className="absolute bottom-0 left-0 w-full flex justify-center translate-y-1/2 z-40 pointer-events-auto">
-          <div className="h-[1px] w-full bg-white/10 absolute top-1/2 -z-10" />
-          <button
-            onClick={() => {
-              const el = document.getElementById("trending-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-            title="Scroll to Trending Drops"
-            className="bg-[#0b0b0d] border border-white/15 rounded-full p-2.5 shadow-lg animate-bounce hover:border-primary/60 transition-colors cursor-pointer group"
-          >
-            <ArrowDown className="w-4 h-4 text-white/80 group-hover:text-primary transition-colors" />
-          </button>
-        </div>
       </section>
 
-      {/* Main Storefront & Catalog Sections */}
-      <div className="relative z-10 bg-background pt-4 pb-16">
+      {/* Main Storefront & Curated Discovery Sections */}
+      <div className="relative z-10 bg-transparent pt-8 pb-16">
         {selectedCategory === "ALL" && (
           <>
-            {/* 1. Trending Drops Spotlight */}
+            {/* 1. Editorial Trending Drops Spotlight */}
             {trendingProducts.length > 0 && (
-              <section id="trending-section" className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
-                <div className="flex items-center justify-between mb-6 border-b border-border/40 pb-4">
+              <section id="trending-section" className="relative mx-auto w-full max-w-[1600px] px-4 py-12 sm:px-8">
+                {/* Ultra-faint Watermark Typography */}
+                <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 text-[13vw] font-black uppercase text-white/[0.015] pointer-events-none select-none tracking-tighter z-0">
+                  TRENDING
+                </div>
+
+                {/* Editorial Streetwear Section Header */}
+                <div className="relative z-10 flex items-end justify-between mb-10 border-b border-white/5 pb-4">
                   <div>
-                    <span className="text-micro text-primary flex items-center gap-1.5 mb-1">
-                      <Flame className="h-3.5 w-3.5" /> HOT SELECTION
+                    <span className="bg-primary/10 text-primary border border-primary/20 px-3.5 py-1 rounded-full text-xs uppercase tracking-widest font-black inline-flex items-center gap-1.5 mb-2">
+                      <Flame className="h-3.5 w-3.5 fill-primary text-primary" /> HOT SELECTION
                     </span>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-foreground">
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-marker uppercase tracking-tight text-white -rotate-1 origin-left">
                       Trending Drops
                     </h2>
                   </div>
                   <button
                     onClick={() => {
-                      const el = document.getElementById("catalog-grid");
+                      const el = document.getElementById("vibe-section");
                       if (el) el.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="text-xs font-bold uppercase tracking-widest text-accent hover:text-primary transition-colors"
+                    className="text-xs font-black uppercase tracking-widest text-accent hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
                   >
-                    View All →
+                    <span>EXPLORE VIBES</span>
+                    <span>→</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                  {trendingProducts.map((pack) => (
-                    <ProductCard key={pack.id} product={pack} />
+                {/* Asymmetrical Staggered Product Layout */}
+                <div className="relative z-10 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 items-start">
+                  {trendingProducts.map((pack, idx) => (
+                    <div
+                      key={pack.id}
+                      className={idx % 2 === 1 ? "mt-4 lg:mt-12 transition-all duration-300" : "mt-0 transition-all duration-300"}
+                    >
+                      <ProductCard product={pack} />
+                    </div>
                   ))}
                 </div>
               </section>
@@ -292,7 +335,7 @@ export default function Home() {
 
             {/* 2. Shop Your Vibe - Personality Discovery Section */}
             <section id="vibe-section" className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
-              <div className="flex flex-col mb-6 border-b border-border/40 pb-4">
+              <div className="flex flex-col mb-6 border-b border-white/5 pb-4">
                 <span className="text-micro text-accent mb-1">EXPRESS YOURSELF</span>
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-foreground">
                   Shop Your Vibe
@@ -304,7 +347,7 @@ export default function Home() {
                   <div
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat.id)}
-                    className="group relative h-40 rounded-xl overflow-hidden cursor-pointer border border-border/40 hover:border-primary/60 transition-all duration-300 bg-card p-5 flex flex-col justify-end"
+                    className="group relative h-40 rounded-xl overflow-hidden cursor-pointer border border-white/10 hover:border-primary/60 transition-all duration-300 bg-card/60 p-5 flex flex-col justify-end"
                   >
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
                     {getCategoryThumbnail(cat.id) && (
@@ -329,7 +372,7 @@ export default function Home() {
 
             {/* 3. Shop By Use - Application Placement */}
             <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
-              <div className="flex flex-col mb-6 border-b border-border/40 pb-4">
+              <div className="flex flex-col mb-6 border-b border-white/5 pb-4">
                 <span className="text-micro text-muted-foreground mb-1">PLACEMENT GUIDE</span>
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-foreground">
                   Shop By Use
@@ -348,10 +391,10 @@ export default function Home() {
                     <div
                       key={i}
                       onClick={() => {
-                        const el = document.getElementById("catalog-grid");
+                        const el = document.getElementById("vibe-section");
                         if (el) el.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="group p-5 rounded-xl bg-card/60 border border-border/40 hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between h-36"
+                      className="group p-5 rounded-xl bg-card/40 border border-white/10 hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between h-36"
                     >
                       <div className="flex items-center justify-between">
                         <Icon className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
@@ -373,7 +416,7 @@ export default function Home() {
 
             {/* 4. Featured Collections Grid */}
             <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
-              <div className="flex flex-col mb-6 border-b border-border/40 pb-4">
+              <div className="flex flex-col mb-6 border-b border-white/5 pb-4">
                 <span className="text-micro text-accent mb-1">EXPLORE ALL THEMES</span>
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-foreground">
                   Sticker Categories
@@ -391,98 +434,14 @@ export default function Home() {
                 ))}
               </div>
             </section>
+
+            {/* 5. Personal Monograph Inquiry Sheet */}
+            <Connect />
           </>
         )}
 
-        {/* 5. Main Catalog Grid Section */}
-        <section id="catalog-grid" className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8">
-          <div className="flex flex-col md:flex-row items-baseline justify-between mb-8 border-b border-border/40 pb-4">
-            <div>
-              <span className="text-micro text-primary">FULL CATALOG</span>
-              <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-foreground mt-1">
-                {getCategoryName(selectedCategory)}
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-2 md:mt-0">
-              Showing <span className="text-primary font-bold">{visiblePacks.length}</span> sticker packs
-            </p>
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Desktop Category Filter Sidebar */}
-            {selectedCategory !== "ALL" && (
-              <aside className="hidden lg:flex w-64 shrink-0 flex-col gap-4 relative">
-                <div className="flex flex-col gap-2 sticky top-24 z-10 h-fit">
-                  <button
-                    onClick={() => handleCategoryClick("ALL")}
-                    className={`text-left px-4 py-3 text-xs font-black uppercase tracking-[0.1em] transition-all rounded-xl ${
-                      selectedCategory === "ALL"
-                        ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
-                        : "glass-card text-foreground hover:border-primary/50"
-                    }`}
-                  >
-                    All Stickers
-                  </button>
-                  {availableCategories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => handleCategoryClick(category.id)}
-                      className={`text-left px-4 py-3 text-xs font-black uppercase tracking-[0.1em] transition-all rounded-xl ${
-                        selectedCategory === category.id
-                          ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)]"
-                          : "glass-card text-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      {formatCategoryTitle(category.name)}
-                    </button>
-                  ))}
-                </div>
-              </aside>
-            )}
-
-            {/* Catalog Grid */}
-            <div className="flex-1 flex flex-col gap-6">
-              {visiblePacks.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                    {paginatedPacks.map((pack) => (
-                      <ProductCard key={pack.id} product={pack} />
-                    ))}
-                  </div>
-
-                  {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-12">
-                      {Array.from({ length: totalPages }).map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            setCurrentPage(i + 1);
-                            const el = document.getElementById("catalog-grid");
-                            if (el) el.scrollIntoView({ behavior: "smooth" });
-                          }}
-                          className={`w-10 h-10 rounded-full text-sm font-black ${
-                            currentPage === i + 1
-                              ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(249,115,22,0.5)]"
-                              : "bg-card hover:bg-accent text-foreground"
-                          }`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="py-20 text-center text-muted-foreground glass-panel rounded-xl mt-4">
-                  <p className="font-medium text-base">No packs found matching this filter criteria.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
         {/* Brand Perks & Trust Features Banner */}
-        <section className="mx-auto w-full max-w-[1600px] px-4 py-12 sm:px-8 mt-8 border-t border-border/40">
+        <section className="mx-auto w-full max-w-[1600px] px-4 py-12 sm:px-8 mt-8 border-t border-white/5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="glass-card p-6 rounded-2xl flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 grid place-items-center shrink-0">

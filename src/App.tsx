@@ -4,6 +4,7 @@ import Layout from "@/components/layout/Layout";
 import Home from "@/pages/Home";
 import Product from "@/pages/Product";
 import Selections from "@/pages/Selections";
+import Connect from "@/pages/Connect";
 import NotFound from "@/pages/NotFound";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/product/:id" element={<Product />} />
           <Route path="/selections" element={<Selections />} />
+          <Route path="/connect" element={<Connect />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
