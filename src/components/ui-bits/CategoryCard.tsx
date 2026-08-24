@@ -30,11 +30,11 @@ export default function CategoryCard({ title, image, to, onClick }: CategoryCard
         )}
       </div>
       {/* Footer Title */}
-      <div className="w-full shrink-0 pt-2 flex items-center justify-between border-t border-white/10 mt-1 z-10">
-        <span className="text-[11px] md:text-[12px] font-black uppercase tracking-wider text-accent group-hover:text-primary transition-colors leading-tight break-words">
+      <div className="w-full shrink-0 pt-2 flex items-center justify-between border-t border-purple-200/60 mt-1 z-10">
+        <span className="text-[11px] md:text-[12px] font-black uppercase tracking-wider text-primary group-hover:text-accent transition-colors leading-tight break-words">
           {formattedTitle}
         </span>
-        <span className="text-[10px] text-muted-foreground/60 group-hover:text-primary transition-colors">→</span>
+        <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors">→</span>
       </div>
     </div>
   );

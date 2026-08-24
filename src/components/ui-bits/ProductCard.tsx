@@ -33,12 +33,12 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
 
         {/* Grounded Metadata Box */}
-        <div className="w-full shrink-0 p-3 bg-white/[0.02] border border-white/[0.05] rounded-xl backdrop-blur-sm mt-2 flex items-center justify-between z-10 transition-colors group-hover:border-primary/30">
+        <div className="w-full shrink-0 p-3 bg-white/80 border border-purple-200/60 shadow-sm rounded-xl backdrop-blur-sm mt-2 flex items-center justify-between z-10 transition-colors group-hover:border-primary/50">
           <div className="flex flex-col pr-2 overflow-hidden">
             <span className="text-[11px] md:text-[12px] font-bold text-foreground leading-tight truncate group-hover:text-primary transition-colors">
               {product.title}
             </span>
-            <span className="text-[10px] font-black text-primary/90 tracking-wider uppercase mt-0.5">
+            <span className="text-[10px] font-black text-primary tracking-wider uppercase mt-0.5">
               From 15.50 KSh
             </span>
           </div>
@@ -51,8 +51,8 @@ export default function ProductCard({ product }: { product: Product }) {
             aria-label={inCart ? "Remove from selections" : "Add to selections"}
             className={`shrink-0 grid h-7 w-7 place-items-center rounded-full transition-all duration-200 ${
               inCart
-                ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.705_0.20_47/0.8)] scale-105"
-                : "bg-white/5 border border-white/10 text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(126,34,206,0.5)] scale-105"
+                : "bg-purple-100/60 border border-purple-200 text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary"
             }`}
           >
             {inCart ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}

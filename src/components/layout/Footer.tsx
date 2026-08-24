@@ -4,14 +4,14 @@ import { Phone, MessageCircle } from "lucide-react";
 export default function Footer() {
   return (
     <footer
-      className="border-t border-border/40 px-4 py-4 sm:px-8"
+      className="border-t border-purple-800/40 px-4 py-4 sm:px-8 text-purple-100"
       style={{ background: "var(--color-footer)" }}
     >
       <div className="mx-auto flex max-w-[1600px] flex-col items-center gap-3 sm:flex-row sm:justify-between">
-        <Link to="/" className="realz-logo text-xl">
-          Rea<span className="lz">lz</span>
+        <Link to="/" className="realz-logo text-xl text-purple-100">
+          Rea<span className="lz text-primary font-black">lz</span>
         </Link>
-        <p className="text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
+        <p className="text-[10px] tracking-[0.25em] text-purple-300 uppercase font-medium">
           © {new Date().getFullYear()} Realz Stickers. All rights reserved.
         </p>
         <div className="flex items-center gap-3">
@@ -20,14 +20,14 @@ export default function Footer() {
             target="_blank"
             rel="noreferrer"
             aria-label="WhatsApp"
-            className="grid h-9 w-9 place-items-center rounded-full border border-border text-muted-foreground transition hover:border-primary hover:text-primary"
+            className="grid h-9 w-9 place-items-center rounded-full border border-purple-700 text-purple-200 transition hover:border-primary hover:text-primary"
           >
             <MessageCircle className="h-4 w-4" />
           </a>
           <a
             href="tel:+0000000000"
             aria-label="Phone"
-            className="grid h-9 w-9 place-items-center rounded-full border border-border text-muted-foreground transition hover:border-primary hover:text-primary"
+            className="grid h-9 w-9 place-items-center rounded-full border border-purple-700 text-purple-200 transition hover:border-primary hover:text-primary"
           >
             <Phone className="h-4 w-4" />
           </a>
