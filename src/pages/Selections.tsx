@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { z } from "zod";
 import { useCart } from "@/store/cart";
 import { TIERS, activeTier, formatPrice, subtotal, getBreakdown } from "@/lib/pricing";
@@ -18,6 +18,19 @@ const checkoutSchema = z.object({
   delivery_place: z.string().trim().min(8).max(500),
 });
 
+const ROTATIONS = [
+  "-rotate-6",
+  "rotate-3",
+  "-rotate-12",
+  "rotate-6",
+  "-rotate-3",
+  "rotate-12",
+  "-rotate-8",
+  "rotate-4",
+  "-rotate-4",
+  "rotate-8",
+];
+
 export default function Selections() {
   const itemsMap = useCart((s) => s.items);
   const items = Object.values(itemsMap);
@@ -30,6 +43,45 @@ export default function Selections() {
   const tier = activeTier(totalQty);
   const breakdown = getBreakdown(totalQty);
   const averageUnit = totalQty > 0 ? +(total / totalQty).toFixed(2) : 0;
+
+  // Chunk cart items into max 20 items per wall slide
+  const CHUNK_SIZE = 20;
+  const itemChunks = useMemo(() => {
+    const chunks: (typeof items)[] = [];
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      chunks.push(items.slice(i, i + CHUNK_SIZE));
+    }
+    return chunks;
+  }, [items]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 5);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [items, itemChunks]);
+
+  const scrollNext = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: scrollRef.current.clientWidth, behavior: "smooth" });
+    }
+  };
+
+  const scrollPrev = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -scrollRef.current.clientWidth, behavior: "smooth" });
+    }
+  };
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{ phone: string } | null>(null);
@@ -150,199 +202,282 @@ export default function Selections() {
 
   return (
     <div
-      className="relative min-h-screen w-full font-sans bg-[#0a0b14]"
+      className="relative h-screen max-h-screen overflow-hidden flex flex-col w-full font-sans bg-[#0a0b14]"
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c13.866 0 25-11.134 25-25h-2c0 12.761-10.239 23-23 23v2zm15 32c0-14.359-11.641-26-26-26v2c13.255 0 24 10.745 24 24h2zm-26 36c25.405 0 46-20.595 46-46h-2c0 24.301-19.699 44-44 44v2zm50-46c0 27.614-22.386 50-50 50v2c28.719 0 52-23.281 52-52h-2zm-50 62c34.242 0 62-27.758 62-62h-2c0 33.137-26.863 60-60 60v2zm66-62c0 36.451-29.549 66-66 66v2c37.555 0 68-30.445 68-68h-2z' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3C/svg%3E")`
       }}
     >
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-8">
-        <div className="flex flex-col md:flex-row items-baseline justify-between mb-8">
-        <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tight">Your Selections</h1>
-        <p className="mt-2 text-sm text-muted-foreground font-medium uppercase tracking-widest">
-          Active tier: <span className="text-primary font-bold">{tier.label}</span> // Avg{" "}
-          {formatPrice(averageUnit)}
-        </p>
-      </div>
-
-      <div className="grid gap-10 md:grid-cols-[6fr_4fr] items-start">
-        {/* Left Panel: Sticker Tape Review Roll */}
-        <div className="flex flex-wrap content-start justify-center md:justify-start gap-6 p-4 sm:p-8 relative min-h-[500px]">
-          {items.map((it, i) => {
-            const computedImageSrc = it.image_url || null;
-            // Generate pseudo-random but stable rotations and offsets
-            const rotateAngles = ["rotate-[-4deg]", "rotate-[3deg]", "rotate-[-2deg]", "rotate-[5deg]", "rotate-[-6deg]", "rotate-[2deg]"];
-            const mtOffsets = ["mt-0", "mt-4", "mt-8", "mt-2", "mt-6", "mt-0"];
-            const rot = rotateAngles[i % rotateAngles.length];
-            const mt = mtOffsets[i % mtOffsets.length];
-            
-            return (
-              <div
-                key={it.id}
-                className={`group relative w-32 sm:w-40 aspect-[4/5] overflow-hidden bg-black/40 backdrop-blur-sm border border-white/10 shadow-black/90 shadow-2xl transition-all duration-500 hover:rotate-0 hover:scale-110 hover:z-50 ${rot} ${mt}`}
-              >
-                <Link to={`/product/${it.id}`} className="absolute inset-0 z-0">
-                  {computedImageSrc ? (
-                    <img
-                      src={computedImageSrc}
-                      alt={it.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 opacity-90 group-hover:opacity-100"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-muted/20 animate-pulse" />
-                  )}
-                </Link>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0b14] via-transparent to-transparent opacity-90 pointer-events-none" />
-
-                <div className="absolute top-2 left-2 z-30 pointer-events-none">
-                  <span className="bg-black text-primary text-[10px] font-black px-2 py-1 border border-primary/20 shadow-[0_0_10px_theme(colors.primary.DEFAULT)/0.5]">
-                    {it.quantity}x
-                  </span>
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    remove(it.id);
-                  }}
-                  className="absolute top-2 right-2 z-30 grid h-7 w-7 place-items-center bg-destructive/80 text-white shadow-lg transition-transform hover:scale-110 hover:bg-destructive rounded-none"
-                  aria-label="Remove selection"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-
-                <div className="absolute bottom-2 left-0 right-0 px-2 z-30 flex justify-between items-center">
-                  <button
-                    onClick={() => setQty(it.id, it.quantity - 1)}
-                    className="grid h-7 w-7 place-items-center bg-black/60 backdrop-blur-md text-white border border-white/10 hover:bg-black/90 transition-colors rounded-none"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() => setQty(it.id, it.quantity + 1)}
-                    className="grid h-7 w-7 place-items-center bg-black/60 backdrop-blur-md text-white border border-white/10 hover:bg-black/90 transition-colors rounded-none"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+      <div className="relative z-10 mx-auto max-w-[1700px] w-full px-4 pt-3 pb-3 sm:px-8 font-sans flex-1 h-full flex flex-col overflow-hidden">
+        {/* Understated Handwritten Label */}
+        <div className="mb-2 shrink-0">
+          <h1
+            style={{ fontFamily: "'Caveat', 'Dancing Script', 'Handlee', cursive" }}
+            className="text-2xl sm:text-3xl text-purple-400 font-semibold -rotate-2 select-none origin-left leading-none drop-shadow-[0_2px_10px_rgba(168,85,247,0.35)]"
+          >
+            your sticker wall
+          </h1>
         </div>
 
-        {/* Right Panel: Checkout */}
-        <div className="p-8 border-t-[3px] border-t-primary border-l border-r border-b border-primary/20 shadow-2xl h-fit sticky top-24 bg-[#0a0b14] backdrop-blur-xl">
-          <p className="text-micro text-primary tracking-[0.2em] font-black flex items-center gap-2">
-            <span className="w-2 h-2 bg-primary animate-pulse shadow-[0_0_8px_theme(colors.primary.DEFAULT)]" />
-            CHECKOUT — SECURE
-          </p>
-          
-          {/* Black-and-White Thermal Ticket Module */}
-          <div className="mt-6 bg-[#f4f4f5] p-6 text-black font-mono border border-black shadow-[0_0_20px_rgba(0,0,0,0.5)] relative">
-            <div className="absolute top-0 left-0 right-0 h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjQiPjxwb2x5Z29uIHBvaW50cz0iMCwwIDQsNCA4LDAiIGZpbGw9IiMwYTBiMTQiLz48L3N2Zz4=')] repeat-x" />
-            
-            <div className="text-center mb-6 mt-2">
-              <p className="text-sm font-black uppercase tracking-widest border-b-2 border-black pb-2 inline-block">ORDER SUMMARY</p>
-            </div>
-
-            <div className="flex items-baseline justify-between border-b border-dashed border-black/40 pb-4">
-              <span className="text-xs font-bold uppercase tracking-widest">TOTAL ITEMS</span>
-              <span className="text-xl font-black tracking-tighter">
-                {totalQty}
-              </span>
-            </div>
-
-            {breakdown.length > 1 && (
-              <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-black/60 mb-2">RECEIPT BREAKDOWN</p>
-                <div className="flex flex-col gap-1.5 font-medium tracking-wide text-xs">
-                  {breakdown.map((b, i) => (
-                    <div key={i} className="flex justify-between items-center">
-                      <span>{b.qty} × {b.price.toFixed(2)} KSh</span>
-                      <span className="font-bold">{(b.qty * b.price).toFixed(2)} KSh</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        <div className="grid gap-6 lg:gap-8 lg:grid-cols-[68fr_32fr] items-stretch flex-1 overflow-hidden h-full min-h-0">
+          {/* Left Panel: Dynamic Sticker Wall Carousel */}
+          <div className="-ml-4 sm:-ml-8 w-[calc(100%+1rem)] sm:w-[calc(100%+2rem)] h-full relative rounded-r-2xl lg:rounded-2xl bg-[#120726]/60 border-y border-r lg:border border-purple-500/20 shadow-2xl backdrop-blur-sm flex flex-col justify-between overflow-hidden">
+          {/* Main horizontal scroll container with directional navigation arrows */}
+          <div className="relative w-full flex-1 flex items-center overflow-hidden">
+            {/* Left Directional Navigation Arrow */}
+            {items.length > 20 && canScrollLeft && (
+              <button
+                type="button"
+                onClick={scrollPrev}
+                aria-label="Previous wall"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-50 transition-all duration-300 bg-black/70 backdrop-blur-md text-white p-3 rounded-full hover:bg-primary cursor-pointer shadow-xl border border-white/10 hover:scale-110"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
             )}
-            
-            <div className="mt-4 pt-4 border-t border-dashed border-black/40 flex items-baseline justify-between">
-              <span className="text-sm font-bold uppercase tracking-widest">TOTAL DUE</span>
-              <span className="text-2xl font-black tracking-tighter">
-                {formatPrice(total)}
-              </span>
+
+            {/* Horizontal Scroll Slider */}
+            <div
+              ref={scrollRef}
+              onScroll={checkScroll}
+              className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full h-full items-center px-12 lg:px-16"
+            >
+              {itemChunks.map((chunk, chunkIdx) => (
+                <div
+                  key={`wall-chunk-${chunkIdx}`}
+                  className="min-w-full shrink-0 snap-center p-4 sm:p-6 flex flex-col justify-center"
+                >
+                  {/* Non-overlapping Grid: 20 items max (grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 p-4) */}
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 p-4 place-items-center">
+                    {chunk.map((it, itemIdx) => {
+                      const computedImageSrc = it.image_url || null;
+                      const globalIdx = chunkIdx * CHUNK_SIZE + itemIdx;
+                      const rotationClass = ROTATIONS[globalIdx % ROTATIONS.length];
+
+                      return (
+                        <div
+                          key={it.id}
+                          className={`relative group flex items-center justify-center p-2 transition-transform duration-300 hover:scale-110 hover:z-50 ${rotationClass}`}
+                        >
+                          {/* Layer 1 (Bottom - The Card Base): Subtle royal deep purple fill strictly behind the artwork */}
+                          <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-purple-500/[0.08] border border-purple-400/30 rounded-2xl pointer-events-none shadow-xl shadow-purple-950/40" />
+
+                          {/* Layer 2 (Middle - The Artwork): 100% crisp, unblurred sticker artwork */}
+                          <Link
+                            to={`/product/${it.id}`}
+                            className="relative z-10 w-32 h-32 flex items-center justify-center cursor-pointer"
+                          >
+                            {computedImageSrc ? (
+                              <img
+                                src={computedImageSrc}
+                                alt={it.title}
+                                loading="lazy"
+                                className="w-32 h-32 object-contain p-2 relative z-10 filter drop-shadow-2xl select-none"
+                              />
+                            ) : (
+                              <div className="w-32 h-32 bg-muted/20 animate-pulse rounded-lg" />
+                            )}
+                          </Link>
+
+                          {/* Layer 3 (Top - The Buttons): Absolute top layer z-20 with pointer-events-auto on interactive buttons */}
+                          <div className="absolute inset-0 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2">
+                            {/* Top: Quantity Badge & Delete Button */}
+                            <div className="flex items-center justify-between w-full">
+                              <span className="pointer-events-auto bg-black text-white text-xs font-black px-2 py-1 rounded shadow-md border border-white/10 select-none">
+                                {it.quantity}x
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  remove(it.id);
+                                }}
+                                className="pointer-events-auto grid h-7 w-7 place-items-center bg-red-600 text-white rounded-md shadow-lg hover:bg-red-500 hover:scale-110 transition-all cursor-pointer"
+                                aria-label="Remove item"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Bottom: Quantity Toggle Buttons */}
+                            <div className="flex items-center justify-between w-full">
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setQty(it.id, it.quantity - 1);
+                                }}
+                                className="pointer-events-auto grid h-7 w-7 place-items-center bg-black text-white border border-white/20 rounded-md hover:bg-white hover:text-black hover:scale-110 transition-all cursor-pointer"
+                                aria-label="Decrease quantity"
+                              >
+                                <Minus className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setQty(it.id, it.quantity + 1);
+                                }}
+                                className="pointer-events-auto grid h-7 w-7 place-items-center bg-black text-white border border-white/20 rounded-md hover:bg-white hover:text-black hover:scale-110 transition-all cursor-pointer"
+                                aria-label="Increase quantity"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            <div className="mt-6 text-center text-black/40 text-[10px] tracking-[0.4em] font-bold">
-              -----------------
-            </div>
-            
-            <div className="absolute bottom-0 left-0 right-0 h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjQiPjxwb2x5Z29uIHBvaW50cz0iMCw0IDQsMCA4LDQiIGZpbGw9IiMwYTBiMTQiLz48L3N2Zz4=')] repeat-x" />
+            {/* Right Directional Navigation Arrow */}
+            {items.length > 20 && canScrollRight && (
+              <button
+                type="button"
+                onClick={scrollNext}
+                aria-label="Next wall"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-50 transition-all duration-300 bg-black/70 backdrop-blur-md text-white p-3 rounded-full hover:bg-primary cursor-pointer shadow-xl border border-white/10 hover:scale-110"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
-          {/* Industrial Progress-Step Pills */}
-          <div className="mt-8 relative">
-            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/10 -translate-y-1/2 z-0" />
-            <div className="relative z-10 grid grid-cols-3 gap-2">
+          {/* Footer Indicator if cart > 20 */}
+          {items.length > 20 && (
+            <div className="px-6 py-3 border-t border-white/5 flex items-center justify-between text-neutral-400 text-xs">
+              <span className="font-mono">
+                Showing max 20 stickers per wall slide
+              </span>
+              <span className="text-primary font-bold tracking-wide animate-pulse">
+                Swipe / Scroll for more walls →
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel: Checkout Column (internally scrollable on small viewports) */}
+        <div className="h-full flex flex-col overflow-y-auto hide-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden p-4 sm:p-6 border-t-[3px] border-t-primary border-l border-r border-b border-primary/20 shadow-2xl bg-[#0a0b14] backdrop-blur-xl rounded-b-2xl">
+          {/* Horizontal Flex Container for Thermal Receipt & Vertical Tier Wheel */}
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start shrink-0">
+            {/* Black-and-White Thermal Ticket Module (Strictly font-mono throughout) */}
+            <div className="flex-1 w-full bg-[#f4f4f5] p-5 text-black font-mono border border-black shadow-[0_0_20px_rgba(0,0,0,0.5)] relative">
+              <div className="absolute top-0 left-0 right-0 h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjQiPjxwb2x5Z29uIHBvaW50cz0iMCwwIDQsNCA4LDAiIGZpbGw9IiMwYTBiMTQiLz48L3N2Zz4=')] repeat-x" />
+              
+              <div className="text-center mb-4 mt-1">
+                <p className="font-mono text-xs font-black uppercase tracking-widest border-b-2 border-black pb-1.5 inline-block">ORDER SUMMARY</p>
+              </div>
+
+              <div className="font-mono flex items-baseline justify-between border-b border-dashed border-black/40 pb-3">
+                <span className="font-mono text-xs font-bold uppercase tracking-widest">TOTAL ITEMS</span>
+                <span className="font-mono text-lg font-black tracking-tighter">
+                  {totalQty}
+                </span>
+              </div>
+
+              {breakdown.length > 1 && (
+                <div className="font-mono mt-3 animate-in fade-in slide-in-from-top-2">
+                  <p className="font-mono text-[10px] font-black uppercase tracking-widest text-black/60 mb-1.5">RECEIPT BREAKDOWN</p>
+                  <div className="font-mono flex flex-col gap-1 font-medium tracking-wide text-xs">
+                    {breakdown.map((b, i) => (
+                      <div key={i} className="font-mono flex justify-between items-center">
+                        <span className="font-mono">{b.qty} × {b.price.toFixed(2)} KSh</span>
+                        <span className="font-mono font-bold">{(b.qty * b.price).toFixed(2)} KSh</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="font-mono mt-3 pt-3 border-t border-dashed border-black/40 flex items-baseline justify-between">
+                <span className="font-mono text-xs font-bold uppercase tracking-widest">TOTAL DUE</span>
+                <span className="font-mono text-xl font-black tracking-tighter">
+                  {formatPrice(total)}
+                </span>
+              </div>
+
+              <div className="font-mono mt-4 text-center text-black/40 text-[10px] tracking-[0.4em] font-bold">
+                -----------------
+              </div>
+              
+              <div className="absolute bottom-0 left-0 right-0 h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjQiPjxwb2x5Z29uIHBvaW50cz0iMCw0IDQsMCA4LDQiIGZpbGw9IiMwYTBiMTQiLz48L3N2Zz4=')] repeat-x" />
+            </div>
+
+            {/* Vertical Tier Wheel Column */}
+            <div className="flex flex-col gap-2.5 w-full lg:w-32 shrink-0">
+              <p className="font-sans text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-0.5">TIERS</p>
               {TIERS.map((t) => {
                 const isActive = t === tier;
                 return (
                   <div
                     key={t.label}
-                    className={`px-1 py-3 text-center flex flex-col justify-center transition-all border ${
+                    className={`h-16 px-3 py-1.5 text-center rounded-xl flex flex-col justify-center transition-all border ${
                       isActive
-                        ? "bg-primary border-primary text-primary-foreground font-black shadow-[0_0_20px_theme(colors.primary.DEFAULT)] scale-105"
-                        : "bg-black/40 backdrop-blur-sm border-white/10 text-muted-foreground/50"
+                        ? "bg-primary text-primary-foreground font-black shadow-[0_0_20px_oklch(0.55_0.26_285/0.7)] border-primary scale-105"
+                        : "bg-white/[0.03] text-white/40 border border-white/10 hover:bg-white/[0.08] hover:text-white/70"
                     }`}
                   >
-                    <div className="text-[10px] uppercase tracking-widest">{t.label}</div>
-                    <div className="mt-1 text-[10px] font-black leading-tight">{t.description}</div>
+                    <div className="font-sans text-xs font-black uppercase tracking-wider">{t.label}</div>
+                    <div className="font-mono mt-0.5 text-[11px] font-bold leading-tight">{formatPrice(t.unitPrice)}</div>
                   </div>
                 );
               })}
+
+              {/* Relocated Average Price Metric */}
+              <p className="text-xs font-mono text-green-500 mt-1 text-center tracking-wider">
+                AVG {formatPrice(averageUnit)}
+              </p>
             </div>
           </div>
 
-          {/* Lined Notebook Diary Sheet Form */}
+          {/* Lined Notebook Diary Sheet Form (Condensed Inline Layout) */}
           <form 
             onSubmit={handleSubmit} 
-            className="mt-10 relative bg-[#fdfbf7] shadow-2xl border border-black/10 w-full rounded-sm overflow-hidden"
+            className="mt-4 relative bg-[#fdfbf7] shadow-2xl border border-black/10 w-full rounded-sm overflow-hidden shrink-0"
             style={{
-              backgroundImage: "repeating-linear-gradient(transparent, transparent 39px, #cbd5e1 39px, #cbd5e1 40px)",
-              backgroundSize: "100% 40px",
+              backgroundImage: "repeating-linear-gradient(transparent, transparent 35px, #cbd5e1 35px, #cbd5e1 36px)",
+              backgroundSize: "100% 36px",
               backgroundPosition: "0 0px",
             }}
           >
             {/* Red Margin Line */}
             <div className="absolute top-0 bottom-0 left-[40px] w-[1px] bg-red-400/60 z-0" />
 
-            <div className="relative z-10 pt-[40px] pb-[40px]">
-              
-              <div className="h-[80px] px-4 pl-[50px] relative group">
-                <label className="text-[10px] font-black text-black/60 uppercase tracking-widest absolute top-0 pt-[10px] leading-none transition-colors group-focus-within:text-blue-900">
+            <div className="relative z-10 py-2 sm:py-3">
+              <div className="flex flex-row items-center gap-3 sm:gap-4 border-b border-slate-300/80 py-1 px-4 pl-[50px] relative group">
+                <label className="w-24 sm:w-28 shrink-0 text-xs font-bold text-gray-900 uppercase tracking-widest leading-none font-sans">
                   NAME
                 </label>
                 <Input
                   value={form.customer_name}
                   onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
-                  className="absolute bottom-0 left-[50px] right-4 w-[calc(100%-66px)] h-[40px] bg-transparent border-0 rounded-none px-0 focus-visible:ring-0 shadow-none font-mono text-xl text-[#0a192f] placeholder:text-black/20"
+                  style={{ fontFamily: "'Caveat', 'Dancing Script', 'Handlee', cursive" }}
+                  className="flex-1 bg-transparent border-0 rounded-none px-0 py-0.5 h-auto focus-visible:ring-0 shadow-none text-xl sm:text-2xl font-semibold text-blue-900 placeholder:font-sans placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
                   placeholder="Full name"
                 />
               </div>
 
-              <div className="h-[80px] px-4 pl-[50px] relative group">
-                <label className="text-[10px] font-black text-black/60 uppercase tracking-widest absolute top-0 pt-[10px] leading-none transition-colors group-focus-within:text-blue-900">
-                  PHONE NUMBER
+              <div className="flex flex-row items-center gap-3 sm:gap-4 border-b border-slate-300/80 py-1 px-4 pl-[50px] relative group">
+                <label className="w-24 sm:w-28 shrink-0 text-xs font-bold text-gray-900 uppercase tracking-widest leading-none font-sans">
+                  PHONE
                 </label>
-                <div className="absolute bottom-0 left-[50px] right-4 flex items-center h-[40px] w-[calc(100%-66px)]">
-                  <span className="text-xl font-mono text-black/40 mr-1 select-none leading-[40px]">0</span>
+                <div className="flex-1 flex items-center">
+                  <span
+                    style={{ fontFamily: "'Caveat', 'Dancing Script', 'Handlee', cursive" }}
+                    className="text-xl sm:text-2xl font-semibold text-blue-900 mr-1 select-none leading-none"
+                  >
+                    0
+                  </span>
                   <Input
                     value={form.customer_phone}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '').slice(0, 9);
                       setForm({ ...form, customer_phone: val });
                     }}
-                    className="h-[40px] bg-transparent border-0 rounded-none px-0 focus-visible:ring-0 shadow-none font-mono text-xl text-[#0a192f] placeholder:text-black/20 flex-1"
+                    style={{ fontFamily: "'Caveat', 'Dancing Script', 'Handlee', cursive" }}
+                    className="flex-1 bg-transparent border-0 rounded-none px-0 py-0.5 h-auto focus-visible:ring-0 shadow-none text-xl sm:text-2xl font-semibold text-blue-900 placeholder:font-sans placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
                     placeholder="712345678"
                     inputMode="numeric"
                     maxLength={9}
@@ -350,30 +485,28 @@ export default function Selections() {
                 </div>
               </div>
 
-              <div className="h-[120px] px-4 pl-[50px] relative group">
-                <label className="text-[10px] font-black text-black/60 uppercase tracking-widest absolute top-0 pt-[10px] leading-none transition-colors group-focus-within:text-blue-900">
+              <div className="flex flex-row items-center gap-3 sm:gap-4 border-b border-slate-300/80 py-1 px-4 pl-[50px] relative group">
+                <label className="w-24 sm:w-28 shrink-0 text-xs font-bold text-gray-900 uppercase tracking-widest leading-none font-sans">
                   LOCATION
                 </label>
-                <Textarea
+                <Input
                   value={form.delivery_place}
                   onChange={(e) => setForm({ ...form, delivery_place: e.target.value })}
-                  className="absolute bottom-0 left-[50px] right-4 w-[calc(100%-66px)] h-[80px] bg-transparent border-0 rounded-none px-0 py-0 leading-[40px] focus-visible:ring-0 shadow-none font-mono text-xl text-[#0a192f] resize-none placeholder:text-black/20 overflow-hidden"
-                  placeholder="Enter your general area or neighborhood (e.g. Nairobi Central, Roysambu, Westlands)"
+                  style={{ fontFamily: "'Caveat', 'Dancing Script', 'Handlee', cursive" }}
+                  className="flex-1 bg-transparent border-0 rounded-none px-0 py-0.5 h-auto focus-visible:ring-0 shadow-none text-xl sm:text-2xl font-semibold text-blue-900 placeholder:font-sans placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
+                  placeholder="Area / Neighborhood"
                 />
               </div>
 
-              <div className="mt-[40px] px-4 pl-[50px]">
+              <div className="mt-3 px-4 pl-[50px]">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-[#0a0b14] py-4 text-xl font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-900/20 disabled:opacity-60 rounded-none border border-black/20 relative z-20"
+                  className="w-full bg-[#0a0b14] py-3 text-lg font-black uppercase tracking-[0.15em] text-white transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-900/20 disabled:opacity-60 rounded-none border border-black/20 relative z-20 cursor-pointer"
                   style={{ fontFamily: "'Archivo Black', system-ui, sans-serif" }}
                 >
                   {submitting ? "PROCESSING..." : "CONFIRM ORDER"}
                 </button>
-                <p className="text-center text-[10px] font-black uppercase tracking-widest text-black/40 mt-[20px] leading-[20px] relative z-20">
-                  We'll call you within 10 min to confirm
-                </p>
               </div>
             </div>
           </form>
