@@ -5,6 +5,7 @@ import type { Product } from "@/lib/queries";
 
 export default function ProductCard({ product }: { product: Product }) {
   const add = useCart((s) => s.add);
+  const remove = useCart((s) => s.remove);
   const isInCart = useCart((s) => Boolean(s.items[product.id]));
 
   const src = product.image_url || null;
@@ -38,14 +39,18 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </Link>
 
-      {/* Floating Action Button (Quick Add with Active State) */}
+      {/* Floating Action Button (Quick Add / Remove Toggle with Active State) */}
       <button
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          add({ id: product.id, title: product.title, image_url: src || "" }, 1);
+          if (isInCart) {
+            remove(product.id);
+          } else {
+            add({ id: product.id, title: product.title, image_url: src || "" }, 1);
+          }
         }}
-        aria-label={isInCart ? `${product.title} is selected` : `Add ${product.title} to selections`}
+        aria-label={isInCart ? `Remove ${product.title} from selections` : `Add ${product.title} to selections`}
         className={`absolute bottom-2 right-2 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer ${
           isInCart
             ? "bg-white text-black border border-gray-200 shadow-md"
