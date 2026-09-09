@@ -4,7 +4,7 @@ import { Phone, MessageCircle } from "lucide-react";
 export default function Footer() {
   return (
     <footer
-      className="border-t border-purple-800/40 px-4 py-4 sm:px-8 text-purple-100"
+      className="border-t border-white/[0.08] px-4 py-4 sm:px-8 text-purple-100"
       style={{ background: "var(--color-footer)" }}
     >
       <div className="mx-auto flex max-w-[1600px] flex-col items-center gap-3 sm:flex-row sm:justify-between">
