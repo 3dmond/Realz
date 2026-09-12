@@ -44,9 +44,7 @@ export default function Home() {
 
   const availableSubCategories = useMemo(() => {
     if (!subs || selectedCategory === "ALL") return [];
-    return subs
-      .filter((s) => s.category_id === selectedCategory)
-      .map((s) => s.slug);
+    return subs.filter((s) => s.category_id === selectedCategory).map((s) => s.slug);
   }, [subs, selectedCategory]);
 
   const visiblePacks = useMemo(() => {
@@ -126,7 +124,7 @@ export default function Home() {
             radial-gradient(ellipse 80% 65% at 85% 35%, rgba(45, 60, 160, 0.13) 0%, rgba(25, 25, 80, 0.03) 60%, transparent 100%),
             radial-gradient(ellipse 85% 60% at 15% 82%, rgba(134, 25, 143, 0.09) 0%, rgba(74, 4, 78, 0.02) 55%, transparent 100%),
             radial-gradient(ellipse 65% 50% at 50% 50%, rgba(91, 33, 182, 0.07) 0%, transparent 100%)
-          `
+          `,
         }}
       />
 
@@ -134,7 +132,8 @@ export default function Home() {
       <div
         className="fixed inset-0 pointer-events-none -z-45"
         style={{
-          background: "radial-gradient(ellipse 95% 85% at 50% 50%, transparent 52%, rgba(5, 4, 13, 0.6) 100%)"
+          background:
+            "radial-gradient(ellipse 95% 85% at 50% 50%, transparent 52%, rgba(5, 4, 13, 0.6) 100%)",
         }}
       />
 
@@ -151,7 +150,8 @@ export default function Home() {
               <div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[1200px] h-64 pointer-events-none -z-10 blur-3xl opacity-50"
                 style={{
-                  background: "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.08) 0%, transparent 70%)"
+                  background:
+                    "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.08) 0%, transparent 70%)",
                 }}
               />
 
@@ -177,12 +177,16 @@ export default function Home() {
 
             {/* 2. Trending Drops Section (Directly follows Categories with continuous atmospheric flow) */}
             {trendingProducts.length > 0 && (
-              <section id="trending-section" className="relative mx-auto w-full max-w-[1600px] px-4 pt-4 pb-12 sm:px-8">
+              <section
+                id="trending-section"
+                className="relative mx-auto w-full max-w-[1600px] px-4 pt-4 pb-12 sm:px-8"
+              >
                 {/* Localized subtle illumination behind trending stickers */}
                 <div
                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[1400px] h-96 pointer-events-none -z-10 blur-3xl opacity-45"
                   style={{
-                    background: "radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, transparent 70%)"
+                    background:
+                      "radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, transparent 70%)",
                   }}
                 />
 
@@ -190,7 +194,8 @@ export default function Home() {
                 <div
                   className="absolute -top-10 left-1/2 -translate-x-1/2 w-3/4 h-20 pointer-events-none -z-10 blur-2xl opacity-25"
                   style={{
-                    background: "radial-gradient(ellipse at center, rgba(109, 40, 217, 0.15) 0%, transparent 70%)"
+                    background:
+                      "radial-gradient(ellipse at center, rgba(109, 40, 217, 0.15) 0%, transparent 70%)",
                   }}
                 />
 

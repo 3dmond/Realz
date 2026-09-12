@@ -46,7 +46,13 @@ export default function Product() {
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-card border border-border/40 p-6 flex items-center justify-center">
           {computedImageSrc ? (
             <img
-              src={computedImageSrc.includes('unsplash.com') ? computedImageSrc + (computedImageSrc.includes('?') ? '&' : '?') + 'w=800&q=80&auto=format' : computedImageSrc}
+              src={
+                computedImageSrc.includes("unsplash.com")
+                  ? computedImageSrc +
+                    (computedImageSrc.includes("?") ? "&" : "?") +
+                    "w=800&q=80&auto=format"
+                  : computedImageSrc
+              }
               alt={product.title}
               loading="lazy"
               decoding="async"
@@ -121,10 +127,7 @@ export default function Product() {
 
           <button
             onClick={() => {
-              add(
-                { id: product.id, title: product.title, image_url: src || "" },
-                qty,
-              );
+              add({ id: product.id, title: product.title, image_url: src || "" }, qty);
               toast.success(`Added ${qty}× ${product.title}`);
             }}
             className="mt-8 w-full rounded-full bg-primary py-4 text-sm font-black uppercase tracking-[0.25em] text-primary-foreground transition hover:scale-[1.02] hover:shadow-[0_0_30px_oklch(0.705_0.20_47/0.7)]"

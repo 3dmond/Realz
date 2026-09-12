@@ -161,7 +161,8 @@ export default function ProductCard({
   const computedImageSrc = isValidImage ? src : null;
 
   const profile =
-    spatialProfile || (typeof index === "number" ? TRENDING_PROFILES[index % TRENDING_PROFILES.length] : undefined);
+    spatialProfile ||
+    (typeof index === "number" ? TRENDING_PROFILES[index % TRENDING_PROFILES.length] : undefined);
 
   return (
     <div className="relative group flex items-center justify-center aspect-[4/5] w-full overflow-visible select-none">
@@ -177,7 +178,9 @@ export default function ProductCard({
           <img
             src={
               computedImageSrc.includes("unsplash.com")
-                ? computedImageSrc + (computedImageSrc.includes("?") ? "&" : "?") + "w=400&q=75&auto=format&fit=crop"
+                ? computedImageSrc +
+                  (computedImageSrc.includes("?") ? "&" : "?") +
+                  "w=400&q=75&auto=format&fit=crop"
                 : computedImageSrc
             }
             alt={product.title}
@@ -192,7 +195,9 @@ export default function ProductCard({
         ) : (
           <div className="h-full w-full bg-white/[0.04] border border-white/[0.06] animate-pulse flex flex-col items-center justify-center rounded-lg">
             <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin mb-2" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No Asset</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
+              No Asset
+            </span>
           </div>
         )}
       </Link>
@@ -208,7 +213,11 @@ export default function ProductCard({
             add({ id: product.id, title: product.title, image_url: src || "" }, 1);
           }
         }}
-        aria-label={isInCart ? `Remove ${product.title} from selections` : `Add ${product.title} to selections`}
+        aria-label={
+          isInCart
+            ? `Remove ${product.title} from selections`
+            : `Add ${product.title} to selections`
+        }
         className={`absolute bottom-2 right-2 z-20 min-w-[40px] min-h-[40px] w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-90 active:transition-transform active:duration-75 ${
           isInCart
             ? "bg-white text-black border border-white shadow-[0_0_16px_rgba(255,255,255,0.45)] hover:scale-110 hover:shadow-[0_0_20px_rgba(255,255,255,0.65)]"

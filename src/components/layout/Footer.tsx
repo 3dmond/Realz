@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Phone, MessageCircle } from "lucide-react";
+import { Phone, MessageCircle, Shield } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -11,10 +11,27 @@ export default function Footer() {
         <Link to="/" className="realz-logo text-xl text-purple-100">
           Rea<span className="lz text-primary font-black">lz</span>
         </Link>
-        <p className="text-[10px] tracking-[0.25em] text-purple-300 uppercase font-medium">
-          © {new Date().getFullYear()} Realz Stickers. All rights reserved.
-        </p>
+
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-[10px] tracking-[0.2em] text-purple-300 uppercase font-medium">
+          <span>© {new Date().getFullYear()} Realz Stickers. All rights reserved.</span>
+          <span className="hidden sm:inline text-purple-700">•</span>
+          <Link
+            to="/admin"
+            className="hover:text-primary transition-colors font-bold tracking-wider underline-offset-4 hover:underline"
+          >
+            Admin Dashboard
+          </Link>
+        </div>
+
         <div className="flex items-center gap-3">
+          <Link
+            to="/admin"
+            aria-label="Admin Portal"
+            title="Admin Portal"
+            className="grid h-9 w-9 place-items-center rounded-full border border-purple-700 text-purple-200 transition hover:border-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+          >
+            <Shield className="h-4 w-4" />
+          </Link>
           <a
             href="https://wa.me/0000000000"
             target="_blank"

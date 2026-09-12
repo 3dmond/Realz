@@ -21,7 +21,8 @@ export default function PutThemEverywhere({ stickers }: PutThemEverywhereProps) 
       <div
         className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[1300px] h-[500px] pointer-events-none -z-10 blur-3xl opacity-35"
         style={{
-          background: "radial-gradient(ellipse 80% 60% at center, rgba(124, 58, 237, 0.12) 0%, rgba(49, 46, 129, 0.05) 50%, transparent 80%)",
+          background:
+            "radial-gradient(ellipse 80% 60% at center, rgba(124, 58, 237, 0.12) 0%, rgba(49, 46, 129, 0.05) 50%, transparent 80%)",
         }}
       />
 
@@ -37,13 +38,13 @@ export default function PutThemEverywhere({ stickers }: PutThemEverywhereProps) 
           PUT THEM <span className="text-primary">EVERYWHERE</span>
         </h2>
         <p className="mt-3 text-sm sm:text-base text-muted-foreground font-medium leading-relaxed max-w-lg">
-          Laptops. Notebooks. Bottles. Built to live in the physical world and turn everyday gear into personal canvases.
+          Laptops. Notebooks. Bottles. Built to live in the physical world and turn everyday gear
+          into personal canvases.
         </p>
       </div>
 
       {/* Editorial Physical Arrangement (Laptop + Notebook + Tumbler) */}
       <div className="relative z-10 w-full flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 xl:gap-16">
-        
         {/* 1. Primary Hero Object: Space-Gray Aluminum Laptop Lid */}
         <div className="relative w-full max-w-[660px] aspect-[16/10] rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 flex items-center justify-center overflow-hidden border border-white/[0.12] shadow-[0_30px_70px_-15px_rgba(0,0,0,0.95),inset_0_1px_1px_rgba(255,255,255,0.22),inset_0_-2px_6px_rgba(0,0,0,0.7)] transition-transform duration-500 hover:scale-[1.01] bg-gradient-to-br from-[#221f35] via-[#151324] to-[#0c0a18]">
           {/* Milled Aluminum Diagonal Light Reflection */}
@@ -54,7 +55,9 @@ export default function PutThemEverywhere({ stickers }: PutThemEverywhereProps) 
 
           {/* Minimalist Center Logo Recess */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-black/25 border border-white/[0.04] flex items-center justify-center pointer-events-none">
-            <span className="realz-logo text-xs text-white/20 tracking-tighter select-none">RZ</span>
+            <span className="realz-logo text-xs text-white/20 tracking-tighter select-none">
+              RZ
+            </span>
           </div>
 
           {/* Slapped Sticker 1 (Center-Left Hero Placement) */}
@@ -93,7 +96,6 @@ export default function PutThemEverywhere({ stickers }: PutThemEverywhereProps) 
 
         {/* 2 & 3. Secondary Group: Hardcover Journal & Insulated Tumbler */}
         <div className="relative flex items-center justify-center gap-6 sm:gap-8 w-full max-w-[500px] lg:w-auto">
-          
           {/* Secondary Object: Textured Dark Hardcover Journal / Sketchbook */}
           <div className="relative w-[190px] sm:w-[230px] md:w-[250px] aspect-[3/4] rounded-xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden border border-white/[0.09] shadow-[0_24px_50px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-transform duration-500 hover:scale-[1.01] -rotate-2 hover:rotate-0 bg-[#141221]">
             {/* Debossed cover perimeter line */}
@@ -164,9 +166,7 @@ export default function PutThemEverywhere({ stickers }: PutThemEverywhereProps) 
               </Link>
             </div>
           </div>
-
         </div>
-
       </div>
     </section>
   );

@@ -29,16 +29,21 @@ export default function PaperBlogSection() {
         {/* Main Text Content (Generous Left Padding pl-10 md:pl-12 prevents crowding red line) */}
         <div className="relative z-20 pl-10 md:pl-12 text-sm sm:text-base text-slate-700 leading-relaxed font-sans space-y-4">
           <p>
-            Stickers aren't just vinyl cutouts. They are micro-canvases of personal expression slapped onto laptops, skateboards, and street corners. Every drop is curated to resonate with subcultures, brutalist aesthetics, and raw creativity.
+            Stickers aren't just vinyl cutouts. They are micro-canvases of personal expression
+            slapped onto laptops, skateboards, and street corners. Every drop is curated to resonate
+            with subcultures, brutalist aesthetics, and raw creativity.
           </p>
 
           {/* Pure Handwritten Blue Ballpoint Ink Quote (No Blue Highlight Rectangle) */}
           <blockquote className="font-['Caveat',cursive] text-2xl text-blue-700 font-bold my-6 pl-4 border-l-2 border-[#B8975A]/60 italic leading-snug">
-            "Simplicity is not the absence of complexity, but the absolute mastery of raw visual expression."
+            "Simplicity is not the absence of complexity, but the absolute mastery of raw visual
+            expression."
           </blockquote>
 
           <p>
-            Whether you choose anime icons, code snippets, or street art motifs, your placement tells a story before you even speak. Quality matters — waterproof vinyl, UV resistance, and crisp die-cut borders make all the difference.
+            Whether you choose anime icons, code snippets, or street art motifs, your placement
+            tells a story before you even speak. Quality matters — waterproof vinyl, UV resistance,
+            and crisp die-cut borders make all the difference.
           </p>
         </div>
 

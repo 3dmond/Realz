@@ -74,7 +74,11 @@ export default function CategoryCard({ title, image, to, onClick, index = 0 }: C
 
         {image ? (
           <img
-            src={image.includes('unsplash.com') ? image + (image.includes('?') ? '&' : '?') + 'w=400&q=75&auto=format&fit=crop' : image}
+            src={
+              image.includes("unsplash.com")
+                ? image + (image.includes("?") ? "&" : "?") + "w=400&q=75&auto=format&fit=crop"
+                : image
+            }
             alt={formattedTitle}
             loading="lazy"
             decoding="async"
@@ -82,7 +86,9 @@ export default function CategoryCard({ title, image, to, onClick, index = 0 }: C
           />
         ) : (
           <div className="h-full w-full bg-white/[0.04] border border-white/[0.06] animate-pulse rounded-lg flex items-center justify-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No Asset</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
+              No Asset
+            </span>
           </div>
         )}
       </div>
@@ -91,7 +97,9 @@ export default function CategoryCard({ title, image, to, onClick, index = 0 }: C
         <span className="text-[11px] md:text-[12px] font-black uppercase tracking-wider text-foreground group-hover:text-primary transition-colors leading-tight break-words">
           {formattedTitle}
         </span>
-        <span className="text-[10px] text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-200">→</span>
+        <span className="text-[10px] text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-200">
+          →
+        </span>
       </div>
     </div>
   );

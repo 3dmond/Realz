@@ -31,7 +31,8 @@ export default function Connect() {
             PERSONAL MONOGRAPH INQUIRY SHEET
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground/80 font-medium mt-2 max-w-xl leading-relaxed">
-            Have a custom sticker order, collaboration idea, or wholesale request? Drop a message directly to our design lab.
+            Have a custom sticker order, collaboration idea, or wholesale request? Drop a message
+            directly to our design lab.
           </p>
         </div>
 
@@ -42,7 +43,8 @@ export default function Connect() {
               Inquiry Sheet Received
             </h3>
             <p className="text-xs text-muted-foreground mt-2 max-w-md">
-              Thank you for reaching out. Our team will review your monograph inquiry and respond within 24 hours.
+              Thank you for reaching out. Our team will review your monograph inquiry and respond
+              within 24 hours.
             </p>
             <button
               onClick={() => setSubmitted(false)}
