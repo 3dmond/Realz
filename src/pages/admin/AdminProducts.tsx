@@ -14,13 +14,19 @@ import {
   ChevronRight,
   ArrowLeft,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import {
   fetchAdminProducts,
   fetchAdminCategories,
   createProduct,
   updateProduct,
-  deleteOrArchiveProduct,
+  moveToBin,
+  restoreFromBin,
+  fetchBinProducts,
+  fetchBinCount,
+  permanentlyDeleteProduct,
+  emptyBin,
   createCategory,
   safeDeleteCategory,
   type AdminProduct,
@@ -32,6 +38,7 @@ import StickerUploadModal from "@/components/admin/StickerUploadModal";
 import StickerEditModal from "@/components/admin/StickerEditModal";
 import StickerCardGrid from "@/components/admin/StickerCardGrid";
 import StickerListView from "@/components/admin/StickerListView";
+import StickerBinView from "@/components/admin/StickerBinView";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -53,6 +60,9 @@ export default function AdminProducts() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "published" | "draft" | "archived">("ALL");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
+  // View Mode: Check if URL has ?view=bin
+  const isBinView = searchParams.get("view") === "bin";
+
   // Fetch Categories with counts
   const { data: categories = [], isLoading: catsLoading } = useQuery({
     queryKey: ["admin-categories"],
@@ -69,12 +79,30 @@ export default function AdminProducts() {
         search: search.trim() || undefined,
         pageSize: 100, // Load all stickers for the active folder
       }),
+    enabled: !isBinView,
   });
 
   const products = productsData?.products ?? [];
 
+  // Fetch Bin Count
+  const { data: binCount = 0 } = useQuery({
+    queryKey: ["admin-bin-count"],
+    queryFn: fetchBinCount,
+  });
+
+  // Fetch Bin Products (active when in bin view)
+  const { data: binProducts = [], isLoading: binLoading } = useQuery({
+    queryKey: ["admin-bin-products"],
+    queryFn: fetchBinProducts,
+    enabled: isBinView,
+  });
+
   // Sync with URL query parameter ?folder=<slug>
   useEffect(() => {
+    if (isBinView) {
+      if (activeCategoryId !== null) setActiveCategoryId(null);
+      return;
+    }
     const folderSlug = searchParams.get("folder");
     if (folderSlug && categories.length > 0) {
       const matched = categories.find(
@@ -88,12 +116,12 @@ export default function AdminProducts() {
     } else if (!folderSlug && activeCategoryId !== null) {
       setActiveCategoryId(null);
     }
-  }, [searchParams, categories]);
+  }, [searchParams, categories, isBinView]);
 
   const activeCategory = useMemo(() => {
-    if (!activeCategoryId) return null;
+    if (!activeCategoryId || isBinView) return null;
     return categories.find((c) => c.id === activeCategoryId) || null;
-  }, [categories, activeCategoryId]);
+  }, [categories, activeCategoryId, isBinView]);
 
   const activeCategorySlug = useMemo(() => {
     if (!activeCategory) return "";
@@ -109,6 +137,7 @@ export default function AdminProducts() {
 
   // Handle entering a category folder
   const handleOpenFolder = (catId: number) => {
+    searchParams.delete("view");
     setActiveCategoryId(catId);
     setSearch("");
     const cat = categories.find((c) => c.id === catId);
@@ -130,6 +159,21 @@ export default function AdminProducts() {
     setActiveCategoryId(null);
     setSearch("");
     searchParams.delete("folder");
+    searchParams.delete("view");
+    setSearchParams(searchParams);
+  };
+
+  // Handle toggling Bin View
+  const handleOpenBin = () => {
+    setActiveCategoryId(null);
+    setSearch("");
+    searchParams.delete("folder");
+    searchParams.set("view", "bin");
+    setSearchParams(searchParams);
+  };
+
+  const handleCloseBin = () => {
+    searchParams.delete("view");
     setSearchParams(searchParams);
   };
 
@@ -217,21 +261,70 @@ export default function AdminProducts() {
     onError: () => toast.error("Could not update status"),
   });
 
-  const archiveMutation = useMutation({
-    mutationFn: async ({ id, isArchived }: { id: number; isArchived: boolean }) => {
-      if (isArchived) {
-        return updateProduct(id, { status: "published", is_active: true });
-      } else {
-        return deleteOrArchiveProduct(id);
-      }
+  const moveToBinMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await moveToBin(id);
     },
-    onSuccess: (_, vars) => {
-      toast.success(vars.isArchived ? "Sticker restored" : "Sticker archived");
+    onSuccess: () => {
+      toast.success("Sticker moved to Recycle Bin");
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bin-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bin-products"] });
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
     },
-    onError: () => toast.error("Action failed"),
+    onError: () => toast.error("Failed to move sticker to bin"),
+  });
+
+  const restoreFromBinMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await restoreFromBin(id);
+    },
+    onSuccess: () => {
+      toast.success("Sticker restored to catalogue");
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bin-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: () => toast.error("Failed to restore sticker"),
+  });
+
+  const permanentDeleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await permanentlyDeleteProduct(id);
+    },
+    onSuccess: () => {
+      toast.success("Sticker permanently deleted from catalogue & storage");
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bin-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to permanently delete sticker");
+    },
+  });
+
+  const emptyBinMutation = useMutation({
+    mutationFn: async () => {
+      return emptyBin();
+    },
+    onSuccess: (res) => {
+      toast.success(
+        `Recycle Bin emptied (${res.deletedCount} sticker${res.deletedCount === 1 ? "" : "s"} permanently removed)`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bin-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-bin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to empty bin");
+    },
   });
 
   const deleteCategoryMutation = useMutation({
@@ -269,14 +362,24 @@ export default function AdminProducts() {
               onClick={handleBackToRoot}
               className={cn(
                 "flex items-center gap-1.5 transition-colors cursor-pointer",
-                activeCategory ? "text-muted-foreground hover:text-foreground" : "text-primary font-bold",
+                activeCategory || isBinView ? "text-muted-foreground hover:text-foreground" : "text-primary font-bold",
               )}
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Stickers</span>
             </button>
 
-            {activeCategory && (
+            {isBinView && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
+                <span className="flex items-center gap-1.5 text-rose-400 font-bold">
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Recycle Bin</span>
+                </span>
+              </>
+            )}
+
+            {!isBinView && activeCategory && (
               <>
                 <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
                 <span className="flex items-center gap-1.5 text-primary font-bold">
@@ -289,10 +392,16 @@ export default function AdminProducts() {
 
           {/* Heading */}
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mt-1">
-            {activeCategory ? activeCategory.name : "Sticker Catalogue"}
+            {isBinView
+              ? "Recycle Bin"
+              : activeCategory
+              ? activeCategory.name
+              : "Sticker Catalogue"}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-            {activeCategory
+            {isBinView
+              ? `${binCount} stickers in bin • Hidden from storefront`
+              : activeCategory
               ? `stickers/${activeCategorySlug}/ • ${products.length} stickers`
               : "Organized by category folders. Enter a folder to view and upload stickers."}
           </p>
@@ -315,8 +424,40 @@ export default function AdminProducts() {
             Bulk Upload
           </Link>
 
+          {/* Bin Toggle Button */}
+          <button
+            onClick={() => {
+              if (isBinView) {
+                handleCloseBin();
+              } else {
+                handleOpenBin();
+              }
+            }}
+            className={cn(
+              "relative inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer",
+              isBinView
+                ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm"
+                : "bg-white/[0.04] hover:bg-white/[0.08] text-foreground border border-white/[0.08]",
+            )}
+            title="Recycle Bin"
+          >
+            <Trash2 className={cn("w-4 h-4", isBinView ? "text-rose-400" : "text-muted-foreground")} />
+            <span>Bin</span>
+            {binCount > 0 && (
+              <span className="flex items-center gap-1.5 ml-0.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+                <span className="rounded-full bg-rose-500 text-white px-1.5 py-0.5 text-[10px] font-black leading-none">
+                  {binCount}
+                </span>
+              </span>
+            )}
+          </button>
+
           {/* Context Action: New Category vs Upload Sticker */}
-          {!activeCategory ? (
+          {!isBinView && !activeCategory && (
             <button
               onClick={() => setCreateCategoryOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
@@ -324,7 +465,8 @@ export default function AdminProducts() {
               <FolderPlus className="w-4 h-4" />
               New Category
             </button>
-          ) : (
+          )}
+          {!isBinView && activeCategory && (
             <button
               onClick={() => setUploadStickerOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
@@ -337,183 +479,201 @@ export default function AdminProducts() {
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* SEARCH & FILTER BAR */}
+      {/* RECYCLE BIN VIEW */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-[#121324]/80 border border-white/[0.08] rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder={
-              activeCategory
-                ? `Search stickers in ${activeCategory.name}...`
-                : "Search category folders..."
-            }
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-10 bg-white/[0.03] border-white/[0.08] rounded-xl text-sm"
-          />
-        </div>
-
-        {/* Folder View Controls (Status filter & Grid/List view toggle) */}
-        {activeCategory ? (
-          <div className="flex items-center justify-between w-full sm:w-auto gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-medium text-foreground focus:outline-none"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="published">Live Only</option>
-              <option value="draft">Drafts Only</option>
-            </select>
-
-            <div className="flex items-center rounded-xl border border-white/[0.08] bg-white/[0.03] p-0.5">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={cn(
-                  "p-1.5 rounded-lg transition-colors cursor-pointer",
-                  viewMode === "grid"
-                    ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-                title="Grid View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "p-1.5 rounded-lg transition-colors cursor-pointer",
-                  viewMode === "list"
-                    ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-                title="List View"
-              >
-                <List className="w-4 h-4" />
-              </button>
+      {isBinView ? (
+        <StickerBinView
+          products={binProducts}
+          isLoading={binLoading}
+          onBack={handleCloseBin}
+          onRestore={async (id) => {
+            await restoreFromBinMutation.mutateAsync(id);
+          }}
+          onPermanentDelete={async (id) => {
+            await permanentDeleteMutation.mutateAsync(id);
+          }}
+          onEmptyBin={async () => {
+            await emptyBinMutation.mutateAsync();
+          }}
+        />
+      ) : (
+        <>
+          {/* ------------------------------------------------------------- */}
+          {/* SEARCH & FILTER BAR */}
+          {/* ------------------------------------------------------------- */}
+          <div className="bg-[#121324]/80 border border-white/[0.08] rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+            {/* Search */}
+            <div className="relative w-full sm:w-96">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder={
+                  activeCategory
+                    ? `Search stickers in ${activeCategory.name}...`
+                    : "Search category folders..."
+                }
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 h-10 bg-white/[0.03] border-white/[0.08] rounded-xl text-sm"
+              />
             </div>
+
+            {/* Folder View Controls (Status filter & Grid/List view toggle) */}
+            {activeCategory ? (
+              <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-medium text-foreground focus:outline-none"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="published">Live Only</option>
+                  <option value="draft">Drafts Only</option>
+                </select>
+
+                <div className="flex items-center rounded-xl border border-white/[0.08] bg-white/[0.03] p-0.5">
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-colors cursor-pointer",
+                      viewMode === "grid"
+                        ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    title="Grid View"
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-colors cursor-pointer",
+                      viewMode === "list"
+                        ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    title="List View"
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                Total Folders: <strong className="text-foreground">{categories.length}</strong>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-xs text-muted-foreground">
-            Total Folders: <strong className="text-foreground">{categories.length}</strong>
-          </div>
-        )}
-      </div>
 
-      {/* ------------------------------------------------------------- */}
-      {/* VIEW A: ROOT VIEW - CATEGORY FOLDERS GRID */}
-      {/* ------------------------------------------------------------- */}
-      {!activeCategory && (
-        <div>
-          {catsLoading ? (
-            <div className="py-20 text-center text-sm text-muted-foreground">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              Loading category folders...
+          {/* ------------------------------------------------------------- */}
+          {/* VIEW A: ROOT VIEW - CATEGORY FOLDERS GRID */}
+          {/* ------------------------------------------------------------- */}
+          {!activeCategory && (
+            <div>
+              {catsLoading ? (
+                <div className="py-20 text-center text-sm text-muted-foreground">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  Loading category folders...
+                </div>
+              ) : filteredCategories.length === 0 ? (
+                <div className="py-20 text-center rounded-2xl border border-white/[0.08] bg-[#121324]/50 p-8">
+                  <Folder className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <h3 className="font-bold text-foreground text-base">No Category Folders Found</h3>
+                  <p className="text-xs text-muted-foreground mt-1 mb-4">
+                    {search ? "No categories match your search." : "Create your first category folder to start organizing stickers."}
+                  </p>
+                  <button
+                    onClick={() => setCreateCategoryOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all cursor-pointer"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    Create Category Folder
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {filteredCategories.map((cat) => (
+                    <CategoryFolderCard
+                      key={cat.id}
+                      id={cat.id}
+                      name={cat.name}
+                      slug={cat.slug}
+                      productCount={cat.product_count}
+                      onOpen={handleOpenFolder}
+                      onDelete={(id) => deleteCategoryMutation.mutate(id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : filteredCategories.length === 0 ? (
-            <div className="py-20 text-center rounded-2xl border border-white/[0.08] bg-[#121324]/50 p-8">
-              <Folder className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <h3 className="font-bold text-foreground text-base">No Category Folders Found</h3>
-              <p className="text-xs text-muted-foreground mt-1 mb-4">
-                {search ? "No categories match your search." : "Create your first category folder to start organizing stickers."}
-              </p>
-              <button
-                onClick={() => setCreateCategoryOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all cursor-pointer"
-              >
-                <FolderPlus className="w-4 h-4" />
-                Create Category Folder
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredCategories.map((cat) => (
-                <CategoryFolderCard
-                  key={cat.id}
-                  id={cat.id}
-                  name={cat.name}
-                  slug={cat.slug}
-                  productCount={cat.product_count}
-                  onOpen={handleOpenFolder}
-                  onDelete={(id) => deleteCategoryMutation.mutate(id)}
+          )}
+
+          {/* ------------------------------------------------------------- */}
+          {/* VIEW B: INSIDE CATEGORY FOLDER - STICKER GRID / LIST */}
+          {/* ------------------------------------------------------------- */}
+          {activeCategory && (
+            <div>
+              {/* Back button link */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBackToRoot}
+                  className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to all folders</span>
+                </button>
+              </div>
+
+              {prodsLoading ? (
+                <div className="py-20 text-center text-sm text-muted-foreground">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  Loading stickers in {activeCategory.name}...
+                </div>
+              ) : isError ? (
+                <div className="py-16 text-center text-rose-400 text-sm">
+                  <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-80" />
+                  Failed to load stickers.
+                </div>
+              ) : products.length === 0 ? (
+                <div className="py-20 text-center rounded-2xl border border-white/[0.08] bg-[#121324]/50 p-8">
+                  <Sparkles className="w-12 h-12 text-primary/40 mx-auto mb-3" />
+                  <h3 className="font-bold text-foreground text-base">
+                    No stickers in {activeCategory.name} yet
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 mb-4">
+                    Upload your first sticker into this category. It will be stored directly in{" "}
+                    <span className="font-mono text-primary">stickers/{activeCategorySlug}/</span>.
+                  </p>
+                  <button
+                    onClick={() => setUploadStickerOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Upload First Sticker
+                  </button>
+                </div>
+              ) : viewMode === "grid" ? (
+                <StickerCardGrid
+                  products={products}
+                  onEdit={(prod) => setEditingProduct(prod)}
+                  onToggleStatus={(id, newStatus) =>
+                    toggleStatusMutation.mutate({ id, newStatus })
+                  }
+                  onMoveToBin={(id) => moveToBinMutation.mutate(id)}
                 />
-              ))}
+              ) : (
+                <StickerListView
+                  products={products}
+                  onEdit={(prod) => setEditingProduct(prod)}
+                  onToggleStatus={(id, newStatus) =>
+                    toggleStatusMutation.mutate({ id, newStatus })
+                  }
+                  onMoveToBin={(id) => moveToBinMutation.mutate(id)}
+                />
+              )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* VIEW B: INSIDE CATEGORY FOLDER - STICKER GRID / LIST */}
-      {/* ------------------------------------------------------------- */}
-      {activeCategory && (
-        <div>
-          {/* Back button link */}
-          <div className="mb-4">
-            <button
-              onClick={handleBackToRoot}
-              className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to all folders</span>
-            </button>
-          </div>
-
-          {prodsLoading ? (
-            <div className="py-20 text-center text-sm text-muted-foreground">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              Loading stickers in {activeCategory.name}...
-            </div>
-          ) : isError ? (
-            <div className="py-16 text-center text-rose-400 text-sm">
-              <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-80" />
-              Failed to load stickers.
-            </div>
-          ) : products.length === 0 ? (
-            <div className="py-20 text-center rounded-2xl border border-white/[0.08] bg-[#121324]/50 p-8">
-              <Sparkles className="w-12 h-12 text-primary/40 mx-auto mb-3" />
-              <h3 className="font-bold text-foreground text-base">
-                No stickers in {activeCategory.name} yet
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1 mb-4">
-                Upload your first sticker into this category. It will be stored directly in{" "}
-                <span className="font-mono text-primary">stickers/{activeCategorySlug}/</span>.
-              </p>
-              <button
-                onClick={() => setUploadStickerOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Upload First Sticker
-              </button>
-            </div>
-          ) : viewMode === "grid" ? (
-            <StickerCardGrid
-              products={products}
-              onEdit={(prod) => setEditingProduct(prod)}
-              onToggleStatus={(id, newStatus) =>
-                toggleStatusMutation.mutate({ id, newStatus })
-              }
-              onArchive={(id, isArchived) =>
-                archiveMutation.mutate({ id, isArchived })
-              }
-            />
-          ) : (
-            <StickerListView
-              products={products}
-              onEdit={(prod) => setEditingProduct(prod)}
-              onToggleStatus={(id, newStatus) =>
-                toggleStatusMutation.mutate({ id, newStatus })
-              }
-              onArchive={(id, isArchived) =>
-                archiveMutation.mutate({ id, isArchived })
-              }
-            />
-          )}
-        </div>
+        </>
       )}
 
       {/* ------------------------------------------------------------- */}

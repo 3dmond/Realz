@@ -518,33 +518,122 @@ export async function updateProduct(
 export async function deleteOrArchiveProduct(
   id: number,
 ): Promise<{ actionTaken: "archived" | "deleted" }> {
-  // Check if product is referenced in historical order_items
-  const { data: orderRefs, error: refErr } = await supabase
-    .from("order_items")
-    .select("id")
-    .eq("product_id", id)
-    .limit(1);
+  await moveToBin(id);
+  return { actionTaken: "archived" };
+}
 
-  if (refErr) throw refErr;
+/**
+ * Move a sticker to the Bin (sets status to archived, is_active to false).
+ */
+export async function moveToBin(id: number): Promise<void> {
+  await updateProduct(id, { status: "archived", is_active: false });
+  await recordAuditLog("MOVE_TO_BIN", "products", String(id), {
+    action: "Moved sticker to Recycle Bin",
+  });
+}
 
-  if (orderRefs && orderRefs.length > 0) {
-    // Preserve financial and order history by soft-deleting / archiving
-    await updateProduct(id, { status: "archived", is_active: false });
-    await recordAuditLog("ARCHIVE_PRODUCT", "products", String(id), {
-      reason: "Product referenced in historical order_items; archived to protect records.",
-    });
-    return { actionTaken: "archived" };
+/**
+ * Restore a sticker from the Bin (sets status to published, is_active to true).
+ */
+export async function restoreFromBin(id: number): Promise<void> {
+  await updateProduct(id, { status: "published", is_active: true });
+  await recordAuditLog("RESTORE_FROM_BIN", "products", String(id), {
+    action: "Restored sticker from Recycle Bin to catalogue",
+  });
+}
+
+/**
+ * Fetch all stickers currently in the Bin.
+ */
+export async function fetchBinProducts(): Promise<AdminProduct[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*, categories(*)")
+    .or("status.eq.archived,is_active.eq.false")
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+  return (data as unknown as AdminProduct[]) || [];
+}
+
+/**
+ * Fetch count of items in the Bin.
+ */
+export async function fetchBinCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from("products")
+    .select("*", { count: "exact", head: true })
+    .or("status.eq.archived,is_active.eq.false");
+
+  if (error) return 0;
+  return count || 0;
+}
+
+/**
+ * Permanently delete a sticker:
+ * 1. Safely preserves order_items historical records by detaching product_id while retaining title and image.
+ * 2. Removes the product row from public.products.
+ * 3. Permanently deletes the artwork image from Supabase Storage.
+ */
+export async function permanentlyDeleteProduct(id: number): Promise<void> {
+  // 1. Fetch product details to retrieve storage key / image url
+  const { data: prod, error: pErr } = await supabase
+    .from("products")
+    .select("title, image_url, image_storage_key")
+    .eq("id", id)
+    .single();
+
+  if (pErr) throw pErr;
+
+  // 2. Protect historical order line items
+  try {
+    await supabase
+      .from("order_items")
+      .update({
+        product_title: prod.title,
+        product_image_url: prod.image_url,
+        product_id: null,
+      })
+      .eq("product_id", id);
+  } catch {
+    // Continue if column not found or no orders
   }
 
-  // Safe to delete physically if never ordered
-  const { error } = await supabase.from("products").delete().eq("id", id);
-  if (error) throw error;
+  // 3. Delete from database
+  const { error: delErr } = await supabase.from("products").delete().eq("id", id);
+  if (delErr) throw delErr;
 
-  await recordAuditLog("DELETE_PRODUCT", "products", String(id), {
-    reason: "Zero historical orders; removed from database.",
+  // 4. Delete artwork from Supabase Storage
+  const storageKey = prod.image_storage_key || imageStorageService.extractStorageKey(prod.image_url);
+  if (storageKey) {
+    try {
+      await imageStorageService.deleteImage(storageKey);
+    } catch (sErr) {
+      console.warn("Storage deletion notice:", sErr);
+    }
+  }
+
+  await recordAuditLog("PERMANENTLY_DELETE_PRODUCT", "products", String(id), {
+    title: prod.title,
+    storageKey,
   });
+}
 
-  return { actionTaken: "deleted" };
+/**
+ * Empty the Bin: permanently deletes all trashed stickers and their storage assets.
+ */
+export async function emptyBin(): Promise<{ deletedCount: number }> {
+  const trashed = await fetchBinProducts();
+  let count = 0;
+  for (const item of trashed) {
+    try {
+      await permanentlyDeleteProduct(item.id);
+      count++;
+    } catch (err) {
+      console.error(`Failed to permanently delete product ${item.id}:`, err);
+    }
+  }
+  return { deletedCount: count };
 }
 
 // ------------------------------------------------------------------------------

@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/admin-auth";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { fetchBinCount } from "@/lib/admin-api";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
@@ -34,6 +36,12 @@ export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const { data: binCount = 0 } = useQuery({
+    queryKey: ["admin-bin-count"],
+    queryFn: fetchBinCount,
+    refetchInterval: 30000,
+  });
 
   const handleLogout = async () => {
     await signOut();
@@ -60,6 +68,7 @@ export default function AdminLayout() {
         <nav className="flex-1 space-y-1.5 p-4 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
+            const isStickers = item.to === "/admin/products";
             return (
               <NavLink
                 key={item.to}
@@ -75,7 +84,19 @@ export default function AdminLayout() {
                 }
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {isStickers && binCount > 0 && (
+                  <span
+                    className="flex items-center gap-1 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-black text-rose-400 border border-rose-500/30 ml-auto"
+                    title={`${binCount} sticker${binCount === 1 ? "" : "s"} in Recycle Bin`}
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500"></span>
+                    </span>
+                    <span>{binCount}</span>
+                  </span>
+                )}
               </NavLink>
             );
           })}
@@ -135,6 +156,7 @@ export default function AdminLayout() {
             <nav className="flex-1 space-y-1.5 p-4 overflow-y-auto">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
+                const isStickers = item.to === "/admin/products";
                 return (
                   <NavLink
                     key={item.to}
@@ -151,7 +173,19 @@ export default function AdminLayout() {
                     }
                   >
                     <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <span className="flex-1">{item.label}</span>
+                    {isStickers && binCount > 0 && (
+                      <span
+                        className="flex items-center gap-1 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-black text-rose-400 border border-rose-500/30 ml-auto"
+                        title={`${binCount} sticker${binCount === 1 ? "" : "s"} in Recycle Bin`}
+                      >
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500"></span>
+                        </span>
+                        <span>{binCount}</span>
+                      </span>
+                    )}
                   </NavLink>
                 );
               })}

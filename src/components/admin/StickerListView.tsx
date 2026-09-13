@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, Edit2, Eye, EyeOff, Archive, RotateCcw } from "lucide-react";
+import { Sparkles, Edit2, Eye, EyeOff, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdminProduct, ProductStatus } from "@/lib/admin-api";
 
@@ -7,14 +7,14 @@ interface StickerListViewProps {
   products: AdminProduct[];
   onEdit: (product: AdminProduct) => void;
   onToggleStatus: (id: number, newStatus: ProductStatus) => void;
-  onArchive: (id: number, isArchived: boolean) => void;
+  onMoveToBin: (id: number) => void;
 }
 
 export default function StickerListView({
   products,
   onEdit,
   onToggleStatus,
-  onArchive,
+  onMoveToBin,
 }: StickerListViewProps) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#121324]/80">
@@ -122,16 +122,11 @@ export default function StickerListView({
                     </button>
 
                     <button
-                      onClick={() => onArchive(prod.id, isArchived)}
-                      title={isArchived ? "Restore Sticker" : "Archive Sticker"}
-                      className={cn(
-                        "p-1.5 rounded-lg border transition-colors cursor-pointer",
-                        isArchived
-                          ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                          : "border-white/[0.08] text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10",
-                      )}
+                      onClick={() => onMoveToBin(prod.id)}
+                      title="Move to Bin"
+                      className="p-1.5 rounded-lg border border-white/[0.08] text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition-colors cursor-pointer"
                     >
-                      {isArchived ? <RotateCcw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </td>
