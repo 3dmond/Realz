@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { imageStorageService } from "./storage-service";
 
 export type OrderStatus =
   | "pending"
@@ -636,10 +637,10 @@ export async function createCategory(
   name: string,
   slug?: string,
 ): Promise<Database["public"]["Tables"]["categories"]["Row"]> {
-  const cleanName = name.trim().toLowerCase();
+  const cleanName = name.trim();
   const cleanSlug =
-    slug?.trim().toLowerCase() ||
-    cleanName.replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "");
+    slug?.trim().toLowerCase().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]+/g, "") ||
+    cleanName.toLowerCase().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]+/g, "");
 
   const { data, error } = await supabase
     .from("categories")
@@ -648,6 +649,12 @@ export async function createCategory(
     .single();
 
   if (error) throw error;
+
+  try {
+    await imageStorageService.createStorageFolder(cleanSlug);
+  } catch (storageErr) {
+    console.warn("Storage folder initialization notice:", storageErr);
+  }
 
   await recordAuditLog("CREATE_CATEGORY", "categories", String(data.id), {
     name: cleanName,

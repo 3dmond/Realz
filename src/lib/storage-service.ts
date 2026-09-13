@@ -65,6 +65,7 @@ export interface ImageStorageService {
   scanOrphanImages(): Promise<OrphanScanResult>;
   cleanupOrphanImages(keys: string[]): Promise<{ deleted: number; errors: string[] }>;
   listArtworkFolders(): Promise<string[]>;
+  createStorageFolder(folderName: string): Promise<void>;
   listArtwork(
     folder?: string,
     options?: { limit?: number; search?: string },
@@ -494,6 +495,27 @@ class SupabaseImageStorageService implements ImageStorageService {
     return (data || [])
       .filter((item) => (item.id === null || !item.metadata) && !item.name.startsWith("."))
       .map((item) => item.name);
+  }
+
+  /**
+   * Initialize a category folder in Supabase Storage.
+   */
+  async createStorageFolder(folderName: string): Promise<void> {
+    const cleanFolder = folderName
+      .toLowerCase()
+      .trim()
+      .replace(/[\s-]+/g, "_")
+      .replace(/[^a-z0-9_]+/g, "");
+
+    if (!cleanFolder) return;
+
+    // Upload a lightweight placeholder to ensure the virtual folder directory is registered in Storage
+    const placeholderKey = `${cleanFolder}/.emptyFolderPlaceholder`;
+    const placeholderBlob = new Blob([""], { type: "text/plain" });
+
+    await supabase.storage.from(this.bucketName).upload(placeholderKey, placeholderBlob, {
+      upsert: true,
+    });
   }
 
   /**
