@@ -1,35 +1,38 @@
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import {
-  Package,
+  Sparkles,
   Plus,
   Search,
-  Filter,
   Edit2,
   Trash2,
-  Upload,
-  Check,
   Eye,
   EyeOff,
   AlertCircle,
-  Boxes,
+  Archive,
+  RotateCcw,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
+  UploadCloud,
+  CheckCircle2,
+  ImageIcon,
 } from "lucide-react";
 import {
   fetchAdminProducts,
   createProduct,
   updateProduct,
   deleteOrArchiveProduct,
-  uploadStickerAsset,
   fetchAdminCategories,
   type AdminProduct,
+  type ProductStatus,
 } from "@/lib/admin-api";
+import ImageDropzone from "@/components/admin/ImageDropzone";
+import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function AdminProducts() {
   const queryClient = useQueryClient();
@@ -37,376 +40,534 @@ export default function AdminProducts() {
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<number | "ALL">("ALL");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "active" | "archived">("ALL");
-  const [stockFilter, setStockFilter] = useState<"ALL" | "low_stock" | "out_of_stock">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "published" | "draft" | "archived">("ALL");
+  const [sortBy, setSortBy] = useState<"id" | "title" | "created_at">("id");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
-  const pageSize = 15;
+  const pageSize = 16;
 
   // Edit / Create Modal state
   const [modalOpen, setModalOpen] = useState(searchParams.get("create") === "true");
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
 
   // Form State
-  const [formTitle, setFormTitle] = useState("");
-  const [formCategory, setFormCategory] = useState<number>(49134);
-  const [formImageUrl, setFormImageUrl] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formStock, setFormStock] = useState(100);
-  const [formActive, setFormActive] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [formData, setFormData] = useState<{
+    title: string;
+    category_id: number | "";
+    image_url: string;
+    image_storage_key: string;
+    description: string;
+    status: ProductStatus;
+  }>({
+    title: "",
+    category_id: "",
+    image_url: "",
+    image_storage_key: "",
+    description: "",
+    status: "published",
+  });
 
-  const { data: categories } = useQuery({
-    queryKey: ["admin", "categories"],
+  // Fetch Categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-categories"],
     queryFn: fetchAdminCategories,
   });
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["admin", "products", { categoryFilter, statusFilter, stockFilter, search, page }],
-    queryFn: () =>
-      fetchAdminProducts({
-        categoryId: categoryFilter,
-        statusFilter,
-        stockFilter,
-        search,
+  // Calculate resolved category slug for Storage folder path
+  const selectedCategory = categories.find((c) => c.id === Number(formData.category_id));
+  const selectedCategorySlug = selectedCategory
+    ? (selectedCategory.slug || selectedCategory.name)
+        .toLowerCase()
+        .trim()
+        .replace(/[\s-]+/g, "_")
+        .replace(/[^a-z0-9_]+/g, "")
+    : "";
+
+  // Handle URL presets (e.g. redirected from /admin/media "Use in Sticker")
+  useEffect(() => {
+    const presetUrl = searchParams.get("preset_url");
+    const presetKey = searchParams.get("preset_key");
+    const presetTitle = searchParams.get("preset_title");
+    const presetFolder = searchParams.get("preset_folder");
+
+    if (presetUrl && searchParams.get("create") === "true") {
+      let matchedCatId: number | "" = "";
+      if (presetFolder && categories.length > 0) {
+        const match = categories.find(
+          (c) =>
+            (c.slug && c.slug.toLowerCase() === presetFolder.toLowerCase()) ||
+            c.name.toLowerCase().replace(/[\s-]+/g, "_") === presetFolder.toLowerCase(),
+        );
+        if (match) matchedCatId = match.id;
+      }
+      if (!matchedCatId && categories.length > 0) {
+        matchedCatId = categories[0].id;
+      }
+
+      setFormData({
+        title: presetTitle || "",
+        category_id: matchedCatId,
+        image_url: presetUrl,
+        image_storage_key: presetKey || "",
+        description: "",
+        status: "published",
+      });
+      setModalOpen(true);
+    }
+  }, [searchParams, categories]);
+
+  // Fetch Products
+  const {
+    data: productsData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: [
+      "admin-products",
+      {
         page,
         pageSize,
+        search,
+        categoryId: categoryFilter,
+        statusFilter,
+        sortBy,
+        sortOrder,
+      },
+    ],
+    queryFn: () =>
+      fetchAdminProducts({
+        page,
+        pageSize,
+        search,
+        categoryId: categoryFilter,
+        statusFilter,
+        sortBy: sortBy === "created_at" ? "id" : sortBy,
+        sortOrder,
       }),
+  });
+
+  const products = productsData?.products ?? [];
+  const totalCount = productsData?.totalCount ?? 0;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+
+  // Mutations
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!formData.category_id) throw new Error("Please select a category first.");
+      if (!formData.title.trim()) throw new Error("Sticker name is required.");
+      if (!formData.image_url.trim()) throw new Error("Sticker artwork is required.");
+
+      if (editingProduct) {
+        return updateProduct(editingProduct.id, {
+          title: formData.title.trim(),
+          category_id: Number(formData.category_id),
+          image_url: formData.image_url.trim(),
+          image_storage_key: formData.image_storage_key.trim() || undefined,
+          description: formData.description.trim() || undefined,
+          status: formData.status,
+          is_active: formData.status === "published",
+        });
+      } else {
+        return createProduct({
+          title: formData.title.trim(),
+          category_id: Number(formData.category_id),
+          image_url: formData.image_url.trim(),
+          image_storage_key: formData.image_storage_key.trim() || undefined,
+          description: formData.description.trim() || undefined,
+          status: formData.status,
+          is_active: formData.status === "published",
+          stock_quantity: 100, // On-demand printed catalogue item default
+          cost_price: 6.0,
+        });
+      }
+    },
+    onSuccess: () => {
+      toast.success(editingProduct ? "Sticker updated successfully" : "Sticker added to catalogue");
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      closeModal();
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to save sticker");
+    },
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: number; newStatus: ProductStatus }) => {
+      return updateProduct(id, {
+        status: newStatus,
+        is_active: newStatus === "published",
+      });
+    },
+    onSuccess: (_, vars) => {
+      toast.success(vars.newStatus === "published" ? "Sticker published" : "Sticker set to draft");
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: () => toast.error("Could not update status"),
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async ({ id, isArchived }: { id: number; isArchived: boolean }) => {
+      if (isArchived) {
+        return updateProduct(id, { status: "published", is_active: true });
+      } else {
+        return deleteOrArchiveProduct(id);
+      }
+    },
+    onSuccess: (_, vars) => {
+      toast.success(vars.isArchived ? "Sticker restored to catalogue" : "Sticker archived");
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: () => toast.error("Action failed"),
   });
 
   const openCreateModal = () => {
     setEditingProduct(null);
-    setFormTitle("");
-    setFormCategory(categories?.[0]?.id ?? 49134);
-    setFormImageUrl("");
-    setFormDescription("");
-    setFormStock(100);
-    setFormActive(true);
+    setFormData({
+      title: "",
+      category_id: categories.length > 0 ? categories[0].id : "",
+      image_url: "",
+      image_storage_key: "",
+      description: "",
+      status: "published",
+    });
     setModalOpen(true);
   };
 
   const openEditModal = (p: AdminProduct) => {
     setEditingProduct(p);
-    setFormTitle(p.title);
-    setFormCategory(p.category_id);
-    setFormImageUrl(p.image_url);
-    setFormDescription(p.description || "");
-    setFormStock(p.stock_quantity ?? 100);
-    setFormActive(p.is_active !== false);
+    const resolvedStatus: ProductStatus =
+      p.status || (p.is_active === false ? "archived" : "published");
+    setFormData({
+      title: p.title || "",
+      category_id: p.category_id || (categories.length > 0 ? categories[0].id : ""),
+      image_url: p.image_url || "",
+      image_storage_key: p.image_storage_key || "",
+      description: p.description || "",
+      status: resolvedStatus === "archived" ? "draft" : resolvedStatus,
+    });
     setModalOpen(true);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const catName = categories?.find((c) => c.id === formCategory)?.name || "general";
-    setUploading(true);
-    try {
-      const { publicUrl } = await uploadStickerAsset(file, catName);
-      setFormImageUrl(publicUrl);
-      toast.success("Image uploaded to Supabase Storage");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to upload image";
-      toast.error(message);
-    } finally {
-      setUploading(false);
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingProduct(null);
+    if (searchParams.get("create")) {
+      searchParams.delete("create");
+      searchParams.delete("preset_url");
+      searchParams.delete("preset_key");
+      searchParams.delete("preset_title");
+      searchParams.delete("preset_folder");
+      setSearchParams(searchParams);
     }
   };
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (!formTitle.trim()) throw new Error("Title is required");
-      if (!formImageUrl.trim()) throw new Error("Product image is required");
-
-      if (editingProduct) {
-        return updateProduct(editingProduct.id, {
-          title: formTitle,
-          category_id: formCategory,
-          image_url: formImageUrl,
-          description: formDescription,
-          stock_quantity: formStock,
-          is_active: formActive,
-        });
-      } else {
-        return createProduct({
-          title: formTitle,
-          category_id: formCategory,
-          image_url: formImageUrl,
-          description: formDescription,
-          stock_quantity: formStock,
-          is_active: formActive,
-        });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success(editingProduct ? "Product updated" : "Product created");
-      setModalOpen(false);
-      setSearchParams({});
-    },
-    onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : "Failed to save product";
-      toast.error(message);
-    },
-  });
-
-  const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, is_active }: { id: number; is_active: boolean }) => {
-      await updateProduct(id, { is_active });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("Catalog visibility updated");
-    },
-    onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : "Failed to toggle status";
-      toast.error(message);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return deleteOrArchiveProduct(id);
-    },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      if (result.actionTaken === "archived") {
-        toast.info(
-          "Product is referenced in historical orders and was archived instead of deleted to protect order history.",
-        );
-      } else {
-        toast.success("Product permanently deleted");
-      }
-    },
-    onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : "Failed to delete product";
-      toast.error(message);
-    },
-  });
-
-  const handleDelete = (p: AdminProduct) => {
-    if (
-      confirm(
-        `Are you sure you want to remove "${p.title}"? If it has historical order records, it will be safely archived.`,
-      )
-    ) {
-      deleteMutation.mutate(p.id);
-    }
+  const inferTitleFromFilename = (filename: string): string => {
+    return filename
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
   };
-
-  const totalPages = Math.ceil((data?.totalCount ?? 0) / pageSize);
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-            Product Catalogue
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-primary" />
+            Sticker Catalogue
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Manage stickers, media assets, category links, inventory levels, and visibility.
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your on-demand sticker designs. Upload artwork, assign categories, and publish instantly.
           </p>
         </div>
 
-        <button
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-black uppercase tracking-wider text-primary-foreground shadow-[0_0_15px_oklch(0.58_0.25_285/0.4)] hover:scale-[1.02] transition-all cursor-pointer shrink-0"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Sticker Artwork</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <Link
+            to="/admin/media"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-secondary/60 hover:bg-secondary text-foreground border border-border/60 transition-colors"
+          >
+            <ImageIcon className="w-4 h-4 text-muted-foreground" />
+            Media Library
+          </Link>
+          <Link
+            to="/admin/bulk-upload"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-secondary/60 hover:bg-secondary text-foreground border border-border/60 transition-colors"
+          >
+            <UploadCloud className="w-4 h-4 text-muted-foreground" />
+            Bulk Upload
+          </Link>
+          <button
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4" />
+            Add Sticker
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
-        {/* Search */}
-        <div className="relative w-full lg:w-80">
-          <Input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Search sticker title…"
-            className="h-10 bg-white/[0.04] border-white/[0.1] pl-9 text-xs rounded-xl text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary"
-          />
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+      <div className="bg-card/70 backdrop-blur-sm border border-border/70 rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+          {/* Search */}
+          <div className="sm:col-span-6 relative">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search sticker name..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pl-10 h-10 bg-background/80 border-border/60 rounded-xl text-sm"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div className="sm:col-span-3">
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCategoryFilter(val === "ALL" ? "ALL" : Number(val));
+                setPage(1);
+              }}
+              className="w-full h-10 px-3 rounded-xl bg-background/80 border border-border/60 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="ALL">All Categories ({categories.length})</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="sm:col-span-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as any);
+                setPage(1);
+              }}
+              className="w-full h-10 px-3 rounded-xl bg-background/80 border border-border/60 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
         </div>
 
-        {/* Filter controls */}
-        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          {/* Category dropdown */}
-          <select
-            value={categoryFilter}
-            onChange={(e) => {
-              setCategoryFilter(e.target.value === "ALL" ? "ALL" : Number(e.target.value));
-              setPage(1);
-            }}
-            className="h-10 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            <option value="ALL" className="bg-[#0c0d18]">
-              All Categories
-            </option>
-            {categories?.map((c) => (
-              <option key={c.id} value={c.id} className="bg-[#0c0d18]">
-                {c.name} ({c.product_count})
-              </option>
-            ))}
-          </select>
+        {/* Status Pill Summary */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
+          <span className="font-medium">
+            Showing <strong className="text-foreground">{products.length}</strong> of{" "}
+            <strong className="text-foreground">{totalCount}</strong> stickers
+          </span>
 
-          {/* Status dropdown */}
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value as "ALL" | "active" | "archived");
-              setPage(1);
-            }}
-            className="h-10 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            <option value="ALL" className="bg-[#0c0d18]">
-              All Visibility
-            </option>
-            <option value="active" className="bg-[#0c0d18]">
-              Active Only
-            </option>
-            <option value="archived" className="bg-[#0c0d18]">
-              Archived Only
-            </option>
-          </select>
-
-          {/* Stock filter */}
-          <select
-            value={stockFilter}
-            onChange={(e) => {
-              setStockFilter(e.target.value as "ALL" | "low_stock" | "out_of_stock");
-              setPage(1);
-            }}
-            className="h-10 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            <option value="ALL" className="bg-[#0c0d18]">
-              All Inventory
-            </option>
-            <option value="low_stock" className="bg-[#0c0d18]">
-              Low Stock (&lt;15)
-            </option>
-            <option value="out_of_stock" className="bg-[#0c0d18]">
-              Out of Stock (0)
-            </option>
-          </select>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">Sort:</span>
+            <button
+              onClick={() => {
+                setSortBy((prev) => (prev === "id" ? "title" : "id"));
+                setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+              }}
+              className="text-[11px] font-semibold text-primary hover:underline"
+            >
+              {sortBy === "id" ? "Date Added" : "Title"} ({sortOrder.toUpperCase()})
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Products Table */}
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] overflow-hidden shadow-xl">
+      {/* Catalogue Table */}
+      <div className="bg-card/70 backdrop-blur-sm border border-border/70 rounded-2xl shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="py-20 text-center text-xs text-muted-foreground">Loading products…</div>
-        ) : data?.products && data.products.length > 0 ? (
+          <div className="py-20 text-center text-sm text-muted-foreground">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            Loading sticker catalogue...
+          </div>
+        ) : isError ? (
+          <div className="py-16 text-center text-rose-400 text-sm">
+            <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-80" />
+            Failed to load stickers. Please refresh.
+          </div>
+        ) : products.length === 0 ? (
+          <div className="py-20 text-center px-4">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
+              <Sparkles className="w-7 h-7" />
+            </div>
+            <h3 className="font-bold text-foreground text-base">No stickers found</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
+              {search || categoryFilter !== "ALL" || statusFilter !== "ALL"
+                ? "Try clearing filters to view all sticker designs."
+                : "Your catalogue is currently empty. Add your first sticker design to start selling!"}
+            </p>
+            <button
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Add First Sticker
+            </button>
+          </div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/[0.08] bg-white/[0.02] text-muted-foreground text-[10px] font-black uppercase tracking-widest">
-                  <th className="py-3.5 px-4">Sticker</th>
-                  <th className="py-3.5 px-4">Title</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Inventory Stock</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                <tr className="border-b border-border/60 bg-secondary/30 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <th className="py-3 px-4 w-14 text-center">Artwork</th>
+                  <th className="py-3 px-4">Display Name</th>
+                  <th className="py-3 px-4 w-44">Category</th>
+                  <th className="py-3 px-4 w-32 text-center">Status</th>
+                  <th className="py-3 px-4 w-40 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {data.products.map((prod) => {
-                  const stock = prod.stock_quantity ?? 100;
-                  const isActive = prod.is_active !== false;
+              <tbody className="divide-y divide-border/40 text-sm">
+                {products.map((prod) => {
+                  const resolvedStatus: ProductStatus =
+                    prod.status || (prod.is_active === false ? "archived" : "published");
+                  const isArchived = resolvedStatus === "archived";
+                  const isPublished = resolvedStatus === "published";
+                  const isDraft = resolvedStatus === "draft";
 
                   return (
-                    <tr key={prod.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr
+                      key={prod.id}
+                      className={cn(
+                        "hover:bg-secondary/20 transition-colors group",
+                        isArchived && "opacity-60 bg-muted/10",
+                      )}
+                    >
+                      {/* Artwork Thumbnail */}
                       <td className="py-3 px-4">
-                        {prod.image_url ? (
-                          <img
-                            src={prod.image_url}
-                            alt={prod.title}
-                            className="h-12 w-12 rounded-lg object-contain bg-black/40 p-1 border border-white/[0.08]"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 rounded-lg bg-white/5 grid place-items-center text-[10px] text-muted-foreground">
-                            No Asset
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-bold text-foreground text-sm">{prod.title}</span>
-                        <p className="text-[10px] font-mono text-muted-foreground">
-                          ID: #{prod.id}
-                        </p>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="rounded-full bg-white/[0.06] border border-white/[0.08] px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase">
-                          {prod.categories?.name || `Cat #${prod.category_id}`}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-mono font-black tabular-nums text-xs ${
-                              stock <= 0
-                                ? "text-rose-400"
-                                : stock < 15
-                                  ? "text-amber-400"
-                                  : "text-emerald-400"
-                            }`}
-                          >
-                            {stock} in stock
-                          </span>
-                          {stock < 15 && stock > 0 && (
-                            <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-500/30">
-                              Low
-                            </span>
-                          )}
-                          {stock <= 0 && (
-                            <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-400 border border-rose-500/30">
-                              Out
-                            </span>
+                        <div className="w-12 h-12 rounded-xl border border-border/60 overflow-hidden relative flex items-center justify-center bg-[linear-gradient(45deg,#181926_25%,transparent_25%),linear-gradient(-45deg,#181926_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#181926_75%),linear-gradient(-45deg,transparent_75%,#181926_75%)] bg-[size:10px_10px] bg-[#12131f]">
+                          {prod.image_url ? (
+                            <img
+                              src={prod.image_url}
+                              alt={prod.title}
+                              className="w-full h-full object-contain p-1 transition-transform group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <Sparkles className="w-5 h-5 text-muted-foreground/40" />
                           )}
                         </div>
                       </td>
+
+                      {/* Display Name & Short Description */}
                       <td className="py-3 px-4">
-                        <button
-                          onClick={() =>
-                            toggleActiveMutation.mutate({ id: prod.id, is_active: !isActive })
-                          }
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all ${
-                            isActive
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                              : "bg-white/5 text-muted-foreground border-white/10 hover:bg-white/10"
-                          }`}
-                        >
-                          {isActive ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                          <span>{isActive ? "Active" : "Archived"}</span>
-                        </button>
+                        <span className="font-bold text-foreground text-sm block">
+                          {prod.title}
+                        </span>
+                        {prod.description && (
+                          <span className="text-[11px] text-muted-foreground truncate max-w-sm block mt-0.5">
+                            {prod.description}
+                          </span>
+                        )}
+                        {prod.image_storage_key && (
+                          <span className="text-[9px] font-mono text-muted-foreground/70 block">
+                            Key: {prod.image_storage_key}
+                          </span>
+                        )}
                       </td>
+
+                      {/* Category */}
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-secondary text-secondary-foreground border border-border/50">
+                          {prod.categories?.name || "Uncategorized"}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4 text-center">
+                        {isPublished && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Published
+                          </span>
+                        )}
+                        {isDraft && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                            Draft
+                          </span>
+                        )}
+                        {isArchived && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-zinc-500/10 text-zinc-400 border border-zinc-500/30">
+                            Archived
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Publish / Draft Toggle */}
+                          {!isArchived && (
+                            <button
+                              onClick={() =>
+                                statusMutation.mutate({
+                                  id: prod.id,
+                                  newStatus: isPublished ? "draft" : "published",
+                                })
+                              }
+                              title={isPublished ? "Set to Draft" : "Publish to Store"}
+                              className={cn(
+                                "p-2 rounded-lg border text-xs font-medium transition-colors",
+                                isPublished
+                                  ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                  : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10",
+                              )}
+                            >
+                              {isPublished ? (
+                                <EyeOff className="w-3.5 h-3.5" />
+                              ) : (
+                                <Eye className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          )}
+
+                          {/* Edit */}
                           <button
                             onClick={() => openEditModal(prod)}
-                            className="rounded-lg border border-white/[0.1] bg-white/[0.04] p-2 text-muted-foreground hover:bg-white/[0.08] hover:text-foreground transition-colors cursor-pointer"
                             title="Edit Sticker"
+                            className="p-2 rounded-lg border border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
                           >
-                            <Edit2 className="h-3.5 w-3.5" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
+
+                          {/* Archive / Restore */}
                           <button
-                            onClick={() => handleDelete(prod)}
-                            className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-2 text-rose-400 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer"
-                            title="Delete / Archive"
+                            onClick={() =>
+                              archiveMutation.mutate({ id: prod.id, isArchived })
+                            }
+                            title={isArchived ? "Restore to Catalogue" : "Archive Sticker"}
+                            className={cn(
+                              "p-2 rounded-lg border text-xs font-medium transition-colors",
+                              isArchived
+                                ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                : "border-border/60 hover:border-rose-500/40 text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10",
+                            )}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            {isArchived ? (
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            ) : (
+                              <Archive className="w-3.5 h-3.5" />
+                            )}
                           </button>
                         </div>
                       </td>
@@ -416,225 +577,236 @@ export default function AdminProducts() {
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="py-24 text-center">
-            <Package className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
-            <h3 className="text-sm font-bold text-foreground">No stickers found</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Try adjusting your search terms or create a new sticker artwork.
-            </p>
-          </div>
         )}
 
-        {/* Pagination Bar */}
+        {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-white/[0.08] px-4 py-3 bg-white/[0.01]">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-secondary/20">
             <span className="text-xs text-muted-foreground">
-              Page {page} of {totalPages} ({data?.totalCount} total)
+              Page <strong className="text-foreground">{page}</strong> of{" "}
+              <strong className="text-foreground">{totalPages}</strong>
             </span>
             <div className="flex items-center gap-1.5">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.1] text-muted-foreground hover:bg-white/[0.05] disabled:opacity-40"
+                className="p-1.5 rounded-lg border border-border/60 disabled:opacity-40 hover:bg-secondary text-xs"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.1] text-muted-foreground hover:bg-white/[0.05] disabled:opacity-40"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="p-1.5 rounded-lg border border-border/60 disabled:opacity-40 hover:bg-secondary text-xs"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Create / Edit Modal */}
+      {/* Add / Edit Sticker Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-lg rounded-2xl border border-white/[0.12] bg-[#0c0d18] p-6 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 mb-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-card border border-border/80 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-border/60 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                  {editingProduct ? "Edit Product" : "New Sticker Entry"}
-                </span>
-                <h2 className="text-lg font-bold text-foreground">
-                  {editingProduct ? editingProduct.title : "Add New Artwork"}
-                </h2>
+                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  {editingProduct ? "Edit Sticker" : "Add New Sticker"}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Realz stickers are on-demand catalogue items with unified store pricing.
+                </p>
               </div>
               <button
-                onClick={() => {
-                  setModalOpen(false);
-                  setSearchParams({});
-                }}
-                className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-white/[0.08] hover:text-white"
+                onClick={closeModal}
+                className="text-muted-foreground hover:text-foreground text-sm font-bold p-1 rounded-lg hover:bg-secondary"
               >
                 ✕
               </button>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                saveMutation.mutate();
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                  Artwork Title *
-                </label>
-                <Input
-                  required
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="e.g. Cyber Samurai"
-                  className="mt-1 h-11 bg-white/[0.04] border-white/[0.1] rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                  Category *
-                </label>
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 overflow-y-auto">
+              {/* 1. Category (Prominently First) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground">
+                    Category <span className="text-rose-400">*</span>
+                  </label>
+                  {selectedCategorySlug && (
+                    <span className="text-[10px] font-mono text-primary font-semibold">
+                      Storage folder: stickers/{selectedCategorySlug}/
+                    </span>
+                  )}
+                </div>
                 <select
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(Number(e.target.value))}
-                  className="mt-1 w-full h-11 rounded-xl border border-white/[0.1] bg-[#0c0d18] px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={formData.category_id}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      category_id: e.target.value ? Number(e.target.value) : "",
+                    }))
+                  }
+                  className="w-full h-10 px-3 rounded-xl bg-background/80 border border-border/70 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 >
-                  {categories?.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-[#0c0d18]">
+                  <option value="" disabled>
+                    Select a category first…
+                  </option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Image Upload & URL */}
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                  Sticker Artwork Image *
-                </label>
-                <div className="mt-1 flex items-center gap-3">
-                  <div className="h-16 w-16 shrink-0 rounded-xl border border-white/[0.1] bg-black/40 p-1 flex items-center justify-center overflow-hidden">
-                    {formImageUrl ? (
-                      <img
-                        src={formImageUrl}
-                        alt="Preview"
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground/60">No Pic</span>
-                    )}
-                  </div>
-
-                  <div className="flex-1 space-y-2">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      accept="image/webp,image/png,image/jpeg,image/svg+xml"
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      disabled={uploading}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] py-2 text-xs font-bold text-foreground hover:bg-white/[0.08] transition-colors cursor-pointer"
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      <span>
-                        {uploading ? "Uploading to Storage…" : "Upload Sticker File (WebP/PNG)"}
-                      </span>
-                    </button>
-                    <Input
-                      value={formImageUrl}
-                      onChange={(e) => setFormImageUrl(e.target.value)}
-                      placeholder="Or paste image URL directly…"
-                      className="h-9 bg-white/[0.04] border-white/[0.1] rounded-xl text-[11px]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Stock Quantity */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                    Initial Stock
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formStock}
-                    onChange={(e) => setFormStock(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="mt-1 h-11 bg-white/[0.04] border-white/[0.1] rounded-xl text-xs font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                    Storefront Active
+              {/* 2. Artwork Upload & Library Picker */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground">
+                    Sticker Artwork <span className="text-rose-400">*</span>
                   </label>
                   <button
                     type="button"
-                    onClick={() => setFormActive(!formActive)}
-                    className={`mt-1 w-full h-11 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
-                      formActive
-                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                        : "bg-white/[0.04] border-white/[0.1] text-muted-foreground"
-                    }`}
+                    onClick={() => setMediaPickerOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
                   >
-                    {formActive ? <Check className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    <span>{formActive ? "Visible in Shop" : "Hidden / Archived"}</span>
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Choose from Library</span>
                   </button>
                 </div>
+                <ImageDropzone
+                  folder={selectedCategorySlug}
+                  currentImageUrl={formData.image_url}
+                  value={formData.image_url}
+                  onImageUploaded={({ publicUrl, storageKey }) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      image_url: publicUrl,
+                      image_storage_key: storageKey,
+                    }))
+                  }
+                  onChange={(url) => setFormData((prev) => ({ ...prev, image_url: url }))}
+                  onClearImage={() =>
+                    setFormData((prev) => ({ ...prev, image_url: "", image_storage_key: "" }))
+                  }
+                />
+                {formData.image_storage_key && (
+                  <p className="text-[10px] font-mono text-muted-foreground truncate">
+                    Storage Key: <span className="text-foreground">{formData.image_storage_key}</span>
+                  </p>
+                )}
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                  Description
+              {/* 3. Display Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">
+                  Display Name <span className="text-rose-400">*</span>
                 </label>
-                <Textarea
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Collector details, finish, artwork notes…"
-                  rows={3}
-                  className="mt-1 bg-white/[0.04] border-white/[0.1] rounded-xl text-xs"
+                <Input
+                  type="text"
+                  placeholder="e.g. Cyber Samurai Holographic"
+                  value={formData.title}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                  className="bg-background/80 border-border/70 rounded-xl text-sm"
                 />
               </div>
 
-              <div className="pt-3 border-t border-white/[0.08] flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setModalOpen(false);
-                    setSearchParams({});
-                  }}
-                  className="rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-xs font-bold text-muted-foreground hover:bg-white/[0.08] hover:text-foreground transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saveMutation.isPending || uploading}
-                  className="rounded-xl bg-primary px-5 py-2 text-xs font-black uppercase tracking-wider text-primary-foreground shadow-[0_0_15px_oklch(0.58_0.25_285/0.4)] hover:scale-[1.02] transition-all disabled:opacity-60 cursor-pointer"
-                >
-                  {saveMutation.isPending
-                    ? "Saving…"
-                    : editingProduct
-                      ? "Update Sticker"
-                      : "Create Sticker"}
-                </button>
+              {/* 4. Description (Optional) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground">Description</label>
+                  <span className="text-[10px] text-muted-foreground">Optional</span>
+                </div>
+                <Textarea
+                  placeholder="Short note or theme details for this sticker design..."
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  rows={2}
+                  className="bg-background/80 border-border/70 rounded-xl text-xs resize-none"
+                />
               </div>
-            </form>
+
+              {/* 5. Status */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Catalogue Status</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, status: "published" }))}
+                    className={cn(
+                      "p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all",
+                      formData.status === "published"
+                        ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-400 shadow-sm"
+                        : "border-border/60 text-muted-foreground hover:bg-secondary/40",
+                    )}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Published (Live)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, status: "draft" }))}
+                    className={cn(
+                      "p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all",
+                      formData.status === "draft"
+                        ? "bg-amber-500/15 border-amber-500/50 text-amber-400 shadow-sm"
+                        : "border-border/60 text-muted-foreground hover:bg-secondary/40",
+                    )}
+                  >
+                    <EyeOff className="w-4 h-4" />
+                    Draft (Hidden)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-border/60 bg-secondary/20 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {saveMutation.isPending && (
+                  <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                )}
+                {editingProduct ? "Save Changes" : "Save Sticker"}
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Media Picker Modal */}
+      <MediaPickerModal
+        open={mediaPickerOpen}
+        onClose={() => setMediaPickerOpen(false)}
+        defaultFolder={selectedCategorySlug || "ALL"}
+        onSelectArtwork={(artwork) => {
+          setFormData((prev) => ({
+            ...prev,
+            image_url: artwork.publicUrl,
+            image_storage_key: artwork.storageKey,
+            title: prev.title.trim() ? prev.title : inferTitleFromFilename(artwork.name),
+          }));
+          toast.success(`Selected "${artwork.name}" from library`);
+        }}
+      />
     </div>
   );
 }

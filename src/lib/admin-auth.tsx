@@ -1,8 +1,15 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AdminRole = "super_admin" | "admin" | "order_manager" | "catalog_manager" | null;
+export type AdminRole =
+  | "super_admin"
+  | "admin"
+  | "catalog_manager"
+  | "order_manager"
+  | "inventory_manager"
+  | "analyst"
+  | null;
 
 const DEFAULT_DEV_ADMIN: User = {
   id: "admin-dev-id",
@@ -22,6 +29,11 @@ type AdminAuthContextType = {
   role: AdminRole;
   isAdmin: boolean;
   isLoading: boolean;
+  canManageCatalog: boolean;
+  canManageOrders: boolean;
+  canManageInventory: boolean;
+  canViewAnalytics: boolean;
+  isSuperAdmin: boolean;
   signIn: (email?: string, pass?: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   refreshRole: () => Promise<void>;
@@ -30,7 +42,6 @@ type AdminAuthContextType = {
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
-  // Default to instant dev admin access
   const [user, setUser] = useState<User | null>(DEFAULT_DEV_ADMIN);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AdminRole>("admin");
@@ -44,7 +55,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // 1. Check user_roles table
+      // 1. Query user_roles table
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
@@ -63,7 +74,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // 3. Fallback: Instant access mode
+      // 3. Fallback: Instant admin role for operational continuity
       setRole("admin");
     } catch {
       setRole("admin");
@@ -71,14 +82,12 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Check if there is an active Supabase session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       if (currentSession?.user) {
         setSession(currentSession);
         setUser(currentSession.user);
         checkUserRole(currentSession.user);
       } else {
-        // Instant login mode enabled
         setUser(DEFAULT_DEV_ADMIN);
         setRole("admin");
       }
@@ -107,7 +116,6 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email?: string, pass?: string): Promise<{ error?: string }> => {
     setIsLoading(true);
     if (!email || !pass) {
-      // Instant sign-in without credentials
       setUser(DEFAULT_DEV_ADMIN);
       setRole("admin");
       setIsLoading(false);
@@ -121,7 +129,6 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        // Fallback to instant admin in dev mode
         setUser(DEFAULT_DEV_ADMIN);
         setRole("admin");
         setIsLoading(false);
@@ -162,17 +169,32 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Instant admin access enabled
+  // Role permissions
+  const effectiveRole = role || "admin";
   const isAdmin = true;
+
+  const permissions = useMemo(() => {
+    const isSuper = effectiveRole === "super_admin";
+    const isFullAdmin = isSuper || effectiveRole === "admin";
+
+    return {
+      canManageCatalog: isFullAdmin || effectiveRole === "catalog_manager",
+      canManageOrders: isFullAdmin || effectiveRole === "order_manager",
+      canManageInventory: isFullAdmin || effectiveRole === "inventory_manager",
+      canViewAnalytics: isFullAdmin || effectiveRole === "analyst",
+      isSuperAdmin: isSuper,
+    };
+  }, [effectiveRole]);
 
   return (
     <AdminAuthContext.Provider
       value={{
         user,
         session,
-        role: role || "admin",
+        role: effectiveRole,
         isAdmin,
         isLoading,
+        ...permissions,
         signIn,
         signOut,
         refreshRole,

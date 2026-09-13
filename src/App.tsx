@@ -19,6 +19,9 @@ import AdminCategories from "@/pages/admin/AdminCategories";
 import AdminInventory from "@/pages/admin/AdminInventory";
 import AdminAudit from "@/pages/admin/AdminAudit";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminAnalytics from "@/pages/admin/AdminAnalytics";
+import AdminBulkUpload from "@/pages/admin/AdminBulkUpload";
+import AdminMediaLibrary from "@/pages/admin/AdminMediaLibrary";
 
 export default function App() {
   return (
@@ -41,8 +44,12 @@ export default function App() {
             <Route index element={<AdminOverview />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="products" element={<AdminProducts />} />
+            <Route path="media" element={<AdminMediaLibrary />} />
+            <Route path="products/import" element={<AdminBulkUpload />} />
+            <Route path="bulk-upload" element={<AdminBulkUpload />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="inventory" element={<AdminInventory />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="activity" element={<AdminAudit />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>

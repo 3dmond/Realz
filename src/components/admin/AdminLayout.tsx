@@ -3,9 +3,8 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import {
   LayoutDashboard,
   ShoppingBag,
-  Package,
+  Sparkles,
   Tags,
-  Boxes,
   ScrollText,
   Settings,
   LogOut,
@@ -13,6 +12,8 @@ import {
   X,
   ExternalLink,
   ShieldCheck,
+  BarChart3,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/admin-auth";
 import { cn } from "@/lib/utils";
@@ -20,9 +21,10 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag, end: false },
-  { to: "/admin/products", label: "Products", icon: Package, end: false },
+  { to: "/admin/products", label: "Stickers", icon: Sparkles, end: false },
+  { to: "/admin/media", label: "Media Library", icon: ImageIcon, end: false },
   { to: "/admin/categories", label: "Categories", icon: Tags, end: false },
-  { to: "/admin/inventory", label: "Inventory", icon: Boxes, end: false },
+  { to: "/admin/analytics", label: "Analytics & BI", icon: BarChart3, end: false },
   { to: "/admin/activity", label: "Audit Trail", icon: ScrollText, end: false },
   { to: "/admin/settings", label: "Settings", icon: Settings, end: false },
 ];

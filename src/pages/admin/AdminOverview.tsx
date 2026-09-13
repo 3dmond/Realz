@@ -9,6 +9,13 @@ import {
   ArrowRight,
   Boxes,
   Plus,
+  FileSpreadsheet,
+  CheckCircle2,
+  Phone,
+  BarChart3,
+  ExternalLink,
+  Sparkles,
+  Tags,
 } from "lucide-react";
 import {
   fetchAdminStats,
@@ -17,7 +24,15 @@ import {
   ORDER_STATUSES,
 } from "@/lib/admin-api";
 import { formatPrice } from "@/lib/pricing";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
+import { cn } from "@/lib/utils";
 
 export default function AdminOverview() {
   const navigate = useNavigate();
@@ -62,52 +77,34 @@ export default function AdminOverview() {
             Operational Dashboard
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Real-time telemetry, orders ingestion, catalogue availability, and fulfillment.
+            Real-time telemetry, incoming orders, and sticker catalogue operations.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Operational Quick Actions */}
+        <div className="flex items-center gap-2.5">
+          <Link
+            to="/admin/products/import"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.12] bg-white/[0.04] px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-foreground hover:bg-white/[0.08] transition-all cursor-pointer"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
+            <span>Bulk Import</span>
+          </Link>
+
           <Link
             to="/admin/products?create=true"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-black uppercase tracking-wider text-primary-foreground shadow-[0_0_15px_oklch(0.58_0.25_285/0.4)] hover:scale-[1.02] transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-wider text-primary-foreground shadow-[0_0_15px_oklch(0.58_0.25_285/0.4)] hover:scale-[1.02] transition-all cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Add Sticker</span>
           </Link>
-          <Link
-            to="/admin/orders"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-foreground hover:bg-white/[0.08] transition-colors"
-          >
-            <ShoppingBag className="h-4 w-4" />
-            <span>Manage Orders</span>
-          </Link>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
+      {/* Operational KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Revenue */}
-        <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] p-5 shadow-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Total Revenue
-            </span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
-              <TrendingUp className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-2xl sm:text-3xl font-black text-foreground tabular-nums">
-              {statsLoading ? "—" : formatPrice(stats?.totalRevenue ?? 0)}
-            </h3>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              From confirmed & fulfilled orders
-            </p>
-          </div>
-        </div>
-
-        {/* Orders Awaiting Action */}
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-5 shadow-lg">
+        {/* Needs Confirmation (Immediate Operational Action) */}
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.03] p-5 shadow-lg relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
               Needs Confirmation
@@ -120,63 +117,123 @@ export default function AdminOverview() {
             <h3 className="text-2xl sm:text-3xl font-black text-amber-400 tabular-nums">
               {statsLoading ? "—" : stats?.pendingOrders}
             </h3>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Pending phone verification calls
-            </p>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground">Pending phone calls</p>
+              {Number(stats?.pendingOrders) > 0 && (
+                <Link
+                  to="/admin/orders?status=pending"
+                  className="text-[10px] font-bold text-amber-400 hover:underline flex items-center gap-0.5"
+                >
+                  <span>Review</span>
+                  <ArrowRight className="h-2.5 w-2.5" />
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Total Volume */}
+        {/* Sticker Catalogue */}
         <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] p-5 shadow-lg">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Total Orders
+              Live Stickers
             </span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-white/5 text-foreground">
-              <ShoppingBag className="h-4 w-4" />
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+              <Sparkles className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-4">
             <h3 className="text-2xl sm:text-3xl font-black text-foreground tabular-nums">
-              {statsLoading ? "—" : stats?.totalOrders}
+              {statsLoading ? "—" : stats?.activeProducts}
             </h3>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              {statsLoading ? "—" : `${stats?.deliveredOrders} completed deliveries`}
-            </p>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground">
+                {stats?.draftProducts ?? 0} drafts staged
+              </p>
+              <Link
+                to="/admin/products"
+                className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
+              >
+                <span>Catalogue</span>
+                <ArrowRight className="h-2.5 w-2.5" />
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Low Stock Alerts */}
+        {/* Fulfilled Orders */}
         <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] p-5 shadow-lg">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Stock Warnings
+              Fulfilled Orders
             </span>
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-rose-500/10 text-rose-400">
-              <AlertTriangle className="h-4 w-4" />
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-4">
             <h3 className="text-2xl sm:text-3xl font-black text-foreground tabular-nums">
-              {statsLoading ? "—" : stats?.lowStockProducts}
+              {statsLoading ? "—" : stats?.deliveredOrders}
             </h3>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Products with &lt; 15 units remaining
-            </p>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground">
+                of {stats?.totalOrders ?? 0} total orders
+              </p>
+              <Link
+                to="/admin/orders"
+                className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-0.5"
+              >
+                <span>Orders</span>
+                <ArrowRight className="h-2.5 w-2.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Total Gross Revenue */}
+        <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] p-5 shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              Total Revenue (KSh)
+            </span>
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-2xl sm:text-3xl font-black text-foreground tabular-nums">
+              {statsLoading ? "—" : formatPrice(stats?.totalRevenue ?? 0)}
+            </h3>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground">
+                {stats?.deliveredOrders ?? 0} fulfilled
+              </p>
+              <Link
+                to="/admin/analytics"
+                className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
+              >
+                <span>Analytics</span>
+                <ArrowRight className="h-2.5 w-2.5" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Chart Section */}
+      {/* Revenue Dynamics Trajectory Chart */}
       <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] p-6 shadow-lg">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-base font-bold text-foreground">Revenue Dynamics (KSh)</h3>
             <p className="text-xs text-muted-foreground">Daily gross order volume trajectory</p>
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
-            Authoritative Ledger
-          </span>
+          <Link
+            to="/admin/analytics"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            <span>Detailed BI Breakdown</span>
+          </Link>
         </div>
 
         <div className="h-64 w-full">
@@ -236,12 +293,12 @@ export default function AdminOverview() {
         </div>
       </div>
 
-      {/* Recent Orders Section */}
+      {/* Recent Orders Ingestion Section */}
       <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-bold text-foreground">Recent Order Submissions</h3>
-            <p className="text-xs text-muted-foreground">Latest incoming customer selections</p>
+            <h3 className="text-base font-bold text-foreground">Recent Order Ingestions</h3>
+            <p className="text-xs text-muted-foreground">Latest incoming customer checkout requests</p>
           </div>
           <Link
             to="/admin/orders"
@@ -263,10 +320,10 @@ export default function AdminOverview() {
                 <tr className="border-b border-white/[0.06] text-muted-foreground text-[10px] uppercase font-black tracking-widest">
                   <th className="pb-3">Order ID</th>
                   <th className="pb-3">Customer</th>
-                  <th className="pb-3">Phone</th>
+                  <th className="pb-3">Telephone</th>
                   <th className="pb-3">Delivery Area</th>
-                  <th className="pb-3">Items</th>
-                  <th className="pb-3">Total</th>
+                  <th className="pb-3">Pack Items</th>
+                  <th className="pb-3">Gross Total</th>
                   <th className="pb-3">Status</th>
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
@@ -285,7 +342,7 @@ export default function AdminOverview() {
                         {o.delivery_place}
                       </td>
                       <td className="py-3.5 font-bold text-foreground">{itemCount} stickers</td>
-                      <td className="py-3.5 font-black text-primary tabular-nums">
+                      <td className="py-3.5 font-black text-primary tabular-nums font-mono">
                         {formatPrice(Number(o.total_price))}
                       </td>
                       <td className="py-3.5">{getStatusBadge(o.status)}</td>
@@ -294,7 +351,7 @@ export default function AdminOverview() {
                           onClick={() => navigate(`/admin/orders?view=${o.id}`)}
                           className="inline-flex items-center gap-1 rounded-lg border border-white/[0.1] bg-white/[0.03] px-2.5 py-1 text-[10px] font-bold text-muted-foreground hover:bg-white/[0.08] hover:text-foreground transition-colors cursor-pointer"
                         >
-                          Details
+                          Fulfill
                         </button>
                       </td>
                     </tr>

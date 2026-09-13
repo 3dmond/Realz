@@ -27,6 +27,8 @@ export type Product = {
   keywords?: string[] | null;
   is_featured?: boolean | null;
   is_active?: boolean;
+  status?: "draft" | "published" | "archived";
+  price?: number;
   stock_quantity?: number;
   created_at?: string;
   updated_at?: string;
@@ -43,16 +45,18 @@ export async function fetchCategories(): Promise<Category[]> {
     .order("name", { ascending: true });
 
   if (error) throw error;
-  return ((data as DbCategory[]) || []).map((c) => ({
-    ...c,
-    slug:
-      c.slug ||
-      c.name
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, ""),
-  }));
+  return ((data as DbCategory[]) || [])
+    .filter((c) => c.is_active !== false)
+    .map((c) => ({
+      ...c,
+      slug:
+        c.slug ||
+        c.name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, ""),
+    }));
 }
 
 export async function fetchSubcategories(): Promise<Subcategory[]> {
@@ -66,7 +70,11 @@ export async function fetchProducts(): Promise<Product[]> {
     .order("id", { ascending: true });
 
   if (error) throw error;
-  return ((data as Product[]) || []).filter((p) => p.is_active !== false);
+  return ((data as Product[]) || []).filter((p) => {
+    if (p.is_active === false) return false;
+    if (p.status && p.status !== "published") return false;
+    return true;
+  });
 }
 
 export async function fetchFeaturedProducts(): Promise<Product[]> {

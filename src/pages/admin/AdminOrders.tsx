@@ -25,7 +25,7 @@ import {
   type OrderStatus,
   type AdminOrder,
 } from "@/lib/admin-api";
-import { formatPrice } from "@/lib/pricing";
+import { formatPrice, activeTier } from "@/lib/pricing";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
@@ -428,8 +428,44 @@ export default function AdminOrders() {
                     </div>
                   </div>
 
-                  {/* Order Line Items */}
+                  {/* Order Line Items & Tier Pricing */}
                   <div>
+                    {(() => {
+                      const totalUnits = (activeOrder.order_items || []).reduce(
+                        (acc, it) => acc + it.quantity,
+                        0,
+                      );
+                      const tier = activeTier(totalUnits);
+                      const avgUnit =
+                        totalUnits > 0
+                          ? Number(activeOrder.total_price) / totalUnits
+                          : 0;
+
+                      return (
+                        <div className="rounded-xl border border-indigo-500/25 bg-indigo-500/[0.06] p-4 mb-4 flex items-center justify-between">
+                          <div>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">
+                              Applicable Pricing Tier
+                            </span>
+                            <h5 className="text-sm font-bold text-foreground">
+                              Tier {tier.label} ({tier.description})
+                            </h5>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              Calculated dynamically across {totalUnits} total stickers in cart
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                              Average Unit Price
+                            </span>
+                            <p className="text-base font-mono font-black text-primary">
+                              {formatPrice(avgUnit)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                       Selected Artwork Items
                     </h4>
@@ -437,10 +473,10 @@ export default function AdminOrders() {
                       {activeOrder.order_items?.map((item) => (
                         <div key={item.id} className="flex items-center justify-between p-3.5">
                           <div className="flex items-center gap-3">
-                            {item.products?.image_url ? (
+                            {item.product_image_url || item.products?.image_url ? (
                               <img
-                                src={item.products.image_url}
-                                alt={item.products.title}
+                                src={item.product_image_url || item.products?.image_url || ""}
+                                alt={item.product_title || item.products?.title || "Sticker"}
                                 className="h-12 w-12 rounded-lg object-contain bg-black/40 p-1 border border-white/[0.08]"
                               />
                             ) : (
@@ -450,11 +486,10 @@ export default function AdminOrders() {
                             )}
                             <div>
                               <h5 className="text-xs font-bold text-foreground">
-                                {item.products?.title || `Product #${item.product_id}`}
+                                {item.product_title || item.products?.title || `Product #${item.product_id}`}
                               </h5>
                               <p className="text-[10px] text-muted-foreground">
-                                {item.quantity} units @ {formatPrice(Number(item.unit_price))} /
-                                unit
+                                {item.quantity} units @ {formatPrice(Number(item.unit_price))} / unit
                               </p>
                             </div>
                           </div>

@@ -10,6 +10,8 @@ export type OrderStatus =
   | "cancelled"
   | "failed";
 
+export type ProductStatus = "draft" | "published" | "archived";
+
 export const ORDER_STATUSES: {
   value: OrderStatus;
   label: string;
@@ -58,7 +60,10 @@ export type AdminStats = {
   deliveredOrders: number;
   totalRevenue: number;
   activeProducts: number;
+  draftProducts: number;
+  archivedProducts: number;
   lowStockProducts: number;
+  outOfStockProducts: number;
   totalCategories: number;
 };
 
@@ -70,19 +75,58 @@ export type AdminOrder = Database["public"]["Tables"]["orders"]["Row"] & {
 
 export type AdminProduct = Database["public"]["Tables"]["products"]["Row"] & {
   categories?: Database["public"]["Tables"]["categories"]["Row"] | null;
+  product_images?: Database["public"]["Tables"]["product_images"]["Row"][];
 };
 
 export type InventoryLogWithProduct = Database["public"]["Tables"]["inventory_logs"]["Row"] & {
   products?: { title: string } | null;
 };
 
+export type BulkProductItem = {
+  title: string;
+  category_id: number;
+  image_url: string;
+  image_storage_key?: string;
+  description?: string;
+  stock_quantity: number;
+  price?: number;
+  cost_price: number;
+  status: ProductStatus;
+};
+
 // ------------------------------------------------------------------------------
-// OVERVIEW & ANALYTICS
+// AUDIT LOG HELPER (Safe execution even if table is not yet created)
+// ------------------------------------------------------------------------------
+export async function recordAuditLog(
+  action: string,
+  entityType: string,
+  entityId: string | null,
+  metadata: Record<string, unknown> = {},
+): Promise<void> {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    await supabase.from("audit_logs").insert({
+      actor_id: user?.user?.id ?? null,
+      actor_email: user?.user?.email ?? "admin@realz.co.ke",
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      metadata,
+    });
+  } catch (err) {
+    console.warn("[AuditLog] Skipped:", err);
+  }
+}
+
+// ------------------------------------------------------------------------------
+// OVERVIEW & STATS
 // ------------------------------------------------------------------------------
 
 export async function fetchAdminStats(): Promise<AdminStats> {
-  // Fetch orders overview
-  const { data: orders, error: oErr } = await supabase.from("orders").select("status, total_price");
+  // Fetch orders safely
+  const { data: orders, error: oErr } = await supabase
+    .from("orders")
+    .select("status, total_price");
 
   if (oErr) throw oErr;
 
@@ -90,27 +134,46 @@ export async function fetchAdminStats(): Promise<AdminStats> {
   const pendingOrders = orders?.filter((o) => o.status === "pending").length ?? 0;
   const deliveredOrders = orders?.filter((o) => o.status === "delivered").length ?? 0;
 
-  // Realized revenue: delivered + confirmed + processing + out_for_delivery
   const totalRevenue = (orders ?? [])
     .filter((o) => o.status !== "cancelled" && o.status !== "failed")
     .reduce((acc, o) => acc + (Number(o.total_price) || 0), 0);
 
-  // Products overview
+  // Fetch products safely without hardcoding newly added columns
   const { data: products, error: pErr } = await supabase
     .from("products")
-    .select("is_active, stock_quantity");
+    .select("*");
 
   if (pErr) throw pErr;
 
-  const activeProducts = products?.filter((p) => p.is_active !== false).length ?? 0;
-  const lowStockProducts = products?.filter((p) => (p.stock_quantity ?? 100) < 15).length ?? 0;
+  let activeProducts = 0;
+  let draftProducts = 0;
+  let archivedProducts = 0;
+  let lowStockProducts = 0;
+  let outOfStockProducts = 0;
 
-  // Categories overview
+  for (const p of products || []) {
+    const status = p.status || (p.is_active === false ? "archived" : "published");
+    const stock = p.stock_quantity ?? 100;
+
+    if (status === "published" || (p.is_active !== false && !p.status)) {
+      activeProducts++;
+    } else if (status === "draft") {
+      draftProducts++;
+    } else if (status === "archived") {
+      archivedProducts++;
+    }
+
+    if (stock <= 0) {
+      outOfStockProducts++;
+    } else if (stock < 15) {
+      lowStockProducts++;
+    }
+  }
+
+  // Categories count
   const { count: catCount, error: cErr } = await supabase
     .from("categories")
     .select("*", { count: "exact", head: true });
-
-  if (cErr) throw cErr;
 
   return {
     totalOrders,
@@ -118,8 +181,11 @@ export async function fetchAdminStats(): Promise<AdminStats> {
     deliveredOrders,
     totalRevenue: Math.round(totalRevenue * 100) / 100,
     activeProducts,
+    draftProducts,
+    archivedProducts,
     lowStockProducts,
-    totalCategories: catCount ?? 0,
+    outOfStockProducts,
+    totalCategories: cErr ? 0 : catCount ?? 0,
   };
 }
 
@@ -143,7 +209,7 @@ export async function fetchSalesTrends(): Promise<
     .order("created_at", { ascending: true })
     .limit(100);
 
-  if (error) throw error;
+  if (error) return [];
 
   const grouped: Record<string, { revenue: number; orders: number }> = {};
   for (const o of data || []) {
@@ -162,6 +228,589 @@ export async function fetchSalesTrends(): Promise<
     revenue: Math.round(val.revenue * 100) / 100,
     orders: val.orders,
   }));
+}
+
+// ------------------------------------------------------------------------------
+// PRODUCTS & CATALOGUE MANAGEMENT
+// ------------------------------------------------------------------------------
+
+export async function fetchAdminProducts(params: {
+  categoryId?: number | "ALL";
+  search?: string;
+  statusFilter?: "ALL" | "published" | "draft" | "archived";
+  stockFilter?: "ALL" | "in_stock" | "low_stock" | "out_of_stock";
+  incompleteOnly?: boolean;
+  sortBy?: "updated_at" | "created_at" | "title" | "stock_quantity" | "price" | "id";
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}): Promise<{ products: AdminProduct[]; totalCount: number }> {
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 20;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // Query safely with join
+  let query = supabase.from("products").select("*, categories(*)", { count: "exact" });
+
+  // 1. Category Filter
+  if (params.categoryId && params.categoryId !== "ALL") {
+    query = query.eq("category_id", params.categoryId);
+  }
+
+  // 2. Search
+  if (params.search && params.search.trim().length > 0) {
+    const term = params.search.trim();
+    if (!isNaN(Number(term))) {
+      query = query.or(`title.ilike.%${term}%,id.eq.${term}`);
+    } else {
+      query = query.ilike("title", `%${term}%`);
+    }
+  }
+
+  // Sorting
+  const sortCol = params.sortBy || "id";
+  const ascending = params.sortOrder === "asc";
+  query = query.order(sortCol, { ascending });
+
+  query = query.range(from, to);
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+
+  let prods = (data as unknown as AdminProduct[]) || [];
+
+  // Client-side filtering for schema resiliency (status, stock, incomplete)
+  if (params.statusFilter && params.statusFilter !== "ALL") {
+    prods = prods.filter((p) => {
+      const currentStatus = p.status || (p.is_active === false ? "archived" : "published");
+      return currentStatus === params.statusFilter;
+    });
+  }
+
+  if (params.stockFilter && params.stockFilter !== "ALL") {
+    prods = prods.filter((p) => {
+      const stock = p.stock_quantity ?? 100;
+      if (params.stockFilter === "out_of_stock") return stock <= 0;
+      if (params.stockFilter === "low_stock") return stock > 0 && stock < 15;
+      if (params.stockFilter === "in_stock") return stock >= 15;
+      return true;
+    });
+  }
+
+  if (params.incompleteOnly) {
+    prods = prods.filter(
+      (p) =>
+        !p.image_url ||
+        !p.description ||
+        p.description.trim().length === 0 ||
+        (p.stock_quantity ?? 100) <= 0 ||
+        !p.category_id,
+    );
+  }
+
+  return {
+    products: prods,
+    totalCount: count ?? prods.length,
+  };
+}
+
+export async function createProduct(payload: {
+  title: string;
+  category_id: number;
+  image_url: string;
+  image_storage_key?: string;
+  description?: string;
+  stock_quantity?: number;
+  price?: number;
+  cost_price?: number;
+  status?: ProductStatus;
+  is_active?: boolean;
+}): Promise<AdminProduct> {
+  const targetStatus = payload.status || "published";
+  const isActive = targetStatus === "published";
+
+  // Build insert payload adaptively
+  const insertPayload: Record<string, unknown> = {
+    title: payload.title.trim(),
+    category_id: payload.category_id,
+    image_url: payload.image_url.trim(),
+  };
+
+  if (payload.image_storage_key) insertPayload.image_storage_key = payload.image_storage_key;
+  if (payload.description !== undefined) insertPayload.description = payload.description.trim();
+  if (payload.stock_quantity !== undefined) insertPayload.stock_quantity = payload.stock_quantity;
+  if (payload.price !== undefined) insertPayload.price = payload.price;
+  if (payload.cost_price !== undefined) insertPayload.cost_price = payload.cost_price;
+  insertPayload.status = targetStatus;
+  insertPayload.is_active = isActive;
+
+  let data: AdminProduct;
+  try {
+    const res = await supabase
+      .from("products")
+      .insert(insertPayload as unknown as Database["public"]["Tables"]["products"]["Insert"])
+      .select("*, categories(*)")
+      .single();
+    if (res.error) throw res.error;
+    data = res.data as unknown as AdminProduct;
+  } catch (err: unknown) {
+    // If newly added columns are missing in remote DB, gracefully retry with baseline schema
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("column") || msg.includes("does not exist")) {
+      const baselinePayload = {
+        title: payload.title.trim(),
+        category_id: payload.category_id,
+        image_url: payload.image_url.trim(),
+      };
+      const retry = await supabase
+        .from("products")
+        .insert(baselinePayload as unknown as Database["public"]["Tables"]["products"]["Insert"])
+        .select("*, categories(*)")
+        .single();
+      if (retry.error) throw retry.error;
+      data = retry.data as unknown as AdminProduct;
+    } else {
+      throw err;
+    }
+  }
+
+  // Record inventory movement for initial stock
+  const initialStock = payload.stock_quantity ?? 0;
+  if (initialStock > 0) {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      await supabase.from("inventory_logs").insert({
+        product_id: data.id,
+        delta: initialStock,
+        previous_stock: 0,
+        new_stock: initialStock,
+        reason: "Initial stock",
+        actor_id: user?.user?.id ?? null,
+      });
+    } catch {
+      // Safe fallback if inventory_logs table not yet created
+    }
+  }
+
+  // Audit trail
+  await recordAuditLog("CREATE_PRODUCT", "products", String(data.id), {
+    title: data.title,
+    status: targetStatus,
+    initialStock,
+    costPrice: payload.cost_price ?? 6.00,
+  });
+
+  return data;
+}
+
+export async function updateProduct(
+  id: number,
+  payload: {
+    title?: string;
+    category_id?: number;
+    image_url?: string;
+    image_storage_key?: string | null;
+    description?: string | null;
+    stock_quantity?: number;
+    price?: number;
+    cost_price?: number;
+    status?: ProductStatus;
+    is_active?: boolean;
+  },
+): Promise<AdminProduct> {
+  let previousStock: number | undefined;
+  if (payload.stock_quantity !== undefined) {
+    try {
+      const { data: cur } = await supabase
+        .from("products")
+        .select("stock_quantity")
+        .eq("id", id)
+        .single();
+      if (cur) previousStock = cur.stock_quantity ?? 0;
+    } catch {
+      // Ignore
+    }
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (payload.title !== undefined) updateData.title = payload.title.trim();
+  if (payload.category_id !== undefined) updateData.category_id = payload.category_id;
+  if (payload.image_url !== undefined) updateData.image_url = payload.image_url.trim();
+  if (payload.image_storage_key !== undefined) updateData.image_storage_key = payload.image_storage_key;
+  if (payload.description !== undefined) updateData.description = payload.description;
+  if (payload.stock_quantity !== undefined) updateData.stock_quantity = payload.stock_quantity;
+  if (payload.price !== undefined) updateData.price = payload.price;
+  if (payload.cost_price !== undefined) updateData.cost_price = payload.cost_price;
+
+  if (payload.status !== undefined) {
+    updateData.status = payload.status;
+    updateData.is_active = payload.status === "published";
+  } else if (payload.is_active !== undefined) {
+    updateData.is_active = payload.is_active;
+    updateData.status = payload.is_active ? "published" : "archived";
+  }
+
+  let data: AdminProduct;
+  try {
+    const res = await supabase
+      .from("products")
+      .update(updateData as unknown as Database["public"]["Tables"]["products"]["Update"])
+      .eq("id", id)
+      .select("*, categories(*)")
+      .single();
+    if (res.error) throw res.error;
+    data = res.data as unknown as AdminProduct;
+  } catch (err: unknown) {
+    // Graceful fallback if certain columns are not yet in remote schema
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("column") || msg.includes("does not exist")) {
+      const minimalUpdate: Record<string, unknown> = {};
+      if (payload.title !== undefined) minimalUpdate.title = payload.title.trim();
+      if (payload.category_id !== undefined) minimalUpdate.category_id = payload.category_id;
+      if (payload.image_url !== undefined) minimalUpdate.image_url = payload.image_url.trim();
+      const retry = await supabase
+        .from("products")
+        .update(minimalUpdate as unknown as Database["public"]["Tables"]["products"]["Update"])
+        .eq("id", id)
+        .select("*, categories(*)")
+        .single();
+      if (retry.error) throw retry.error;
+      data = retry.data as unknown as AdminProduct;
+    } else {
+      throw err;
+    }
+  }
+
+  // Record inventory movement if stock was manually altered
+  if (
+    payload.stock_quantity !== undefined &&
+    previousStock !== undefined &&
+    payload.stock_quantity !== previousStock
+  ) {
+    const delta = payload.stock_quantity - previousStock;
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      await supabase.from("inventory_logs").insert({
+        product_id: id,
+        delta,
+        previous_stock: previousStock,
+        new_stock: payload.stock_quantity,
+        reason: "Manual correction via product edit",
+        actor_id: user?.user?.id ?? null,
+      });
+    } catch {
+      // Ignore if table not present
+    }
+  }
+
+  await recordAuditLog("UPDATE_PRODUCT", "products", String(id), {
+    title: payload.title,
+    categoryId: payload.category_id,
+    stockQuantity: payload.stock_quantity,
+    costPrice: payload.cost_price,
+    status: payload.status,
+  });
+  return data;
+}
+
+export async function deleteOrArchiveProduct(
+  id: number,
+): Promise<{ actionTaken: "archived" | "deleted" }> {
+  // Check if product is referenced in historical order_items
+  const { data: orderRefs, error: refErr } = await supabase
+    .from("order_items")
+    .select("id")
+    .eq("product_id", id)
+    .limit(1);
+
+  if (refErr) throw refErr;
+
+  if (orderRefs && orderRefs.length > 0) {
+    // Preserve financial and order history by soft-deleting / archiving
+    await updateProduct(id, { status: "archived", is_active: false });
+    await recordAuditLog("ARCHIVE_PRODUCT", "products", String(id), {
+      reason: "Product referenced in historical order_items; archived to protect records.",
+    });
+    return { actionTaken: "archived" };
+  }
+
+  // Safe to delete physically if never ordered
+  const { error } = await supabase.from("products").delete().eq("id", id);
+  if (error) throw error;
+
+  await recordAuditLog("DELETE_PRODUCT", "products", String(id), {
+    reason: "Zero historical orders; removed from database.",
+  });
+
+  return { actionTaken: "deleted" };
+}
+
+// ------------------------------------------------------------------------------
+// BULK STICKER IMPORT ENGINE
+// ------------------------------------------------------------------------------
+
+export async function bulkCreateProducts(
+  items: BulkProductItem[],
+  onProgress?: (index: number, total: number) => void,
+): Promise<{
+  total: number;
+  successful: AdminProduct[];
+  failed: { item: BulkProductItem; error: string }[];
+}> {
+  const successful: AdminProduct[] = [];
+  const failed: { item: BulkProductItem; error: string }[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    try {
+      const prod = await createProduct({
+        title: it.title,
+        category_id: it.category_id,
+        image_url: it.image_url,
+        image_storage_key: it.image_storage_key,
+        description: it.description,
+        stock_quantity: it.stock_quantity,
+        price: it.price,
+        cost_price: it.cost_price,
+        status: it.status,
+      });
+      successful.push(prod);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to insert record";
+      failed.push({ item: it, error: errorMsg });
+    }
+
+    if (onProgress) {
+      onProgress(i + 1, items.length);
+    }
+  }
+
+  await recordAuditLog("BULK_IMPORT_COMPLETED", "products", null, {
+    total: items.length,
+    successfulCount: successful.length,
+    failedCount: failed.length,
+  });
+
+  return {
+    total: items.length,
+    successful,
+    failed,
+  };
+}
+
+// ------------------------------------------------------------------------------
+// CATEGORIES MANAGEMENT
+// ------------------------------------------------------------------------------
+
+export async function fetchAdminCategories(): Promise<
+  (Database["public"]["Tables"]["categories"]["Row"] & {
+    product_count: number;
+  })[]
+> {
+  const { data: cats, error: cErr } = await supabase
+    .from("categories")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (cErr) throw cErr;
+
+  const { data: prods, error: pErr } = await supabase
+    .from("products")
+    .select("category_id");
+
+  const counts: Record<number, number> = {};
+  if (!pErr && prods) {
+    for (const p of prods) {
+      counts[p.category_id] = (counts[p.category_id] || 0) + 1;
+    }
+  }
+
+  return (cats || []).map((c) => ({
+    ...c,
+    product_count: counts[c.id] || 0,
+  }));
+}
+
+export async function createCategory(
+  name: string,
+  slug?: string,
+): Promise<Database["public"]["Tables"]["categories"]["Row"]> {
+  const cleanName = name.trim().toLowerCase();
+  const cleanSlug =
+    slug?.trim().toLowerCase() ||
+    cleanName.replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "");
+
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({ name: cleanName, slug: cleanSlug, is_active: true })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await recordAuditLog("CREATE_CATEGORY", "categories", String(data.id), {
+    name: cleanName,
+    slug: cleanSlug,
+  });
+
+  return data;
+}
+
+export async function updateCategory(
+  id: number,
+  payload: { name?: string; slug?: string; is_active?: boolean },
+): Promise<void> {
+  const updateData: Record<string, unknown> = {};
+  if (payload.name !== undefined) updateData.name = payload.name.trim().toLowerCase();
+  if (payload.slug !== undefined) updateData.slug = payload.slug.trim().toLowerCase();
+  if (payload.is_active !== undefined) updateData.is_active = payload.is_active;
+
+  const { error } = await supabase.from("categories").update(updateData).eq("id", id);
+  if (error) throw error;
+
+  await recordAuditLog("UPDATE_CATEGORY", "categories", String(id), payload);
+}
+
+export async function safeDeleteCategory(
+  id: number,
+  reassignToCategoryId?: number,
+): Promise<{ reassignedCount: number; action: "deleted" | "reassigned" }> {
+  // 1. Check for assigned products
+  const { data: prods, error: pErr } = await supabase
+    .from("products")
+    .select("id")
+    .eq("category_id", id);
+
+  if (pErr) throw pErr;
+
+  const productCount = prods?.length || 0;
+
+  if (productCount > 0) {
+    if (!reassignToCategoryId || reassignToCategoryId === id) {
+      throw new Error(
+        `Cannot delete category: ${productCount} active products are currently assigned to it. Please select a replacement category to reassign them before deletion.`,
+      );
+    }
+
+    // Reassign products to new category
+    const { error: rErr } = await supabase
+      .from("products")
+      .update({ category_id: reassignToCategoryId })
+      .eq("category_id", id);
+
+    if (rErr) throw rErr;
+
+    // Delete empty category
+    const { error: dErr } = await supabase.from("categories").delete().eq("id", id);
+    if (dErr) throw dErr;
+
+    await recordAuditLog("DELETE_CATEGORY", "categories", String(id), {
+      reassignedTo: reassignToCategoryId,
+      reassignedProductsCount: productCount,
+    });
+
+    return { reassignedCount: productCount, action: "reassigned" };
+  }
+
+  // No products assigned, safe to delete directly
+  const { error: dErr } = await supabase.from("categories").delete().eq("id", id);
+  if (dErr) throw dErr;
+
+  await recordAuditLog("DELETE_CATEGORY", "categories", String(id), {
+    reassignedCount: 0,
+  });
+
+  return { reassignedCount: 0, action: "deleted" };
+}
+
+// ------------------------------------------------------------------------------
+// INVENTORY & STOCK MANAGEMENT
+// ------------------------------------------------------------------------------
+
+export async function adjustInventory(
+  productId: number,
+  delta: number,
+  reason: string,
+): Promise<void> {
+  // 1. Try atomic adjust_product_inventory RPC
+  try {
+    const rpcFn = supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ error: Error | null }>;
+    const { error: rpcErr } = await rpcFn("adjust_product_inventory", {
+      p_product_id: productId,
+      p_delta: delta,
+      p_reason: reason,
+    });
+    if (!rpcErr) return;
+  } catch {
+    // Fall back to direct query
+  }
+
+  // 2. Direct fallback
+  const { data: prod, error: pErr } = await supabase
+    .from("products")
+    .select("stock_quantity")
+    .eq("id", productId)
+    .single();
+
+  if (pErr) throw pErr;
+
+  const current = prod.stock_quantity ?? 100;
+  const nextStock = Math.max(0, current + delta);
+
+  const { error: uErr } = await supabase
+    .from("products")
+    .update({ stock_quantity: nextStock })
+    .eq("id", productId);
+
+  if (uErr) throw uErr;
+
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    await supabase.from("inventory_logs").insert({
+      product_id: productId,
+      delta,
+      previous_stock: current,
+      new_stock: nextStock,
+      reason,
+      actor_id: user?.user?.id ?? null,
+    });
+  } catch {
+    // Ignore if table not present yet
+  }
+
+  await recordAuditLog("ADJUST_INVENTORY", "products", String(productId), {
+    delta,
+    previousStock: current,
+    newStock: nextStock,
+    reason,
+  });
+}
+
+export async function fetchInventoryLogs(
+  productId?: number,
+  limit = 50,
+): Promise<InventoryLogWithProduct[]> {
+  try {
+    let query = supabase
+      .from("inventory_logs")
+      .select("*, products(title)")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (productId) {
+      query = query.eq("product_id", productId);
+    }
+
+    const { data, error } = await query;
+    if (error) return [];
+    return (data as unknown as InventoryLogWithProduct[]) || [];
+  } catch {
+    return [];
+  }
 }
 
 // ------------------------------------------------------------------------------
@@ -240,359 +889,12 @@ export async function updateOrderStatus(
 
   // 2. Direct fallback update
   const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
-
   if (error) throw error;
 
-  // Log to audit_logs if table exists
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    await supabase.from("audit_logs").insert({
-      actor_id: user?.user?.id ?? null,
-      actor_email: user?.user?.email ?? null,
-      action: "UPDATE_ORDER_STATUS",
-      entity_type: "orders",
-      entity_id: orderId,
-      metadata: { new_status: newStatus, notes },
-    });
-  } catch (logErr) {
-    console.warn("Audit logging skipped:", logErr);
-  }
-}
-
-// ------------------------------------------------------------------------------
-// PRODUCTS MANAGEMENT
-// ------------------------------------------------------------------------------
-
-export async function fetchAdminProducts(params: {
-  categoryId?: number | "ALL";
-  search?: string;
-  statusFilter?: "ALL" | "active" | "archived";
-  stockFilter?: "ALL" | "low_stock" | "out_of_stock";
-  page?: number;
-  pageSize?: number;
-}): Promise<{ products: AdminProduct[]; totalCount: number }> {
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 20;
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-
-  let query = supabase
-    .from("products")
-    .select("*, categories(*)", { count: "exact" })
-    .order("id", { ascending: false });
-
-  if (params.categoryId && params.categoryId !== "ALL") {
-    query = query.eq("category_id", params.categoryId);
-  }
-
-  if (params.statusFilter === "active") {
-    query = query.eq("is_active", true);
-  } else if (params.statusFilter === "archived") {
-    query = query.eq("is_active", false);
-  }
-
-  if (params.stockFilter === "low_stock") {
-    query = query.lt("stock_quantity", 15).gt("stock_quantity", 0);
-  } else if (params.stockFilter === "out_of_stock") {
-    query = query.lte("stock_quantity", 0);
-  }
-
-  if (params.search && params.search.trim().length > 0) {
-    const term = params.search.trim();
-    query = query.ilike("title", `%${term}%`);
-  }
-
-  query = query.range(from, to);
-
-  const { data, count, error } = await query;
-  if (error) throw error;
-
-  return {
-    products: (data as unknown as AdminProduct[]) || [],
-    totalCount: count ?? 0,
-  };
-}
-
-export async function createProduct(payload: {
-  title: string;
-  category_id: number;
-  image_url: string;
-  description?: string;
-  stock_quantity?: number;
-  is_active?: boolean;
-}): Promise<AdminProduct> {
-  const { data, error } = await supabase
-    .from("products")
-    .insert({
-      title: payload.title.trim(),
-      category_id: payload.category_id,
-      image_url: payload.image_url.trim(),
-      description: payload.description?.trim() || null,
-      stock_quantity: payload.stock_quantity ?? 100,
-      is_active: payload.is_active ?? true,
-    })
-    .select("*, categories(*)")
-    .single();
-
-  if (error) throw error;
-
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    await supabase.from("audit_logs").insert({
-      actor_id: user?.user?.id ?? null,
-      actor_email: user?.user?.email ?? null,
-      action: "CREATE_PRODUCT",
-      entity_type: "products",
-      entity_id: String(data.id),
-      metadata: payload,
-    });
-  } catch (logErr) {
-    console.warn("Audit logging skipped:", logErr);
-  }
-
-  return data as unknown as AdminProduct;
-}
-
-export async function updateProduct(
-  id: number,
-  payload: {
-    title?: string;
-    category_id?: number;
-    image_url?: string;
-    description?: string | null;
-    stock_quantity?: number;
-    is_active?: boolean;
-  },
-): Promise<AdminProduct> {
-  const updateData: Database["public"]["Tables"]["products"]["Update"] = {};
-  if (payload.title !== undefined) updateData.title = payload.title.trim();
-  if (payload.category_id !== undefined) updateData.category_id = payload.category_id;
-  if (payload.image_url !== undefined) updateData.image_url = payload.image_url.trim();
-  if (payload.description !== undefined) updateData.description = payload.description;
-  if (payload.stock_quantity !== undefined) updateData.stock_quantity = payload.stock_quantity;
-  if (payload.is_active !== undefined) updateData.is_active = payload.is_active;
-
-  const { data, error } = await supabase
-    .from("products")
-    .update(updateData)
-    .eq("id", id)
-    .select("*, categories(*)")
-    .single();
-
-  if (error) throw error;
-
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    await supabase.from("audit_logs").insert({
-      actor_id: user?.user?.id ?? null,
-      actor_email: user?.user?.email ?? null,
-      action: "UPDATE_PRODUCT",
-      entity_type: "products",
-      entity_id: String(id),
-      metadata: payload,
-    });
-  } catch (logErr) {
-    console.warn("Audit logging skipped:", logErr);
-  }
-
-  return data as unknown as AdminProduct;
-}
-
-export async function deleteOrArchiveProduct(
-  id: number,
-): Promise<{ actionTaken: "archived" | "deleted" }> {
-  // Check if product is referenced in historical order_items
-  const { data: orderRefs, error: refErr } = await supabase
-    .from("order_items")
-    .select("id")
-    .eq("product_id", id)
-    .limit(1);
-
-  if (refErr) throw refErr;
-
-  if (orderRefs && orderRefs.length > 0) {
-    // Preserve financial history by soft-deleting / archiving
-    await updateProduct(id, { is_active: false });
-    return { actionTaken: "archived" };
-  }
-
-  // Safe to delete physically if never ordered
-  const { error } = await supabase.from("products").delete().eq("id", id);
-  if (error) throw error;
-
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    await supabase.from("audit_logs").insert({
-      actor_id: user?.user?.id ?? null,
-      actor_email: user?.user?.email ?? null,
-      action: "DELETE_PRODUCT",
-      entity_type: "products",
-      entity_id: String(id),
-    });
-  } catch (logErr) {
-    console.warn("Audit logging skipped:", logErr);
-  }
-
-  return { actionTaken: "deleted" };
-}
-
-// ------------------------------------------------------------------------------
-// CATEGORIES MANAGEMENT
-// ------------------------------------------------------------------------------
-
-export async function fetchAdminCategories(): Promise<
-  (Database["public"]["Tables"]["categories"]["Row"] & {
-    product_count: number;
-  })[]
-> {
-  const { data: cats, error: cErr } = await supabase
-    .from("categories")
-    .select("*")
-    .order("name", { ascending: true });
-
-  if (cErr) throw cErr;
-
-  const { data: prods, error: pErr } = await supabase.from("products").select("category_id");
-
-  if (pErr) throw pErr;
-
-  const counts: Record<number, number> = {};
-  for (const p of prods || []) {
-    counts[p.category_id] = (counts[p.category_id] || 0) + 1;
-  }
-
-  return (cats || []).map((c) => ({
-    ...c,
-    product_count: counts[c.id] || 0,
-  }));
-}
-
-export async function createCategory(
-  name: string,
-): Promise<Database["public"]["Tables"]["categories"]["Row"]> {
-  const cleanName = name.trim().toLowerCase();
-  const { data, error } = await supabase
-    .from("categories")
-    .insert({ name: cleanName, is_active: true })
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    await supabase.from("audit_logs").insert({
-      actor_id: user?.user?.id ?? null,
-      actor_email: user?.user?.email ?? null,
-      action: "CREATE_CATEGORY",
-      entity_type: "categories",
-      entity_id: String(data.id),
-      metadata: { name: cleanName },
-    });
-  } catch (logErr) {
-    console.warn("Audit logging skipped:", logErr);
-  }
-
-  return data;
-}
-
-export async function updateCategory(id: number, name: string): Promise<void> {
-  const cleanName = name.trim().toLowerCase();
-  const { error } = await supabase.from("categories").update({ name: cleanName }).eq("id", id);
-
-  if (error) throw error;
-
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    await supabase.from("audit_logs").insert({
-      actor_id: user?.user?.id ?? null,
-      actor_email: user?.user?.email ?? null,
-      action: "UPDATE_CATEGORY",
-      entity_type: "categories",
-      entity_id: String(id),
-      metadata: { name: cleanName },
-    });
-  } catch (logErr) {
-    console.warn("Audit logging skipped:", logErr);
-  }
-}
-
-// ------------------------------------------------------------------------------
-// INVENTORY MANAGEMENT
-// ------------------------------------------------------------------------------
-
-export async function adjustInventory(
-  productId: number,
-  delta: number,
-  reason: string,
-): Promise<void> {
-  // 1. Try atomic adjust_product_inventory RPC
-  try {
-    const rpcFn = supabase.rpc as unknown as (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => Promise<{ error: Error | null }>;
-    const { error: rpcErr } = await rpcFn("adjust_product_inventory", {
-      p_product_id: productId,
-      p_delta: delta,
-      p_reason: reason,
-    });
-    if (!rpcErr) return;
-  } catch {
-    // Fall back to direct query
-  }
-
-  // 2. Direct fallback
-  const { data: prod, error: pErr } = await supabase
-    .from("products")
-    .select("stock_quantity")
-    .eq("id", productId)
-    .single();
-
-  if (pErr) throw pErr;
-
-  const current = prod.stock_quantity ?? 100;
-  const nextStock = Math.max(0, current + delta);
-
-  const { error: uErr } = await supabase
-    .from("products")
-    .update({ stock_quantity: nextStock })
-    .eq("id", productId);
-
-  if (uErr) throw uErr;
-
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    await supabase.from("inventory_logs").insert({
-      product_id: productId,
-      delta,
-      previous_stock: current,
-      new_stock: nextStock,
-      reason,
-      actor_id: user?.user?.id ?? null,
-    });
-  } catch (logErr) {
-    console.warn("Inventory logging skipped:", logErr);
-  }
-}
-
-export async function fetchInventoryLogs(
-  productId?: number,
-  limit = 50,
-): Promise<InventoryLogWithProduct[]> {
-  let query = supabase
-    .from("inventory_logs")
-    .select("*, products(title)")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (productId) {
-    query = query.eq("product_id", productId);
-  }
-
-  const { data, error } = await query;
-  if (error) return [];
-  return (data as unknown as InventoryLogWithProduct[]) || [];
+  await recordAuditLog("UPDATE_ORDER_STATUS", "orders", orderId, {
+    newStatus,
+    notes,
+  });
 }
 
 // ------------------------------------------------------------------------------
@@ -602,57 +904,171 @@ export async function fetchInventoryLogs(
 export async function fetchAuditLogs(
   limit = 100,
 ): Promise<Database["public"]["Tables"]["audit_logs"]["Row"][]> {
-  const { data, error } = await supabase
-    .from("audit_logs")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  try {
+    const { data, error } = await supabase
+      .from("audit_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
-  if (error) return [];
-  return data || [];
+    if (error) return [];
+    return data || [];
+  } catch {
+    return [];
+  }
 }
 
 // ------------------------------------------------------------------------------
-// STORAGE / MEDIA MANAGEMENT
+// FINANCIAL & BUSINESS INTELLIGENCE ANALYTICS
 // ------------------------------------------------------------------------------
 
-export async function uploadStickerAsset(
-  file: File,
-  categoryFolder = "custom",
-): Promise<{ publicUrl: string; filePath: string }> {
-  // Restrict mime types
-  const validMimes = ["image/webp", "image/png", "image/jpeg", "image/svg+xml"];
-  if (!validMimes.includes(file.type)) {
-    throw new Error(`Unsupported file type: ${file.type}. Allowed formats: WEBP, PNG, JPEG, SVG`);
+export type ExecutiveFinancialSummary = {
+  totalRevenue: number;
+  totalOrders: number;
+  pendingOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  totalStickersSold: number;
+  totalCogs: number;
+  totalGrossProfit: number;
+  grossMarginPercentage: number;
+};
+
+export type ProductPerformanceMetric = {
+  productId: number;
+  title: string;
+  categoryName: string;
+  status: string;
+  stock: number;
+  price: number;
+  unitsSold: number;
+  revenue: number;
+  grossProfit: number;
+};
+
+export async function fetchExecutiveFinancials(): Promise<ExecutiveFinancialSummary> {
+  // 1. Try querying analytical view
+  try {
+    const { data, error } = await supabase
+      .from("view_analytics_financial_summary" as unknown as "orders")
+      .select("*")
+      .single();
+
+    if (!error && data) {
+      const row = data as unknown as Database["public"]["Views"]["view_analytics_financial_summary"]["Row"];
+      return {
+        totalRevenue: Number(row.total_revenue) || 0,
+        totalOrders: Number(row.total_orders) || 0,
+        pendingOrders: Number(row.pending_orders) || 0,
+        deliveredOrders: Number(row.delivered_orders) || 0,
+        cancelledOrders: Number(row.cancelled_orders) || 0,
+        totalStickersSold: Number(row.total_stickers_sold) || 0,
+        totalCogs: Number(row.total_cogs) || 0,
+        totalGrossProfit: Number(row.total_gross_profit) || 0,
+        grossMarginPercentage: Number(row.gross_margin_percentage) || 0,
+      };
+    }
+  } catch {
+    // Fall back to live calculation
   }
 
-  // Max size 5MB
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error("File exceeds 5MB limit.");
+  // 2. Authoritative client-side calculation from operational tables
+  const { data: orders } = await supabase.from("orders").select("*, order_items(*)");
+  const { data: products } = await supabase.from("products").select("id, cost_price");
+
+  const costMap: Record<number, number> = {};
+  for (const p of products || []) {
+    costMap[p.id] = Number(p.cost_price) || 6.00; // Baseline estimated sticker print cost
   }
 
-  const cleanExt = file.name.split(".").pop()?.toLowerCase() || "webp";
-  const randomSlug = Math.random().toString(36).substring(2, 9);
-  const cleanBaseName = file.name
-    .replace(/\.[^/.]+$/, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, "-")
-    .replace(/^-|-$/g, "");
+  let totalRevenue = 0;
+  let totalOrders = 0;
+  let pendingOrders = 0;
+  let deliveredOrders = 0;
+  let cancelledOrders = 0;
+  let totalStickersSold = 0;
+  let totalCogs = 0;
 
-  const cleanFolder = categoryFolder.toLowerCase().replace(/[^a-z0-9_-]+/g, "_");
-  const filePath = `${cleanFolder}/${cleanBaseName}-${randomSlug}.${cleanExt}`;
+  for (const o of orders || []) {
+    totalOrders++;
+    if (o.status === "pending") pendingOrders++;
+    if (o.status === "delivered") deliveredOrders++;
+    if (o.status === "cancelled") {
+      cancelledOrders++;
+      continue;
+    }
 
-  const { error: uploadError } = await supabase.storage.from("stickers").upload(filePath, file, {
-    contentType: file.type,
-    upsert: false,
-  });
+    totalRevenue += Number(o.total_price) || 0;
+    for (const it of o.order_items || []) {
+      const qty = Number(it.quantity) || 0;
+      totalStickersSold += qty;
+      const unitCost = it.product_id ? (costMap[it.product_id] ?? 6.00) : 6.00;
+      totalCogs += qty * unitCost;
+    }
+  }
 
-  if (uploadError) throw uploadError;
-
-  const { data: urlData } = supabase.storage.from("stickers").getPublicUrl(filePath);
+  const totalGrossProfit = Math.max(0, totalRevenue - totalCogs);
+  const grossMarginPercentage =
+    totalRevenue > 0 ? Math.round((totalGrossProfit / totalRevenue) * 10000) / 100 : 0;
 
   return {
-    publicUrl: urlData.publicUrl,
-    filePath,
+    totalRevenue: Math.round(totalRevenue * 100) / 100,
+    totalOrders,
+    pendingOrders,
+    deliveredOrders,
+    cancelledOrders,
+    totalStickersSold,
+    totalCogs: Math.round(totalCogs * 100) / 100,
+    totalGrossProfit: Math.round(totalGrossProfit * 100) / 100,
+    grossMarginPercentage,
   };
+}
+
+export async function fetchProductPerformanceLeaderboard(): Promise<ProductPerformanceMetric[]> {
+  // Query orders with items and products
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("status, order_items(quantity, unit_price, product_id)");
+
+  const { data: prods } = await supabase
+    .from("products")
+    .select("id, title, category_id, status, is_active, stock_quantity, price, cost_price, categories(name)");
+
+  const performance: Record<
+    number,
+    { unitsSold: number; revenue: number; cogs: number }
+  > = {};
+
+  for (const o of orders || []) {
+    if (o.status === "cancelled" || o.status === "failed") continue;
+    for (const it of o.order_items || []) {
+      if (!it.product_id) continue;
+      if (!performance[it.product_id]) {
+        performance[it.product_id] = { unitsSold: 0, revenue: 0, cogs: 0 };
+      }
+      const qty = Number(it.quantity) || 0;
+      const price = Number(it.unit_price) || 15.50;
+      performance[it.product_id].unitsSold += qty;
+      performance[it.product_id].revenue += qty * price;
+    }
+  }
+
+  return (prods || []).map((p) => {
+    const stats = performance[p.id] || { unitsSold: 0, revenue: 0, cogs: 0 };
+    const cost = Number(p.cost_price) || 6.00;
+    const totalCost = stats.unitsSold * cost;
+    const grossProfit = Math.max(0, stats.revenue - totalCost);
+
+    return {
+      productId: p.id,
+      title: p.title,
+      categoryName: p.categories?.name || `Category #${p.category_id}`,
+      status: p.status || (p.is_active === false ? "archived" : "published"),
+      stock: p.stock_quantity ?? 100,
+      price: Number(p.price) || 15.50,
+      unitsSold: stats.unitsSold,
+      revenue: Math.round(stats.revenue * 100) / 100,
+      grossProfit: Math.round(grossProfit * 100) / 100,
+    };
+  }).sort((a, b) => b.unitsSold - a.unitsSold);
 }

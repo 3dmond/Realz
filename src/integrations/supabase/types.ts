@@ -10,13 +10,15 @@ export type Database = {
         Row: {
           id: number;
           name: string;
-          is_active: boolean;
+          slug?: string;
+          is_active?: boolean;
           created_at: string;
           updated_at?: string;
         };
         Insert: {
           id?: number;
           name: string;
+          slug?: string;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -24,6 +26,7 @@ export type Database = {
         Update: {
           id?: number;
           name?: string;
+          slug?: string;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -36,20 +39,28 @@ export type Database = {
           title: string;
           category_id: number;
           image_url: string;
-          description: string | null;
-          is_active: boolean;
-          stock_quantity: number;
-          created_at: string;
-          updated_at: string;
+          image_storage_key?: string | null;
+          description?: string | null;
+          status?: "draft" | "published" | "archived";
+          is_active?: boolean;
+          stock_quantity?: number;
+          price?: number;
+          cost_price?: number;
+          created_at?: string;
+          updated_at?: string;
         };
         Insert: {
           id?: number;
           title: string;
           category_id: number;
           image_url: string;
+          image_storage_key?: string | null;
           description?: string | null;
+          status?: "draft" | "published" | "archived";
           is_active?: boolean;
           stock_quantity?: number;
+          price?: number;
+          cost_price?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -58,9 +69,13 @@ export type Database = {
           title?: string;
           category_id?: number;
           image_url?: string;
+          image_storage_key?: string | null;
           description?: string | null;
+          status?: "draft" | "published" | "archived";
           is_active?: boolean;
           stock_quantity?: number;
+          price?: number;
+          cost_price?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -70,6 +85,47 @@ export type Database = {
             columns: ["category_id"];
             isOneToOne: false;
             referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      product_images: {
+        Row: {
+          id: string;
+          product_id: number;
+          storage_key: string;
+          url: string;
+          alt_text: string | null;
+          sort_order: number;
+          is_primary: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: number;
+          storage_key: string;
+          url: string;
+          alt_text?: string | null;
+          sort_order?: number;
+          is_primary?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: number;
+          storage_key?: string;
+          url?: string;
+          alt_text?: string | null;
+          sort_order?: number;
+          is_primary?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
             referencedColumns: ["id"];
           },
         ];
@@ -111,6 +167,8 @@ export type Database = {
           product_id: number | null;
           quantity: number;
           unit_price: number;
+          product_title?: string | null;
+          product_image_url?: string | null;
         };
         Insert: {
           id?: string;
@@ -118,6 +176,8 @@ export type Database = {
           product_id?: number | null;
           quantity: number;
           unit_price: number;
+          product_title?: string | null;
+          product_image_url?: string | null;
         };
         Update: {
           id?: string;
@@ -125,6 +185,8 @@ export type Database = {
           product_id?: number | null;
           quantity?: number;
           unit_price?: number;
+          product_title?: string | null;
+          product_image_url?: string | null;
         };
         Relationships: [
           {
@@ -243,7 +305,57 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      view_analytics_daily_sales: {
+        Row: {
+          order_date: string;
+          total_orders: number;
+          fulfilled_orders: number;
+          cancelled_orders: number;
+          total_units_sold: number;
+          gross_revenue: number;
+          estimated_cogs: number;
+          gross_profit: number;
+          average_order_value: number;
+        };
+      };
+      view_analytics_product_performance: {
+        Row: {
+          product_id: number;
+          product_title: string;
+          category_name: string | null;
+          product_status: string | null;
+          current_stock: number | null;
+          list_price: number | null;
+          unit_cost: number | null;
+          units_sold: number;
+          total_revenue: number;
+          gross_profit: number;
+          order_appearances: number;
+        };
+      };
+      view_analytics_category_performance: {
+        Row: {
+          category_id: number;
+          category_name: string;
+          total_catalog_products: number;
+          published_products: number;
+          total_units_sold: number;
+          total_revenue: number;
+        };
+      };
+      view_analytics_financial_summary: {
+        Row: {
+          total_revenue: number;
+          total_orders: number;
+          pending_orders: number;
+          delivered_orders: number;
+          cancelled_orders: number;
+          total_stickers_sold: number;
+          total_cogs: number;
+          total_gross_profit: number;
+          gross_margin_percentage: number;
+        };
+      };
     };
     Functions: {
       is_admin: {
