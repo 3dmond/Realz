@@ -253,8 +253,9 @@ class SupabaseImageStorageService implements ImageStorageService {
     const cleanBaseName = file.name
       .replace(/\.[^/.]+$/, "")
       .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, "-")
-      .replace(/^-|-$/g, "");
+      .replace(/[\s_]+/g, "-")
+      .replace(/[^a-z0-9-]+/g, "")
+      .replace(/^-+|-+$/g, "");
 
     const rawFolder = options?.folder?.trim() || "";
     const folder = rawFolder
@@ -268,14 +269,13 @@ class SupabaseImageStorageService implements ImageStorageService {
       );
     }
 
-    const uniqueSlug = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
     const storageKey = options?.productId
-      ? `products/${options.productId}/${cleanBaseName}-${uniqueSlug}.${cleanExt}`
-      : `${folder}/${cleanBaseName}-${uniqueSlug}.${cleanExt}`;
+      ? `products/${options.productId}/${cleanBaseName}.${cleanExt}`
+      : `${folder}/${cleanBaseName}.${cleanExt}`;
 
     const { error: uploadErr } = await supabase.storage.from(this.bucketName).upload(storageKey, file, {
       contentType: file.type,
-      upsert: false,
+      upsert: true,
     });
 
     if (uploadErr) {

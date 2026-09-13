@@ -176,8 +176,9 @@ export default function AdminBulkUpload() {
         try {
           // 1. Upload media asset
           updateCandidate(item.id, { uploadState: "uploading_image" });
-          const catName = categories?.find((c) => c.id === item.category_id)?.name || "custom";
-          const uploadRes = await imageStorageService.uploadImage(item.file, { folder: catName });
+          const cat = categories?.find((c) => c.id === item.category_id);
+          const catFolder = cat?.slug || cat?.name || "";
+          const uploadRes = await imageStorageService.uploadImage(item.file, { folder: catFolder });
 
           // 2. Create database record
           updateCandidate(item.id, { uploadState: "creating_record" });
