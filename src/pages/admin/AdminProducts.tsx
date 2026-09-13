@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Sparkles,
   Plus,
@@ -43,9 +43,15 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function AdminProducts() {
+interface AdminProductsProps {
+  defaultView?: "catalogue" | "bin";
+}
+
+export default function AdminProducts({ defaultView }: AdminProductsProps = {}) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Active Category State (null = Root Folders view)
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
@@ -60,8 +66,12 @@ export default function AdminProducts() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "published" | "draft" | "archived">("ALL");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // View Mode: Check if URL has ?view=bin
-  const isBinView = searchParams.get("view") === "bin";
+  // View Mode: Check if URL path is /admin/bin or /admin/archive, or ?view=bin or defaultView="bin"
+  const isBinView =
+    defaultView === "bin" ||
+    location.pathname.endsWith("/bin") ||
+    location.pathname.endsWith("/archive") ||
+    searchParams.get("view") === "bin";
 
   // Fetch Categories with counts
   const { data: categories = [], isLoading: catsLoading } = useQuery({
@@ -137,7 +147,6 @@ export default function AdminProducts() {
 
   // Handle entering a category folder
   const handleOpenFolder = (catId: number) => {
-    searchParams.delete("view");
     setActiveCategoryId(catId);
     setSearch("");
     const cat = categories.find((c) => c.id === catId);
@@ -149,8 +158,13 @@ export default function AdminProducts() {
           .trim()
           .replace(/[\s-]+/g, "_")
           .replace(/[^a-z0-9_]+/g, "");
-      searchParams.set("folder", slug);
-      setSearchParams(searchParams);
+      if (location.pathname.endsWith("/bin") || location.pathname.endsWith("/archive")) {
+        navigate(`/admin/products?folder=${slug}`);
+      } else {
+        searchParams.delete("view");
+        searchParams.set("folder", slug);
+        setSearchParams(searchParams);
+      }
     }
   };
 
@@ -158,23 +172,29 @@ export default function AdminProducts() {
   const handleBackToRoot = () => {
     setActiveCategoryId(null);
     setSearch("");
-    searchParams.delete("folder");
-    searchParams.delete("view");
-    setSearchParams(searchParams);
+    if (location.pathname.endsWith("/bin") || location.pathname.endsWith("/archive")) {
+      navigate("/admin/products");
+    } else {
+      searchParams.delete("folder");
+      searchParams.delete("view");
+      setSearchParams(searchParams);
+    }
   };
 
   // Handle toggling Bin View
   const handleOpenBin = () => {
     setActiveCategoryId(null);
     setSearch("");
-    searchParams.delete("folder");
-    searchParams.set("view", "bin");
-    setSearchParams(searchParams);
+    navigate("/admin/bin");
   };
 
   const handleCloseBin = () => {
-    searchParams.delete("view");
-    setSearchParams(searchParams);
+    if (location.pathname.endsWith("/bin") || location.pathname.endsWith("/archive")) {
+      navigate("/admin/products");
+    } else {
+      searchParams.delete("view");
+      setSearchParams(searchParams);
+    }
   };
 
   // Mutations
@@ -710,6 +730,9 @@ export default function AdminProducts() {
         categorySlug={activeCategorySlug || "adult_cartoons"}
         onSave={async (id, payload) => {
           await updateStickerMutation.mutateAsync({ id, payload });
+        }}
+        onMoveToBin={async (id) => {
+          await moveToBinMutation.mutateAsync(id);
         }}
       />
     </div>

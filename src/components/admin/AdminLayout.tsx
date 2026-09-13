@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   BarChart3,
   Image as ImageIcon,
+  Trash2,
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/admin-auth";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag, end: false },
   { to: "/admin/products", label: "Stickers", icon: Sparkles, end: false },
+  { to: "/admin/bin", label: "Bin", icon: Trash2, end: false },
   { to: "/admin/media", label: "Media Library", icon: ImageIcon, end: false },
   { to: "/admin/categories", label: "Categories", icon: Tags, end: false },
   { to: "/admin/analytics", label: "Analytics & BI", icon: BarChart3, end: false },
@@ -68,6 +70,7 @@ export default function AdminLayout() {
         <nav className="flex-1 space-y-1.5 p-4 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
+            const isBin = item.to === "/admin/bin";
             const isStickers = item.to === "/admin/products";
             return (
               <NavLink
@@ -78,14 +81,18 @@ export default function AdminLayout() {
                   cn(
                     "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider transition-all",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.58_0.25_285/0.4)]"
+                      ? isBin
+                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                        : "bg-primary text-primary-foreground shadow-[0_0_15px_oklch(0.58_0.25_285/0.4)]"
+                      : isBin && binCount > 0
+                      ? "text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
                       : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
                   )
                 }
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className={cn("h-4 w-4 shrink-0", isBin && binCount > 0 && "text-rose-400")} />
                 <span className="flex-1">{item.label}</span>
-                {isStickers && binCount > 0 && (
+                {isBin && binCount > 0 && (
                   <span
                     className="flex items-center gap-1 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-black text-rose-400 border border-rose-500/30 ml-auto"
                     title={`${binCount} sticker${binCount === 1 ? "" : "s"} in Recycle Bin`}
@@ -156,6 +163,7 @@ export default function AdminLayout() {
             <nav className="flex-1 space-y-1.5 p-4 overflow-y-auto">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
+                const isBin = item.to === "/admin/bin";
                 const isStickers = item.to === "/admin/products";
                 return (
                   <NavLink
@@ -167,14 +175,18 @@ export default function AdminLayout() {
                       cn(
                         "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider transition-all",
                         isActive
-                          ? "bg-primary text-primary-foreground font-black"
+                          ? isBin
+                            ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 font-black"
+                            : "bg-primary text-primary-foreground font-black"
+                          : isBin && binCount > 0
+                          ? "text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
                           : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
                       )
                     }
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className={cn("h-4 w-4", isBin && binCount > 0 && "text-rose-400")} />
                     <span className="flex-1">{item.label}</span>
-                    {isStickers && binCount > 0 && (
+                    {isBin && binCount > 0 && (
                       <span
                         className="flex items-center gap-1 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-black text-rose-400 border border-rose-500/30 ml-auto"
                         title={`${binCount} sticker${binCount === 1 ? "" : "s"} in Recycle Bin`}

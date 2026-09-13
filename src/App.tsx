@@ -44,6 +44,8 @@ export default function App() {
             <Route index element={<AdminOverview />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="products" element={<AdminProducts />} />
+            <Route path="bin" element={<AdminProducts defaultView="bin" />} />
+            <Route path="archive" element={<AdminProducts defaultView="bin" />} />
             <Route path="media" element={<AdminMediaLibrary />} />
             <Route path="products/import" element={<AdminBulkUpload />} />
             <Route path="bulk-upload" element={<AdminBulkUpload />} />
