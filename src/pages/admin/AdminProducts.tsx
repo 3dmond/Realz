@@ -15,10 +15,14 @@ import {
   ArrowLeft,
   AlertCircle,
   Trash2,
+  Layers,
 } from "lucide-react";
 import {
   fetchAdminProducts,
   fetchAdminCategories,
+  fetchAdminSubcategories,
+  createSubcategory,
+  deleteSubcategory,
   createProduct,
   updateProduct,
   moveToBin,
@@ -30,10 +34,13 @@ import {
   createCategory,
   safeDeleteCategory,
   type AdminProduct,
+  type Subcategory,
   type ProductStatus,
 } from "@/lib/admin-api";
 import CategoryFolderCard from "@/components/admin/CategoryFolderCard";
 import CategoryCreateModal from "@/components/admin/CategoryCreateModal";
+import SubcategoryFolderCard from "@/components/admin/SubcategoryFolderCard";
+import SubcategoryCreateModal from "@/components/admin/SubcategoryCreateModal";
 import StickerUploadModal from "@/components/admin/StickerUploadModal";
 import StickerEditModal from "@/components/admin/StickerEditModal";
 import StickerCardGrid from "@/components/admin/StickerCardGrid";
@@ -41,7 +48,7 @@ import StickerListView from "@/components/admin/StickerListView";
 import StickerBinView from "@/components/admin/StickerBinView";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, extractErrorMessage } from "@/lib/utils";
 
 interface AdminProductsProps {
   defaultView?: "catalogue" | "bin";
@@ -58,6 +65,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
 
   // Modals
   const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
+  const [createSubcategoryOpen, setCreateSubcategoryOpen] = useState(false);
   const [uploadStickerOpen, setUploadStickerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
 
@@ -65,6 +73,9 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "published" | "draft" | "archived">("ALL");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Active Subcategory from URL param ?sub=<slug>
+  const activeSubcategorySlug = searchParams.get("sub");
 
   // View Mode: Check if URL path is /admin/bin or /admin/archive, or ?view=bin or defaultView="bin"
   const isBinView =
@@ -77,6 +88,13 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
   const { data: categories = [], isLoading: catsLoading } = useQuery({
     queryKey: ["admin-categories"],
     queryFn: fetchAdminCategories,
+  });
+
+  // Fetch Subcategories for active category
+  const { data: subcategories = [], isLoading: subsLoading } = useQuery({
+    queryKey: ["admin-subcategories", activeCategoryId],
+    queryFn: () => (activeCategoryId ? fetchAdminSubcategories(activeCategoryId) : []),
+    enabled: !!activeCategoryId && !isBinView,
   });
 
   // Fetch Products
@@ -93,6 +111,22 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
   });
 
   const products = productsData?.products ?? [];
+
+  // Active Subcategory object
+  const activeSubcategory = useMemo(() => {
+    if (!activeSubcategorySlug || subcategories.length === 0) return null;
+    return subcategories.find((s) => s.slug === activeSubcategorySlug) || null;
+  }, [subcategories, activeSubcategorySlug]);
+
+  // Displayed products (filtered by active subcategory if one is active)
+  const displayProducts = useMemo(() => {
+    if (!activeSubcategory) return products;
+    return products.filter((p) => {
+      if (p.subcategory_id && p.subcategory_id === activeSubcategory.id) return true;
+      if (p.image_storage_key && p.image_storage_key.includes(`/${activeSubcategory.slug}/`)) return true;
+      return false;
+    });
+  }, [products, activeSubcategory]);
 
   // Fetch Bin Count
   const { data: binCount = 0 } = useQuery({
@@ -145,6 +179,20 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
     );
   }, [activeCategory]);
 
+  // Handle entering a subcategory folder
+  const handleOpenSubcategory = (subSlug: string) => {
+    setSearch("");
+    searchParams.set("sub", subSlug);
+    setSearchParams(searchParams);
+  };
+
+  // Handle returning from subcategory to category
+  const handleBackToCategory = () => {
+    setSearch("");
+    searchParams.delete("sub");
+    setSearchParams(searchParams);
+  };
+
   // Handle entering a category folder
   const handleOpenFolder = (catId: number) => {
     setActiveCategoryId(catId);
@@ -162,6 +210,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
         navigate(`/admin/products?folder=${slug}`);
       } else {
         searchParams.delete("view");
+        searchParams.delete("sub");
         searchParams.set("folder", slug);
         setSearchParams(searchParams);
       }
@@ -176,6 +225,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       navigate("/admin/products");
     } else {
       searchParams.delete("folder");
+      searchParams.delete("sub");
       searchParams.delete("view");
       setSearchParams(searchParams);
     }
@@ -210,7 +260,38 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       handleOpenFolder(newCat.id);
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : "Failed to create category");
+      toast.error(extractErrorMessage(err, "Failed to create category"));
+    },
+  });
+
+  const createSubcategoryMutation = useMutation({
+    mutationFn: async ({ name, slug }: { name: string; slug: string }) => {
+      if (!activeCategoryId) throw new Error("No category selected");
+      return createSubcategory(activeCategoryId, name, slug, activeCategorySlug);
+    },
+    onSuccess: (newSub) => {
+      toast.success(`Subcategory "${newSub.name}" created`);
+      queryClient.invalidateQueries({ queryKey: ["admin-subcategories", activeCategoryId] });
+      queryClient.invalidateQueries({ queryKey: ["subcategories"] });
+      handleOpenSubcategory(newSub.slug);
+    },
+    onError: (err: unknown) => {
+      toast.error(extractErrorMessage(err, "Failed to create subcategory"));
+    },
+  });
+
+  const deleteSubcategoryMutation = useMutation({
+    mutationFn: async (subId: number) => {
+      return deleteSubcategory(subId);
+    },
+    onSuccess: () => {
+      toast.success("Empty subcategory deleted");
+      queryClient.invalidateQueries({ queryKey: ["admin-subcategories", activeCategoryId] });
+      queryClient.invalidateQueries({ queryKey: ["subcategories"] });
+      handleBackToCategory();
+    },
+    onError: (err: unknown) => {
+      toast.error(extractErrorMessage(err, "Failed to delete subcategory"));
     },
   });
 
@@ -220,6 +301,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       category_id: number;
       image_url: string;
       image_storage_key: string;
+      subcategory_id?: number | null;
       description?: string;
       status: ProductStatus;
     }) => {
@@ -236,7 +318,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : "Failed to add sticker");
+      toast.error(extractErrorMessage(err, "Failed to add sticker"));
     },
   });
 
@@ -251,7 +333,9 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
         description?: string;
         image_url: string;
         image_storage_key?: string;
+        subcategory_id?: number | null;
         status: ProductStatus;
+        price?: number;
       };
     }) => {
       return updateProduct(id, payload);
@@ -259,11 +343,12 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
     onSuccess: () => {
       toast.success("Sticker updated");
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
       setEditingProduct(null);
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : "Failed to update sticker");
+      toast.error(extractErrorMessage(err, "Failed to update sticker"));
     },
   });
 
@@ -278,7 +363,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       toast.success(vars.newStatus === "published" ? "Sticker published (Live)" : "Sticker set to Draft");
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
     },
-    onError: () => toast.error("Could not update status"),
+    onError: (err: unknown) => toast.error(extractErrorMessage(err, "Could not update status")),
   });
 
   const moveToBinMutation = useMutation({
@@ -293,7 +378,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       queryClient.invalidateQueries({ queryKey: ["admin-bin-products"] });
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
     },
-    onError: () => toast.error("Failed to move sticker to bin"),
+    onError: (err: unknown) => toast.error(extractErrorMessage(err, "Failed to move sticker to bin")),
   });
 
   const restoreFromBinMutation = useMutation({
@@ -308,7 +393,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       queryClient.invalidateQueries({ queryKey: ["admin-bin-products"] });
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
     },
-    onError: () => toast.error("Failed to restore sticker"),
+    onError: (err: unknown) => toast.error(extractErrorMessage(err, "Failed to restore sticker")),
   });
 
   const permanentDeleteMutation = useMutation({
@@ -324,7 +409,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : "Failed to permanently delete sticker");
+      toast.error(extractErrorMessage(err, "Failed to permanently delete sticker"));
     },
   });
 
@@ -343,7 +428,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : "Failed to empty bin");
+      toast.error(extractErrorMessage(err, "Failed to empty bin"));
     },
   });
 
@@ -356,7 +441,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : "Failed to delete category");
+      toast.error(extractErrorMessage(err, "Failed to delete category"));
     },
   });
 
@@ -402,9 +487,25 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
             {!isBinView && activeCategory && (
               <>
                 <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
-                <span className="flex items-center gap-1.5 text-primary font-bold">
+                <button
+                  onClick={handleBackToCategory}
+                  className={cn(
+                    "flex items-center gap-1.5 transition-colors cursor-pointer",
+                    activeSubcategory ? "text-muted-foreground hover:text-foreground" : "text-primary font-bold",
+                  )}
+                >
                   <Folder className="w-3.5 h-3.5 fill-primary/20" />
                   <span>{activeCategory.name}</span>
+                </button>
+              </>
+            )}
+
+            {!isBinView && activeCategory && activeSubcategory && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
+                <span className="flex items-center gap-1.5 text-purple-400 font-bold">
+                  <Folder className="w-3.5 h-3.5 fill-purple-400/20" />
+                  <span>{activeSubcategory.name}</span>
                 </span>
               </>
             )}
@@ -414,6 +515,8 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mt-1">
             {isBinView
               ? "Recycle Bin"
+              : activeSubcategory
+              ? activeSubcategory.name
               : activeCategory
               ? activeCategory.name
               : "Sticker Catalogue"}
@@ -421,6 +524,8 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
           <p className="text-xs text-muted-foreground mt-0.5 font-mono">
             {isBinView
               ? `${binCount} stickers in bin • Hidden from storefront`
+              : activeSubcategory
+              ? `stickers/${activeCategorySlug}/${activeSubcategory.slug}/ • ${displayProducts.length} stickers`
               : activeCategory
               ? `stickers/${activeCategorySlug}/ • ${products.length} stickers`
               : "Organized by category folders. Enter a folder to view and upload stickers."}
@@ -476,7 +581,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
             )}
           </button>
 
-          {/* Context Action: New Category vs Upload Sticker */}
+          {/* Context Action: New Category vs New Subcategory + Upload Sticker */}
           {!isBinView && !activeCategory && (
             <button
               onClick={() => setCreateCategoryOpen(true)}
@@ -487,13 +592,23 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
             </button>
           )}
           {!isBinView && activeCategory && (
-            <button
-              onClick={() => setUploadStickerOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Upload Sticker
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCreateSubcategoryOpen(true)}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/[0.04] hover:bg-white/[0.08] text-purple-300 border border-purple-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                title="Create a new subcategory folder"
+              >
+                <FolderPlus className="w-4 h-4 text-purple-400" />
+                <span className="hidden sm:inline">New Subcategory</span>
+              </button>
+              <button
+                onClick={() => setUploadStickerOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Upload Sticker
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -633,48 +748,123 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
           {/* ------------------------------------------------------------- */}
           {activeCategory && (
             <div>
-              {/* Back button link */}
+              {/* Back button navigation */}
               <div className="mb-4">
-                <button
-                  onClick={handleBackToRoot}
-                  className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to all folders</span>
-                </button>
+                {activeSubcategory ? (
+                  <button
+                    onClick={handleBackToCategory}
+                    className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to {activeCategory.name} root</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleBackToRoot}
+                    className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to all category folders</span>
+                  </button>
+                )}
               </div>
+
+              {/* Subcategories Folder Explorer (shown when in category root) */}
+              {!activeSubcategory && subcategories.length > 0 && (
+                <div className="mb-6 p-4 rounded-2xl border border-white/[0.08] bg-[#121324]/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-purple-400" />
+                      <span>Subcategory Folders ({subcategories.length})</span>
+                    </h3>
+                    <button
+                      onClick={() => setCreateSubcategoryOpen(true)}
+                      className="text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <FolderPlus className="w-3.5 h-3.5" />
+                      <span>New Subcategory</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {subcategories.map((sub) => (
+                      <SubcategoryFolderCard
+                        key={sub.id}
+                        id={sub.id}
+                        name={sub.name}
+                        slug={sub.slug}
+                        categorySlug={activeCategorySlug}
+                        productCount={sub.product_count || 0}
+                        isActive={activeSubcategorySlug === sub.slug}
+                        onOpen={handleOpenSubcategory}
+                        onDelete={(id) => deleteSubcategoryMutation.mutate(id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Subcategory Filter Pills (Quick filter between all subcategories) */}
+              {subcategories.length > 0 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+                  <button
+                    onClick={handleBackToCategory}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer",
+                      !activeSubcategory
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
+                        : "bg-white/[0.04] text-muted-foreground hover:text-foreground hover:bg-white/[0.08] border border-white/[0.08]",
+                    )}
+                  >
+                    All Stickers ({products.length})
+                  </button>
+                  {subcategories.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => handleOpenSubcategory(sub.slug)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer",
+                        activeSubcategorySlug === sub.slug
+                          ? "bg-purple-600 text-white shadow-sm shadow-purple-600/30"
+                          : "bg-white/[0.04] text-muted-foreground hover:text-foreground hover:bg-white/[0.08] border border-white/[0.08]",
+                      )}
+                    >
+                      {sub.name} ({sub.product_count || 0})
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {prodsLoading ? (
                 <div className="py-20 text-center text-sm text-muted-foreground">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                  Loading stickers in {activeCategory.name}...
+                  Loading stickers...
                 </div>
               ) : isError ? (
                 <div className="py-16 text-center text-rose-400 text-sm">
                   <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-80" />
                   Failed to load stickers.
                 </div>
-              ) : products.length === 0 ? (
+              ) : displayProducts.length === 0 ? (
                 <div className="py-20 text-center rounded-2xl border border-white/[0.08] bg-[#121324]/50 p-8">
                   <Sparkles className="w-12 h-12 text-primary/40 mx-auto mb-3" />
                   <h3 className="font-bold text-foreground text-base">
-                    No stickers in {activeCategory.name} yet
+                    {activeSubcategory ? `No stickers in ${activeSubcategory.name} yet` : `No stickers in ${activeCategory.name} yet`}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1 mb-4">
-                    Upload your first sticker into this category. It will be stored directly in{" "}
-                    <span className="font-mono text-primary">stickers/{activeCategorySlug}/</span>.
+                    Upload your first sticker into this folder.
                   </p>
                   <button
                     onClick={() => setUploadStickerOpen(true)}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
-                    Upload First Sticker
+                    Upload Sticker
                   </button>
                 </div>
               ) : viewMode === "grid" ? (
                 <StickerCardGrid
-                  products={products}
+                  products={displayProducts}
                   onEdit={(prod) => setEditingProduct(prod)}
                   onToggleStatus={(id, newStatus) =>
                     toggleStatusMutation.mutate({ id, newStatus })
@@ -683,7 +873,7 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
                 />
               ) : (
                 <StickerListView
-                  products={products}
+                  products={displayProducts}
                   onEdit={(prod) => setEditingProduct(prod)}
                   onToggleStatus={(id, newStatus) =>
                     toggleStatusMutation.mutate({ id, newStatus })
@@ -708,7 +898,21 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
         }}
       />
 
-      {/* 2. Upload Sticker Modal (Inside active folder) */}
+      {/* 2. Create Subcategory Modal (Inside category level) */}
+      {activeCategory && (
+        <SubcategoryCreateModal
+          open={createSubcategoryOpen}
+          onClose={() => setCreateSubcategoryOpen(false)}
+          categoryId={activeCategory.id}
+          categoryName={activeCategory.name}
+          categorySlug={activeCategorySlug}
+          onSubmit={async (name, slug) => {
+            await createSubcategoryMutation.mutateAsync({ name, slug });
+          }}
+        />
+      )}
+
+      {/* 3. Upload Sticker Modal (Inside active folder) */}
       {activeCategory && (
         <StickerUploadModal
           open={uploadStickerOpen}
@@ -716,18 +920,21 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
           categoryId={activeCategory.id}
           categoryName={activeCategory.name}
           categorySlug={activeCategorySlug}
+          subcategories={subcategories}
+          defaultSubcategoryId={activeSubcategory?.id ?? null}
           onSave={async (payload) => {
             await saveStickerMutation.mutateAsync(payload);
           }}
         />
       )}
 
-      {/* 3. Edit Sticker Modal */}
+      {/* 4. Edit Sticker Modal */}
       <StickerEditModal
         open={editingProduct !== null}
         onClose={() => setEditingProduct(null)}
         product={editingProduct}
         categorySlug={activeCategorySlug || "adult_cartoons"}
+        subcategories={subcategories}
         onSave={async (id, payload) => {
           await updateStickerMutation.mutateAsync({ id, payload });
         }}

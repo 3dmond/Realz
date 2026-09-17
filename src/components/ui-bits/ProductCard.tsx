@@ -202,6 +202,15 @@ export default function ProductCard({
         )}
       </Link>
 
+      {/* Discount Badge */}
+      {product.price && product.price < 15.5 && (
+        <div className="absolute top-2 left-2 z-20 pointer-events-none">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-primary text-primary-foreground shadow-[0_0_12px_var(--color-primary-glow)]">
+            -{Math.round(((15.5 - product.price) / 15.5) * 100)}%
+          </span>
+        </div>
+      )}
+
       {/* Floating Action Button (Integrated Object Touchpoint) */}
       <button
         onClick={(e) => {
@@ -210,7 +219,7 @@ export default function ProductCard({
           if (isInCart) {
             remove(product.id);
           } else {
-            add({ id: product.id, title: product.title, image_url: src || "" }, 1);
+            add({ id: product.id, title: product.title, image_url: src || "", price: product.price }, 1);
           }
         }}
         aria-label={

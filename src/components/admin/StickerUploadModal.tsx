@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sparkles, X, UploadCloud, CheckCircle2, EyeOff, Folder, ImageIcon } from "lucide-react";
 import ImageDropzone from "@/components/admin/ImageDropzone";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { ProductStatus } from "@/lib/admin-api";
+import type { ProductStatus, Subcategory } from "@/lib/admin-api";
 
 interface StickerUploadModalProps {
   open: boolean;
@@ -13,9 +13,12 @@ interface StickerUploadModalProps {
   categoryId: number;
   categoryName: string;
   categorySlug: string;
+  subcategories?: Subcategory[];
+  defaultSubcategoryId?: number | null;
   onSave: (payload: {
     title: string;
     category_id: number;
+    subcategory_id?: number | null;
     image_url: string;
     image_storage_key: string;
     description?: string;
@@ -29,6 +32,8 @@ export default function StickerUploadModal({
   categoryId,
   categoryName,
   categorySlug,
+  subcategories = [],
+  defaultSubcategoryId = null,
   onSave,
 }: StickerUploadModalProps) {
   const [title, setTitle] = useState("");
@@ -36,10 +41,23 @@ export default function StickerUploadModal({
   const [storageKey, setStorageKey] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<ProductStatus>("published");
+  const [subcategoryId, setSubcategoryId] = useState<number | null>(defaultSubcategoryId);
   const [saving, setSaving] = useState(false);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
 
+  // Sync defaultSubcategoryId when modal opens or prop changes
+  useEffect(() => {
+    if (open) {
+      setSubcategoryId(defaultSubcategoryId);
+    }
+  }, [open, defaultSubcategoryId]);
+
   if (!open) return null;
+
+  const selectedSub = subcategories.find((s) => s.id === subcategoryId);
+  const effectiveFolder = selectedSub
+    ? `${categorySlug}/${selectedSub.slug}`
+    : categorySlug;
 
   const inferTitleFromFilename = (filename: string): string => {
     return filename
@@ -78,6 +96,7 @@ export default function StickerUploadModal({
       await onSave({
         title: title.trim(),
         category_id: categoryId,
+        subcategory_id: typeof subcategoryId === "number" && subcategoryId > 0 ? subcategoryId : null,
         image_url: imageUrl.trim(),
         image_storage_key: storageKey.trim(),
         description: description.trim() || undefined,
@@ -107,13 +126,13 @@ export default function StickerUploadModal({
                 <h3 className="text-sm font-bold text-foreground">Add Sticker to {categoryName}</h3>
                 <p className="text-[11px] font-mono text-primary flex items-center gap-1 mt-0.5">
                   <Folder className="h-3 w-3" />
-                  Target: stickers/{categorySlug}/
+                  Target: stickers/{effectiveFolder}/
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="rounded-lg p-1 text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
+              className="rounded-lg p-1 text-muted-foreground hover:bg-white/[0.05] hover:text-foreground cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -121,6 +140,25 @@ export default function StickerUploadModal({
 
           {/* Body */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+            {/* Subcategory Selection if available */}
+            {subcategories.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Subcategory Folder</label>
+                <select
+                  value={subcategoryId || ""}
+                  onChange={(e) => setSubcategoryId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full h-10 px-3 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs font-medium text-foreground focus:outline-none"
+                >
+                  <option value="">None (Category Root)</option>
+                  {subcategories.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name} (stickers/{categorySlug}/{sub.slug}/)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Artwork Dropzone */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -138,7 +176,7 @@ export default function StickerUploadModal({
               </div>
 
               <ImageDropzone
-                folder={categorySlug}
+                folder={effectiveFolder}
                 currentImageUrl={imageUrl}
                 value={imageUrl}
                 onImageUploaded={handleImageUploaded}

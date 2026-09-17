@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ArrowLeft, Minus, Plus } from "lucide-react";
 import { fetchProduct } from "@/lib/queries";
@@ -8,6 +8,7 @@ import { useCart } from "@/store/cart";
 import { toast } from "sonner";
 
 export default function Product() {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const productId = Number(id);
   const { data: product, isLoading } = useQuery({
@@ -33,14 +34,24 @@ export default function Product() {
   const isValidImage = typeof src === "string" && src.trim().length > 0;
   const computedImageSrc = isValidImage ? src : null;
 
+  const handleBackToShop = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else if (product.category_id) {
+      navigate(`/?category=${product.category_id}`);
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
-      <Link
-        to="/shop"
-        className="text-micro-sm mb-8 inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
+      <button
+        onClick={handleBackToShop}
+        className="text-micro-sm mb-8 inline-flex items-center gap-2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
       >
         <ArrowLeft className="h-3 w-3" /> Back to shop
-      </Link>
+      </button>
 
       <div className="grid gap-10 md:grid-cols-2">
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-card border border-border/40 p-6 flex items-center justify-center">
@@ -100,7 +111,25 @@ export default function Product() {
               </button>
               <div className="ml-auto text-right">
                 <p className="text-micro text-muted-foreground">UNIT @ TIER</p>
-                <p className="text-2xl font-black text-primary">{formatPrice(unit)}</p>
+                <div className="flex items-baseline justify-end gap-2">
+                  <p className="text-2xl font-black text-primary">
+                    {formatPrice(
+                      product.price && product.price < 15.5
+                        ? Math.min(unit, product.price)
+                        : unit,
+                    )}
+                  </p>
+                  {product.price && product.price < 15.5 && (
+                    <span className="text-xs font-mono line-through text-muted-foreground">
+                      {formatPrice(unit)}
+                    </span>
+                  )}
+                </div>
+                {product.price && product.price < 15.5 && (
+                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-primary/20 text-primary border border-primary/30">
+                    -{Math.round(((15.5 - product.price) / 15.5) * 100)}% TIER 1 DISCOUNT
+                  </span>
+                )}
               </div>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
@@ -127,7 +156,15 @@ export default function Product() {
 
           <button
             onClick={() => {
-              add({ id: product.id, title: product.title, image_url: src || "" }, qty);
+              add(
+                {
+                  id: product.id,
+                  title: product.title,
+                  image_url: src || "",
+                  price: product.price,
+                },
+                qty,
+              );
               toast.success(`Added ${qty}× ${product.title}`);
             }}
             className="mt-8 w-full rounded-full bg-primary py-4 text-sm font-black uppercase tracking-[0.25em] text-primary-foreground transition hover:scale-[1.02] hover:shadow-[0_0_30px_oklch(0.705_0.20_47/0.7)]"

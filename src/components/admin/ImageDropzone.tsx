@@ -15,7 +15,7 @@ import {
   type ImageValidationResult,
   type ImageUploadResult,
 } from "@/lib/storage-service";
-import { cn } from "@/lib/utils";
+import { cn, extractErrorMessage } from "@/lib/utils";
 
 interface ImageDropzoneProps {
   currentImageUrl?: string;
@@ -99,7 +99,7 @@ export default function ImageDropzone({
         }, 300);
       } catch (err: unknown) {
         clearInterval(timer);
-        const msg = err instanceof Error ? err.message : "Failed to upload artwork";
+        const msg = extractErrorMessage(err, "Failed to upload artwork");
         setUploadError(msg);
         setIsUploading(false);
         setUploadProgress(0);

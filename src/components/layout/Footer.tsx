@@ -17,6 +17,8 @@ export default function Footer() {
           <span className="hidden sm:inline text-purple-700">•</span>
           <Link
             to="/admin"
+            target="_blank"
+            rel="noopener noreferrer"
             className="hover:text-primary transition-colors font-bold tracking-wider underline-offset-4 hover:underline"
           >
             Admin Dashboard
@@ -26,6 +28,8 @@ export default function Footer() {
         <div className="flex items-center gap-3">
           <Link
             to="/admin"
+            target="_blank"
+            rel="noopener noreferrer"
             aria-label="Admin Portal"
             title="Admin Portal"
             className="grid h-9 w-9 place-items-center rounded-full border border-purple-700 text-purple-200 transition hover:border-primary hover:text-primary hover:bg-primary/10 cursor-pointer"

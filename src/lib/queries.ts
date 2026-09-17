@@ -22,6 +22,7 @@ export type Product = {
   title: string;
   description?: string | null;
   image_url: string;
+  image_storage_key?: string | null;
   category_id: number;
   subcategory_id?: number | null;
   keywords?: string[] | null;
@@ -33,6 +34,16 @@ export type Product = {
   created_at?: string;
   updated_at?: string;
 };
+
+export const DEFAULT_SUBCATEGORIES: Subcategory[] = [
+  { id: 1, category_id: 49134, name: "Rick and Morty", slug: "rick-and-morty" },
+  { id: 2, category_id: 49134, name: "The Simpsons", slug: "the-simpsons" },
+  { id: 3, category_id: 49134, name: "The Boondocks", slug: "the-boondocks" },
+  { id: 4, category_id: 49134, name: "Arcane", slug: "arcane" },
+  { id: 5, category_id: 49134, name: "Family Guy", slug: "family-guy" },
+  { id: 6, category_id: 49134, name: "South Park", slug: "south-park" },
+  { id: 7, category_id: 49134, name: "American Dad!", slug: "american-dad" },
+];
 
 type DbCategory = Database["public"]["Tables"]["categories"]["Row"] & {
   slug?: string;
@@ -59,8 +70,55 @@ export async function fetchCategories(): Promise<Category[]> {
     }));
 }
 
-export async function fetchSubcategories(): Promise<Subcategory[]> {
-  return [];
+export async function fetchSubcategories(categoryId?: number | unknown): Promise<Subcategory[]> {
+  const numCategoryId = typeof categoryId === "number" ? categoryId : undefined;
+  let customSubs: Subcategory[] = [];
+  try {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("realz_custom_subcategories") : null;
+    if (stored) customSubs = JSON.parse(stored);
+  } catch {
+    // Ignore
+  }
+
+  try {
+    let query = supabase.from("subcategories").select("*").order("name", { ascending: true });
+    if (numCategoryId) {
+      query = query.eq("category_id", numCategoryId);
+    }
+    const { data, error } = await query;
+    let baseList = data && data.length > 0 ? (data as Subcategory[]) : [];
+    if (error || baseList.length === 0) {
+      baseList = numCategoryId
+        ? DEFAULT_SUBCATEGORIES.filter((s) => s.category_id === numCategoryId)
+        : DEFAULT_SUBCATEGORIES;
+    }
+
+    if (customSubs.length > 0) {
+      for (const cs of customSubs) {
+        if (!baseList.some((s) => s.slug === cs.slug && s.category_id === cs.category_id)) {
+          if (!numCategoryId || cs.category_id === numCategoryId) {
+            baseList.push(cs);
+          }
+        }
+      }
+    }
+
+    return baseList;
+  } catch {
+    let fallback = numCategoryId
+      ? DEFAULT_SUBCATEGORIES.filter((s) => s.category_id === numCategoryId)
+      : DEFAULT_SUBCATEGORIES;
+    if (customSubs.length > 0) {
+      for (const cs of customSubs) {
+        if (!fallback.some((s) => s.slug === cs.slug && s.category_id === cs.category_id)) {
+          if (!numCategoryId || cs.category_id === numCategoryId) {
+            fallback.push(cs);
+          }
+        }
+      }
+    }
+    return fallback;
+  }
 }
 
 export async function fetchProducts(): Promise<Product[]> {

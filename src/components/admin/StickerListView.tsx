@@ -66,7 +66,22 @@ export default function StickerListView({
 
                 {/* Display Name */}
                 <td className="py-2.5 px-4 font-bold text-foreground text-xs">
-                  {prod.title}
+                  <div
+                    onClick={() => onEdit(prod)}
+                    className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors flex-wrap"
+                  >
+                    <span>{prod.title}</span>
+                    {prod.price && prod.price < 15.5 && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-primary text-primary-foreground shadow-sm">
+                        -{Math.round(((15.5 - prod.price) / 15.5) * 100)}% ({(prod.price).toFixed(2)} KSh)
+                      </span>
+                    )}
+                    {prod.image_storage_key?.includes("/") && prod.image_storage_key.split("/").length > 2 && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                        {prod.image_storage_key.split("/")[1].replace(/[-_]+/g, " ")}
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Storage Key */}

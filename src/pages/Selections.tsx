@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Minus, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { z } from "zod";
 import { useCart } from "@/store/cart";
-import { TIERS, activeTier, formatPrice, subtotal, getBreakdown } from "@/lib/pricing";
+import { TIERS, activeTier, formatPrice, subtotal, getBreakdown, calculateCartTotal } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,7 +39,7 @@ export default function Selections() {
   const clear = useCart((s) => s.clear);
 
   const totalQty = items.reduce((a, b) => a + b.quantity, 0);
-  const total = subtotal(totalQty);
+  const { total, originalTotal, discountSavings } = calculateCartTotal(items);
   const tier = activeTier(totalQty);
   const breakdown = getBreakdown(totalQty);
   const averageUnit = totalQty > 0 ? +(total / totalQty).toFixed(2) : 0;
@@ -306,11 +306,18 @@ export default function Selections() {
 
                             {/* Layer 3 (Top - The Buttons): Absolute top layer z-20 with pointer-events-auto on interactive buttons */}
                             <div className="absolute inset-0 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2">
-                              {/* Top: Quantity Badge & Delete Button */}
-                              <div className="flex items-center justify-between w-full">
-                                <span className="pointer-events-auto bg-black text-white text-xs font-black px-2 py-1 rounded shadow-md border border-white/10 select-none">
-                                  {it.quantity}x
-                                </span>
+                                {/* Top: Quantity Badge, Discount Badge & Delete Button */}
+                                <div className="flex items-center justify-between w-full">
+                                  <div className="flex items-center gap-1">
+                                    <span className="pointer-events-auto bg-black text-white text-xs font-black px-2 py-1 rounded shadow-md border border-white/10 select-none">
+                                      {it.quantity}x
+                                    </span>
+                                    {it.price && it.price < 15.5 && (
+                                      <span className="pointer-events-auto bg-primary text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow border border-primary/30 select-none">
+                                        -{Math.round(((15.5 - it.price) / 15.5) * 100)}%
+                                      </span>
+                                    )}
+                                  </div>
                                 <button
                                   onClick={(e) => {
                                     e.preventDefault();
@@ -420,6 +427,17 @@ export default function Selections() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {discountSavings > 0 && (
+                  <div className="font-mono mt-2 pt-2 border-t border-black/10 flex items-baseline justify-between text-emerald-700 font-bold">
+                    <span className="font-mono text-[11px] uppercase tracking-wider">
+                      DISCOUNT SAVINGS
+                    </span>
+                    <span className="font-mono text-sm font-black">
+                      -{formatPrice(discountSavings)}
+                    </span>
                   </div>
                 )}
 

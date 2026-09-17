@@ -33,11 +33,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      subcategories: {
+        Row: {
+          id: number;
+          category_id: number;
+          name: string;
+          slug: string;
+          created_at: string;
+          updated_at?: string;
+        };
+        Insert: {
+          id?: number;
+          category_id: number;
+          name: string;
+          slug: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          category_id?: number;
+          name?: string;
+          slug?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "subcategories_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       products: {
         Row: {
           id: number;
           title: string;
           category_id: number;
+          subcategory_id?: number | null;
           image_url: string;
           image_storage_key?: string | null;
           description?: string | null;
@@ -53,6 +89,7 @@ export type Database = {
           id?: number;
           title: string;
           category_id: number;
+          subcategory_id?: number | null;
           image_url: string;
           image_storage_key?: string | null;
           description?: string | null;
@@ -68,6 +105,7 @@ export type Database = {
           id?: number;
           title?: string;
           category_id?: number;
+          subcategory_id?: number | null;
           image_url?: string;
           image_storage_key?: string | null;
           description?: string | null;
@@ -85,6 +123,13 @@ export type Database = {
             columns: ["category_id"];
             isOneToOne: false;
             referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "products_subcategory_id_fkey";
+            columns: ["subcategory_id"];
+            isOneToOne: false;
+            referencedRelation: "subcategories";
             referencedColumns: ["id"];
           },
         ];

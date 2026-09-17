@@ -30,6 +30,7 @@ export default function App() {
         {/* Public Storefront Routes */}
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<Home />} />
           <Route path="/product/:id" element={<Product />} />
           <Route path="/selections" element={<Selections />} />
           <Route path="/connect" element={<Connect />} />

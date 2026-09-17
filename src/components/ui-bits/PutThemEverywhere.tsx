@@ -26,21 +26,11 @@ export default function PutThemEverywhere({ stickers }: PutThemEverywhereProps) 
         }}
       />
 
-      {/* Section Header — Integrated Editorial Typography */}
-      <div className="relative z-10 max-w-2xl mb-12 sm:mb-16">
-        <div className="flex items-center gap-2.5 mb-3">
-          <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary-glow)]" />
-          <span className="text-micro text-primary font-bold uppercase tracking-[0.3em]">
-            Objects In The Wild
-          </span>
-        </div>
-        <h2 className="text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight text-white leading-[0.95]">
-          PUT THEM <span className="text-primary">EVERYWHERE</span>
+      {/* Section Header */}
+      <div className="relative z-10 max-w-2xl mb-8 sm:mb-12">
+        <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-wide font-['Caveat',cursive] leading-[0.95] select-none">
+          Put Them <span className="text-primary">Everywhere</span>
         </h2>
-        <p className="mt-3 text-sm sm:text-base text-muted-foreground font-medium leading-relaxed max-w-lg">
-          Laptops. Notebooks. Bottles. Built to live in the physical world and turn everyday gear
-          into personal canvases.
-        </p>
       </div>
 
       {/* Editorial Physical Arrangement (Laptop + Notebook + Tumbler) */}

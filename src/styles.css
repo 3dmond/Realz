@@ -9,6 +9,11 @@
   font-family: "Permanent Marker", cursive, sans-serif;
 }
 
+.font-cursive,
+.font-handwriting {
+  font-family: "Caveat", cursive, sans-serif;
+}
+
 /*
  * Realz design system — cinematic dark theme.
  * All colors use oklch. Semantic tokens only — never hard-code colors in components.

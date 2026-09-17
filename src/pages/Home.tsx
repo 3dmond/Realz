@@ -2,15 +2,24 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/queries";
-import { formatCategoryTitle } from "@/lib/utils";
+import { formatCategoryTitle, cn } from "@/lib/utils";
 import ProductCard from "@/components/ui-bits/ProductCard";
 import CategoryCard from "@/components/ui-bits/CategoryCard";
 import PutThemEverywhere from "@/components/ui-bits/PutThemEverywhere";
 
 export default function Home() {
-  const { data: cats } = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
-  const { data: subs } = useQuery({ queryKey: ["subcategories"], queryFn: fetchSubcategories });
-  const { data: dbProducts } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
+  const { data: cats = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+  });
+  const { data: subs = [] } = useQuery({
+    queryKey: ["subcategories"],
+    queryFn: () => fetchSubcategories(),
+  });
+  const { data: dbProducts = [] } = useQuery({
+    queryKey: ["products"],
+    queryFn: fetchProducts,
+  });
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string | number>("ALL");
@@ -23,6 +32,13 @@ export default function Home() {
       setSelectedCategory(isNaN(Number(catParam)) ? catParam : Number(catParam));
     } else {
       setSelectedCategory("ALL");
+    }
+
+    const subParam = searchParams.get("sub");
+    if (subParam) {
+      setCurrentSubCategorySlug(subParam);
+    } else {
+      setCurrentSubCategorySlug(null);
     }
   }, [searchParams]);
 
@@ -38,36 +54,55 @@ export default function Home() {
   }, [setSearchParams]);
 
   const availableCategories = useMemo(() => {
-    if (!cats) return [];
     return cats.filter((c) => c.name.toLowerCase() !== "uncategorized");
   }, [cats]);
 
   const availableSubCategories = useMemo(() => {
-    if (!subs || selectedCategory === "ALL") return [];
-    return subs.filter((s) => s.category_id === selectedCategory).map((s) => s.slug);
-  }, [subs, selectedCategory]);
+    if (!subs || subs.length === 0 || selectedCategory === "ALL") return [];
+    const cat = cats.find((c) => c.id === selectedCategory || c.slug === selectedCategory);
+    const catId = cat ? cat.id : Number(selectedCategory);
+    return subs.filter((s) => s.category_id === catId);
+  }, [subs, selectedCategory, cats]);
+
+  const subcategoryCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const sub of subs) {
+      const count = dbProducts.filter(
+        (p) =>
+          (p.subcategory_id && p.subcategory_id === sub.id) ||
+          (p.image_storage_key && p.image_storage_key.includes(`/${sub.slug}/`)),
+      ).length;
+      map.set(sub.slug, count);
+    }
+    return map;
+  }, [dbProducts, subs]);
 
   const visiblePacks = useMemo(() => {
-    if (!dbProducts) return [];
     return dbProducts.filter((p) => {
-      if (selectedCategory !== "ALL" && p.category_id !== selectedCategory) return false;
+      if (selectedCategory !== "ALL") {
+        const cat = cats.find((c) => c.id === selectedCategory || c.slug === selectedCategory);
+        const catId = cat ? cat.id : Number(selectedCategory);
+        if (p.category_id !== catId) return false;
+      }
       if (currentSubCategorySlug) {
-        const sub = subs?.find((s) => s.slug === currentSubCategorySlug);
-        if (sub && p.subcategory_id !== sub.id) return false;
+        const sub = subs.find((s) => s.slug === currentSubCategorySlug);
+        const matchesId = sub && p.subcategory_id === sub.id;
+        const matchesKey =
+          p.image_storage_key && p.image_storage_key.includes(`/${currentSubCategorySlug}/`);
+        if (!matchesId && !matchesKey) return false;
       }
       return true;
     });
-  }, [dbProducts, selectedCategory, currentSubCategorySlug, subs]);
+  }, [dbProducts, selectedCategory, currentSubCategorySlug, subs, cats]);
 
   const trendingProducts = useMemo(() => {
-    if (!dbProducts) return [];
+    if (!dbProducts || dbProducts.length === 0) return [];
     const featured = dbProducts.filter((p) => p.is_featured);
     return featured.length > 0 ? featured.slice(0, 16) : dbProducts.slice(0, 16);
   }, [dbProducts]);
 
   const showcaseStickers = useMemo(() => {
     if (!dbProducts || dbProducts.length === 0) return [];
-    // Select visually distinct stickers across different categories for physical showcase
     const valid = dbProducts.filter((p) => p.image_url && p.image_url.trim().length > 0);
     const byCategory = new Map<number | string, (typeof dbProducts)[0]>();
     for (const p of valid) {
@@ -91,27 +126,50 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleSubCategoryClick = (subSlug: string | null) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (subSlug) {
+      nextParams.set("sub", subSlug);
+    } else {
+      nextParams.delete("sub");
+    }
+    setCurrentSubCategorySlug(subSlug);
+    setSearchParams(nextParams);
+  };
+
   const getCategoryName = (idOrName: string | number) => {
     if (idOrName === "ALL") return "All Stickers";
-    const cat = cats?.find((c) => c.id === idOrName);
+    const cat = cats.find((c) => c.id === idOrName);
     return cat ? formatCategoryTitle(cat.name) : "Category";
   };
 
   const getCategoryThumbnail = (categoryId: number | string) => {
-    const firstProduct = dbProducts?.find((p) => p.category_id === categoryId && p.image_url);
+    const firstProduct = dbProducts.find((p) => p.category_id === categoryId && p.image_url);
     return firstProduct?.image_url || null;
   };
 
   const getSubCategoryThumbnail = (slug: string) => {
-    const subId = subs?.find((s) => s.slug === slug)?.id;
-    const firstProduct = dbProducts?.find((p) => p.subcategory_id === subId && p.image_url);
-    return firstProduct?.image_url || null;
+    const sub = subs.find((s) => s.slug === slug);
+    const prod = dbProducts.find(
+      (p) =>
+        p.image_url &&
+        ((sub && p.subcategory_id === sub.id) ||
+          p.image_storage_key?.includes(`/${slug}/`)),
+    );
+    return prod?.image_url || null;
   };
 
   const getSubCategoryName = (slug: string) => {
-    const raw = subs?.find((s) => s.slug === slug)?.name || slug;
+    const raw = subs.find((s) => s.slug === slug)?.name || slug;
     return formatCategoryTitle(raw);
   };
+
+  const currentCategoryCount = useMemo(() => {
+    if (selectedCategory === "ALL") return dbProducts.length;
+    const cat = cats.find((c) => c.id === selectedCategory || c.slug === selectedCategory);
+    const catId = cat ? cat.id : Number(selectedCategory);
+    return dbProducts.filter((p) => p.category_id === catId).length;
+  }, [dbProducts, selectedCategory, cats]);
 
   return (
     <div className="relative w-full flex flex-col min-h-screen bg-background overflow-hidden">
@@ -140,12 +198,12 @@ export default function Home() {
       {/* 3. Tactile Vinyl Micro-grain Overlay */}
       <div className="fixed inset-0 bg-noise pointer-events-none -z-40" />
 
-      {/* Main Storefront: Categories immediately followed by Trending Drops */}
-      <main className="relative z-10 w-full pt-6 sm:pt-10 pb-16">
+      {/* Main Storefront */}
+      <main className="relative z-10 w-full pt-2 sm:pt-4 pb-16">
         {selectedCategory === "ALL" ? (
           <>
-            {/* 1. Categories Section (Rendered immediately at the top) */}
-            <section className="relative mx-auto w-full max-w-[1600px] px-4 pb-8 sm:px-8">
+            {/* 1. Categories Section */}
+            <section className="relative mx-auto w-full max-w-[1600px] px-4 pt-2 pb-6 sm:px-8">
               {/* Localized subtle backlighting */}
               <div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[1200px] h-64 pointer-events-none -z-10 blur-3xl opacity-50"
@@ -155,8 +213,8 @@ export default function Home() {
                 }}
               />
 
-              <div className="flex items-center justify-between mb-6 border-b border-white/[0.08] pb-4">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-foreground flex items-center gap-3">
+              <div className="relative z-10 flex items-center justify-between mb-6 border-b border-white/[0.08] pb-4">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground flex items-center gap-3 font-['Caveat',cursive] tracking-wide select-none">
                   <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
                   Categories
                 </h2>
@@ -175,11 +233,11 @@ export default function Home() {
               </div>
             </section>
 
-            {/* 2. Trending Drops Section (Directly follows Categories with continuous atmospheric flow) */}
+            {/* 2. Trending Drops Section */}
             {trendingProducts.length > 0 && (
               <section
                 id="trending-section"
-                className="relative mx-auto w-full max-w-[1600px] px-4 pt-4 pb-12 sm:px-8"
+                className="relative mx-auto w-full max-w-[1600px] px-4 pt-2 pb-12 sm:px-8"
               >
                 {/* Localized subtle illumination behind trending stickers */}
                 <div
@@ -200,7 +258,7 @@ export default function Home() {
                 />
 
                 <div className="relative z-10 flex items-center justify-between mb-6 border-b border-white/[0.08] pb-4">
-                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-foreground flex items-center gap-3">
+                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground flex items-center gap-3 font-['Caveat',cursive] tracking-wide select-none">
                     <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
                     Trending Drops
                   </h2>
@@ -220,10 +278,11 @@ export default function Home() {
             <PutThemEverywhere stickers={showcaseStickers} />
           </>
         ) : (
-          /* Filtered Category View */
+          /* Filtered Category View: Subcategory vertical list on the left, stickers on the right */
           <section className="mx-auto w-full max-w-[1600px] px-4 pb-8 sm:px-8">
-            <div className="flex items-center justify-between mb-6 border-b border-white/[0.08] pb-4">
-              <h2 className="text-xl md:text-3xl font-black uppercase tracking-tight text-foreground flex items-center gap-3">
+            {/* Category Header with Clean Title & Back Button (Breadcrumbs and extra text info removed) */}
+            <div className="flex items-center justify-between mb-8 border-b border-white/[0.08] pb-4">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground flex items-center gap-3 font-['Caveat',cursive] tracking-wide select-none">
                 <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
                 {getCategoryName(selectedCategory)}
               </h2>
@@ -235,37 +294,84 @@ export default function Home() {
               </button>
             </div>
 
-            {availableSubCategories.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4 w-full mb-8">
-                <CategoryCard
-                  title={`All ${getCategoryName(selectedCategory)}`}
-                  image={getCategoryThumbnail(selectedCategory)}
-                  index={0}
-                  onClick={() => {
-                    setCurrentSubCategorySlug(null);
-                  }}
-                />
-                {availableSubCategories.map((subSlug, idx) => (
-                  <CategoryCard
-                    key={subSlug}
-                    index={idx + 1}
-                    title={getSubCategoryName(subSlug)}
-                    image={getSubCategoryThumbnail(subSlug)}
-                    onClick={() => {
-                      setCurrentSubCategorySlug(subSlug);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Layout: Vertical Subcategories List on Left, Stickers Grid on Right */}
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+              {/* Left Column: Vertical Subcategory List (Text-only pills like on top) */}
+              {availableSubCategories.length > 0 && (
+                <aside className="w-full md:w-60 lg:w-64 shrink-0">
+                  <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none no-scrollbar">
+                    <button
+                      onClick={() => handleSubCategoryClick(null)}
+                      className={cn(
+                        "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-full md:rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer select-none text-left shrink-0",
+                        currentSubCategorySlug === null
+                          ? "bg-primary text-primary-foreground shadow-[0_0_14px_var(--color-primary-glow)] font-black"
+                          : "bg-white/[0.04] text-muted-foreground hover:bg-white/[0.08] hover:text-foreground border border-white/[0.08]",
+                      )}
+                    >
+                      <span className="truncate">All {getCategoryName(selectedCategory)}</span>
+                      <span
+                        className={cn(
+                          "text-[10px] px-1.5 py-0.2 rounded-full font-mono shrink-0",
+                          currentSubCategorySlug === null
+                            ? "bg-black/30 text-white"
+                            : "bg-white/10 text-muted-foreground",
+                        )}
+                      >
+                        {currentCategoryCount}
+                      </span>
+                    </button>
 
-            {/* Filtered Products Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-5 md:gap-6 items-center">
-              {visiblePacks.map((pack, idx) => (
-                <div key={pack.id} className="transition-all duration-300">
-                  <ProductCard product={pack} index={idx} />
-                </div>
-              ))}
+                    {availableSubCategories.map((sub) => {
+                      const isActive = currentSubCategorySlug === sub.slug;
+                      const count = subcategoryCounts.get(sub.slug) || 0;
+                      return (
+                        <button
+                          key={sub.slug}
+                          onClick={() => handleSubCategoryClick(sub.slug)}
+                          className={cn(
+                            "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-full md:rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer select-none text-left shrink-0",
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-[0_0_14px_var(--color-primary-glow)] font-black"
+                              : "bg-white/[0.04] text-muted-foreground hover:bg-white/[0.08] hover:text-foreground border border-white/[0.08]",
+                          )}
+                        >
+                          <span className="truncate">{formatCategoryTitle(sub.name)}</span>
+                          <span
+                            className={cn(
+                              "text-[10px] px-1.5 py-0.2 rounded-full font-mono shrink-0",
+                              isActive
+                                ? "bg-black/30 text-white"
+                                : "bg-white/10 text-muted-foreground",
+                            )}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </aside>
+              )}
+
+              {/* Right Column: Filtered Products Grid */}
+              <div className="flex-1 w-full min-w-0">
+                {visiblePacks.length === 0 ? (
+                  <div className="text-center py-16 border border-white/[0.06] rounded-2xl bg-white/[0.01]">
+                    <p className="text-muted-foreground text-sm font-medium">
+                      No stickers found in this subcategory.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5 md:gap-6 items-center">
+                    {visiblePacks.map((pack, idx) => (
+                      <div key={pack.id} className="transition-all duration-300">
+                        <ProductCard product={pack} index={idx} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         )}

@@ -1,19 +1,25 @@
 import React, { useState } from "react";
-import { FolderPlus, X, Folder, AlertCircle } from "lucide-react";
+import { FolderPlus, X, Folder, AlertCircle, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { extractErrorMessage } from "@/lib/utils";
 
-interface CategoryCreateModalProps {
+interface SubcategoryCreateModalProps {
   open: boolean;
   onClose: () => void;
+  categoryId: number;
+  categoryName: string;
+  categorySlug: string;
   onSubmit: (name: string, slug: string) => Promise<void>;
 }
 
-export default function CategoryCreateModal({
+export default function SubcategoryCreateModal({
   open,
   onClose,
+  categoryId,
+  categoryName,
+  categorySlug,
   onSubmit,
-}: CategoryCreateModalProps) {
+}: SubcategoryCreateModalProps) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,8 +31,9 @@ export default function CategoryCreateModal({
     raw
       .toLowerCase()
       .trim()
-      .replace(/[\s-]+/g, "_")
-      .replace(/[^a-z0-9_]+/g, "");
+      .replace(/[\s_]+/g, "-")
+      .replace(/[^a-z0-9-]+/g, "")
+      .replace(/^-+|-+$/g, "");
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -39,7 +46,7 @@ export default function CategoryCreateModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Please enter a category name");
+      setError("Please enter a subcategory name");
       return;
     }
 
@@ -53,29 +60,33 @@ export default function CategoryCreateModal({
       setSlug("");
       onClose();
     } catch (err: unknown) {
-      setError(extractErrorMessage(err, "Failed to create category"));
+      setError(extractErrorMessage(err, "Failed to create subcategory"));
     } finally {
       setLoading(false);
     }
   };
 
+  const previewSlug = slug.trim() ? autoSlug(slug) : autoSlug(name) || "subcategory-slug";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
       <div className="relative w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0f101f] shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 bg-[#121324]">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <FolderPlus className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">New Category Folder</h3>
-              <p className="text-[11px] text-muted-foreground">Creates category and Supabase Storage folder</p>
+              <h3 className="text-sm font-bold text-foreground">New Subcategory Folder</h3>
+              <p className="text-[11px] text-muted-foreground">
+                Inside <span className="text-primary font-semibold">{categoryName}</span>
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
+            className="rounded-lg p-1 text-muted-foreground hover:bg-white/[0.05] hover:text-foreground cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -91,10 +102,10 @@ export default function CategoryCreateModal({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground">Category Name</label>
+            <label className="text-xs font-bold text-foreground">Subcategory Name</label>
             <Input
               type="text"
-              placeholder="e.g. Anime, Cars, Cyberpunk"
+              placeholder="e.g. Rick and Morty, The Simpsons, Anime Heroes"
               value={name}
               onChange={handleNameChange}
               autoFocus
@@ -103,45 +114,43 @@ export default function CategoryCreateModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground flex items-center justify-between">
-              <span>Storage Folder Slug</span>
-              <span className="text-[10px] text-muted-foreground font-normal">Auto-generated</span>
-            </label>
+            <label className="text-xs font-bold text-foreground">Folder Slug (Path)</label>
             <Input
               type="text"
-              placeholder="e.g. anime, cars, cyberpunk"
+              placeholder="e.g. rick-and-morty"
               value={slug}
               onChange={(e) => setSlug(autoSlug(e.target.value))}
-              className="bg-white/[0.04] border-white/[0.1] rounded-xl text-xs font-mono"
+              className="bg-white/[0.04] border-white/[0.1] rounded-xl text-sm font-mono"
             />
-            {slug && (
-              <p className="text-[10px] font-mono text-primary flex items-center gap-1 mt-1">
-                <Folder className="h-3 w-3" />
-                Target: stickers/{slug}/
-              </p>
-            )}
+            <p className="text-[11px] text-muted-foreground">
+              Storage destination:{" "}
+              <code className="text-primary/90 bg-white/[0.05] px-1 py-0.5 rounded text-[10px]">
+                stickers/{categorySlug}/{previewSlug}/
+              </code>
+            </p>
           </div>
 
-          {/* Footer */}
-          <div className="pt-2 flex items-center justify-end gap-2.5">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/[0.06]">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !name.trim()}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 disabled:opacity-50 transition-all cursor-pointer"
             >
               {loading ? (
-                <div className="h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                <span>Creating...</span>
               ) : (
-                <FolderPlus className="h-3.5 w-3.5" />
+                <>
+                  <FolderPlus className="w-3.5 h-3.5" />
+                  <span>Create Subcategory</span>
+                </>
               )}
-              Create Folder
             </button>
           </div>
         </form>

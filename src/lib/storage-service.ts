@@ -261,8 +261,15 @@ class SupabaseImageStorageService implements ImageStorageService {
     const rawFolder = options?.folder?.trim() || "";
     const folder = rawFolder
       .toLowerCase()
-      .replace(/[\s-]+/g, "_")
-      .replace(/[^a-z0-9_]+/g, "");
+      .split("/")
+      .map((part) =>
+        part
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9_-]+/g, ""),
+      )
+      .filter(Boolean)
+      .join("/");
 
     if (!folder && !options?.productId) {
       throw new Error(
@@ -421,7 +428,29 @@ class SupabaseImageStorageService implements ImageStorageService {
         });
 
         for (const file of files || []) {
-          if (file.id !== null) {
+          if (file.id === null) {
+            // Subfolder (e.g. adult_cartoons/rick-and-morty)
+            const subfolder = `${folderName}/${file.name}`;
+            const { data: subFiles } = await supabase.storage.from(this.bucketName).list(subfolder, {
+              limit: 200,
+            });
+            for (const subFile of subFiles || []) {
+              if (subFile.id !== null && !subFile.name.startsWith(".")) {
+                scannedCount++;
+                const fullKey = `${subfolder}/${subFile.name}`;
+                const publicUrl = this.getImageUrl(fullKey);
+
+                if (!referencedKeys.has(fullKey) && !referencedUrls.has(publicUrl)) {
+                  orphanObjects.push({
+                    storageKey: fullKey,
+                    size: (subFile.metadata?.size as number) || 0,
+                    lastModified: subFile.updated_at || subFile.created_at,
+                    url: publicUrl,
+                  });
+                }
+              }
+            }
+          } else if (!file.name.startsWith(".")) {
             scannedCount++;
             const fullKey = `${folderName}/${file.name}`;
             const publicUrl = this.getImageUrl(fullKey);
@@ -504,18 +533,35 @@ class SupabaseImageStorageService implements ImageStorageService {
     const cleanFolder = folderName
       .toLowerCase()
       .trim()
-      .replace(/[\s-]+/g, "_")
-      .replace(/[^a-z0-9_]+/g, "");
+      .split("/")
+      .map((part) =>
+        part
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9_-]+/g, ""),
+      )
+      .filter(Boolean)
+      .join("/");
 
     if (!cleanFolder) return;
 
-    // Upload a lightweight placeholder to ensure the virtual folder directory is registered in Storage
-    const placeholderKey = `${cleanFolder}/.emptyFolderPlaceholder`;
-    const placeholderBlob = new Blob([""], { type: "text/plain" });
-
-    await supabase.storage.from(this.bucketName).upload(placeholderKey, placeholderBlob, {
-      upsert: true,
-    });
+    // In Supabase storage, folders are virtual directories established upon uploading files.
+    // Try to register an empty placeholder file if bucket allows, or ignore if rejected.
+    try {
+      const placeholderKey = `${cleanFolder}/.keep.webp`;
+      // Smallest 1x1 transparent WebP bytes
+      const transparentWebpBytes = new Uint8Array([
+        0x52, 0x49, 0x46, 0x46, 0x1a, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38,
+        0x4c, 0x0d, 0x00, 0x00, 0x00, 0x2f, 0x00, 0x00, 0x00, 0x10, 0x07, 0x10, 0x11, 0x11, 0x88,
+        0x88, 0xfe, 0x07, 0x00,
+      ]);
+      const placeholderBlob = new Blob([transparentWebpBytes], { type: "image/webp" });
+      await supabase.storage.from(this.bucketName).upload(placeholderKey, placeholderBlob, {
+        upsert: true,
+      });
+    } catch {
+      // Supabase folders exist virtually as prefixes; ignoring placeholder errors is completely safe
+    }
   }
 
   /**
@@ -537,7 +583,30 @@ class SupabaseImageStorageService implements ImageStorageService {
       if (error) throw error;
 
       for (const item of data || []) {
-        if (item.name.startsWith(".") || item.id === null) continue;
+        if (item.name.startsWith(".")) continue;
+        if (item.id === null) {
+          // Subfolder (e.g. rick-and-morty)
+          const subfolderPath = `${targetFolder}/${item.name}`;
+          const { data: subFiles } = await supabase.storage.from(this.bucketName).list(subfolderPath, {
+            limit: 200,
+          });
+          for (const subItem of subFiles || []) {
+            if (subItem.name.startsWith(".") || subItem.id === null) continue;
+            if (searchTerm && !subItem.name.toLowerCase().includes(searchTerm)) continue;
+            const subKey = `${subfolderPath}/${subItem.name}`;
+            results.push({
+              name: subItem.name,
+              folder: subfolderPath,
+              storageKey: subKey,
+              publicUrl: this.getImageUrl(subKey),
+              size: (subItem.metadata?.size as number) || 0,
+              updatedAt: subItem.updated_at,
+              createdAt: subItem.created_at,
+              mimeType: (subItem.metadata?.mimetype as string) || undefined,
+            });
+          }
+          continue;
+        }
         if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) continue;
 
         const storageKey = `${targetFolder}/${item.name}`;

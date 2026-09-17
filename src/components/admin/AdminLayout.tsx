@@ -56,11 +56,19 @@ export default function AdminLayout() {
       <aside className="hidden lg:flex w-64 flex-col border-r border-white/[0.08] bg-[#0c0d18] shrink-0 sticky top-0 h-screen">
         {/* Brand Header */}
         <div className="flex h-16 items-center justify-between px-6 border-b border-white/[0.08]">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="realz-logo text-2xl tracking-tight text-white">
+          <Link
+            to="/admin"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/admin");
+            }}
+            className="flex items-center gap-2 cursor-pointer select-none group focus:outline-none"
+            title="Realz Admin Overview"
+          >
+            <span className="realz-logo text-2xl tracking-tight text-white group-hover:opacity-90 transition-opacity pointer-events-none">
               Rea<span className="lz text-primary font-black">lz</span>
             </span>
-            <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-black tracking-widest text-primary uppercase border border-primary/30">
+            <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-black tracking-widest text-primary uppercase border border-primary/30 group-hover:bg-primary/30 transition-colors pointer-events-none">
               ADMIN
             </span>
           </Link>
@@ -150,9 +158,18 @@ export default function AdminLayout() {
           />
           <div className="relative flex w-full max-w-xs flex-1 flex-col bg-[#0c0d18] border-r border-white/[0.08]">
             <div className="flex h-16 items-center justify-between px-6 border-b border-white/[0.08]">
-              <span className="realz-logo text-2xl tracking-tight text-white">
-                Rea<span className="lz text-primary font-black">lz</span>
-              </span>
+              <Link
+                to="/admin"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2"
+              >
+                <span className="realz-logo text-2xl tracking-tight text-white">
+                  Rea<span className="lz text-primary font-black">lz</span>
+                </span>
+                <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-black tracking-widest text-primary uppercase border border-primary/30">
+                  ADMIN
+                </span>
+              </Link>
               <button
                 onClick={() => setMobileOpen(false)}
                 className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:text-foreground"
@@ -233,13 +250,15 @@ export default function AdminLayout() {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <span className="realz-logo text-xl">
-              Rea<span className="lz text-primary">lz</span>
-            </span>
+            <Link to="/admin" className="flex items-center gap-2">
+              <span className="realz-logo text-xl">
+                Rea<span className="lz text-primary">lz</span>
+              </span>
+              <span className="rounded bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+                ADMIN
+              </span>
+            </Link>
           </div>
-          <span className="rounded bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
-            ADMIN
-          </span>
         </header>
 
         {/* Body Outlet */}

@@ -7,6 +7,7 @@ export type CategoryCardProps = {
   to?: string;
   onClick?: () => void;
   index?: number;
+  isActive?: boolean;
 };
 
 // Curated deterministic physical profiles for category stickers
@@ -61,7 +62,14 @@ const CATEGORY_PROFILES = [
   },
 ];
 
-export default function CategoryCard({ title, image, to, onClick, index = 0 }: CategoryCardProps) {
+export default function CategoryCard({
+  title,
+  image,
+  to,
+  onClick,
+  index = 0,
+  isActive = false,
+}: CategoryCardProps) {
   const formattedTitle = formatCategoryTitle(title);
   const profile = CATEGORY_PROFILES[index % CATEGORY_PROFILES.length];
 
@@ -93,19 +101,38 @@ export default function CategoryCard({ title, image, to, onClick, index = 0 }: C
         )}
       </div>
       {/* Footer Title: Solid Horizontal Alignment Preserved */}
-      <div className="w-full shrink-0 pt-2 flex items-center justify-between border-t border-white/[0.08] group-hover:border-primary/40 mt-1 z-10 transition-colors">
-        <span className="text-[11px] md:text-[12px] font-black uppercase tracking-wider text-foreground group-hover:text-primary transition-colors leading-tight break-words">
+      <div
+        className={`w-full shrink-0 pt-2 flex items-center justify-between border-t mt-1 z-10 transition-colors ${
+          isActive
+            ? "border-primary/60"
+            : "border-white/[0.08] group-hover:border-primary/40"
+        }`}
+      >
+        <span
+          className={`text-[11px] md:text-[12px] font-black uppercase tracking-wider transition-colors leading-tight break-words ${
+            isActive ? "text-primary" : "text-foreground group-hover:text-primary"
+          }`}
+        >
           {formattedTitle}
         </span>
-        <span className="text-[10px] text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-200">
-          →
+        <span
+          className={`text-[10px] transition-all duration-200 ${
+            isActive
+              ? "text-primary font-bold"
+              : "text-muted-foreground group-hover:text-primary group-hover:translate-x-1"
+          }`}
+        >
+          {isActive ? "●" : "→"}
         </span>
       </div>
     </div>
   );
 
-  const className =
-    "group relative block aspect-[4/5] w-full text-left overflow-visible rounded-xl bg-transparent hover:bg-white/[0.02] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  const className = `group relative block aspect-[4/5] w-full text-left overflow-visible rounded-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+    isActive
+      ? "bg-primary/[0.08] ring-1.5 ring-primary shadow-[0_0_16px_rgba(139,92,246,0.25)]"
+      : "bg-transparent hover:bg-white/[0.02]"
+  }`;
 
   if (to) {
     return (

@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { imageStorageService } from "./storage-service";
+import { DEFAULT_SUBCATEGORIES } from "./queries";
+import { extractErrorMessage } from "./utils";
 
 export type OrderStatus =
   | "pending"
@@ -74,8 +76,13 @@ export type AdminOrder = Database["public"]["Tables"]["orders"]["Row"] & {
   })[];
 };
 
+export type Subcategory = Database["public"]["Tables"]["subcategories"]["Row"] & {
+  product_count?: number;
+};
+
 export type AdminProduct = Database["public"]["Tables"]["products"]["Row"] & {
   categories?: Database["public"]["Tables"]["categories"]["Row"] | null;
+  subcategories?: Database["public"]["Tables"]["subcategories"]["Row"] | null;
   product_images?: Database["public"]["Tables"]["product_images"]["Row"][];
 };
 
@@ -237,6 +244,7 @@ export async function fetchSalesTrends(): Promise<
 
 export async function fetchAdminProducts(params: {
   categoryId?: number | "ALL";
+  subcategoryId?: number | "ALL";
   search?: string;
   statusFilter?: "ALL" | "published" | "draft" | "archived";
   stockFilter?: "ALL" | "in_stock" | "low_stock" | "out_of_stock";
@@ -257,6 +265,11 @@ export async function fetchAdminProducts(params: {
   // 1. Category Filter
   if (params.categoryId && params.categoryId !== "ALL") {
     query = query.eq("category_id", params.categoryId);
+  }
+
+  // 1b. Subcategory Filter
+  if (params.subcategoryId && params.subcategoryId !== "ALL") {
+    query = query.eq("subcategory_id", params.subcategoryId);
   }
 
   // 2. Search
@@ -319,6 +332,7 @@ export async function fetchAdminProducts(params: {
 export async function createProduct(payload: {
   title: string;
   category_id: number;
+  subcategory_id?: number | null;
   image_url: string;
   image_storage_key?: string;
   description?: string;
@@ -338,11 +352,15 @@ export async function createProduct(payload: {
     image_url: payload.image_url.trim(),
   };
 
+  // Only include subcategory_id if a valid positive number
+  if (typeof payload.subcategory_id === "number" && payload.subcategory_id > 0) {
+    insertPayload.subcategory_id = payload.subcategory_id;
+  }
   if (payload.image_storage_key) insertPayload.image_storage_key = payload.image_storage_key;
-  if (payload.description !== undefined) insertPayload.description = payload.description.trim();
-  if (payload.stock_quantity !== undefined) insertPayload.stock_quantity = payload.stock_quantity;
-  if (payload.price !== undefined) insertPayload.price = payload.price;
-  if (payload.cost_price !== undefined) insertPayload.cost_price = payload.cost_price;
+  if (payload.description !== undefined && payload.description !== null) insertPayload.description = payload.description.trim();
+  if (payload.stock_quantity !== undefined && payload.stock_quantity !== null) insertPayload.stock_quantity = payload.stock_quantity;
+  if (payload.price !== undefined && payload.price !== null) insertPayload.price = payload.price;
+  if (payload.cost_price !== undefined && payload.cost_price !== null) insertPayload.cost_price = payload.cost_price;
   insertPayload.status = targetStatus;
   insertPayload.is_active = isActive;
 
@@ -356,23 +374,43 @@ export async function createProduct(payload: {
     if (res.error) throw res.error;
     data = res.data as unknown as AdminProduct;
   } catch (err: unknown) {
-    // If newly added columns are missing in remote DB, gracefully retry with baseline schema
-    const msg = err instanceof Error ? err.message : "";
-    if (msg.includes("column") || msg.includes("does not exist")) {
+    const msg = extractErrorMessage(err);
+    const errCode = (err as { code?: string })?.code;
+
+    // If subcategory_id column is missing in remote DB, strip it and retry immediately
+    if (
+      "subcategory_id" in insertPayload &&
+      (msg.includes("subcategory_id") || errCode === "PGRST204" || msg.includes("column"))
+    ) {
+      delete insertPayload.subcategory_id;
+      const retry = await supabase
+        .from("products")
+        .insert(insertPayload as unknown as Database["public"]["Tables"]["products"]["Insert"])
+        .select("*, categories(*)")
+        .single();
+      if (retry.error) throw new Error(extractErrorMessage(retry.error));
+      data = retry.data as unknown as AdminProduct;
+    } else if (msg.includes("column") || msg.includes("does not exist") || errCode === "PGRST204") {
       const baselinePayload = {
         title: payload.title.trim(),
         category_id: payload.category_id,
         image_url: payload.image_url.trim(),
+        image_storage_key: payload.image_storage_key || undefined,
+        stock_quantity: payload.stock_quantity ?? 100,
+        price: payload.price,
+        cost_price: payload.cost_price ?? 6.0,
+        status: targetStatus,
+        is_active: isActive,
       };
       const retry = await supabase
         .from("products")
         .insert(baselinePayload as unknown as Database["public"]["Tables"]["products"]["Insert"])
         .select("*, categories(*)")
         .single();
-      if (retry.error) throw retry.error;
+      if (retry.error) throw new Error(extractErrorMessage(retry.error));
       data = retry.data as unknown as AdminProduct;
     } else {
-      throw err;
+      throw new Error(msg);
     }
   }
 
@@ -410,6 +448,7 @@ export async function updateProduct(
   payload: {
     title?: string;
     category_id?: number;
+    subcategory_id?: number | null;
     image_url?: string;
     image_storage_key?: string | null;
     description?: string | null;
@@ -437,6 +476,9 @@ export async function updateProduct(
   const updateData: Record<string, unknown> = {};
   if (payload.title !== undefined) updateData.title = payload.title.trim();
   if (payload.category_id !== undefined) updateData.category_id = payload.category_id;
+  if (typeof payload.subcategory_id === "number" && payload.subcategory_id > 0) {
+    updateData.subcategory_id = payload.subcategory_id;
+  }
   if (payload.image_url !== undefined) updateData.image_url = payload.image_url.trim();
   if (payload.image_storage_key !== undefined) updateData.image_storage_key = payload.image_storage_key;
   if (payload.description !== undefined) updateData.description = payload.description;
@@ -463,9 +505,24 @@ export async function updateProduct(
     if (res.error) throw res.error;
     data = res.data as unknown as AdminProduct;
   } catch (err: unknown) {
-    // Graceful fallback if certain columns are not yet in remote schema
-    const msg = err instanceof Error ? err.message : "";
-    if (msg.includes("column") || msg.includes("does not exist")) {
+    const msg = extractErrorMessage(err);
+    const errCode = (err as { code?: string })?.code;
+
+    // If subcategory_id column doesn't exist, strip and retry
+    if (
+      "subcategory_id" in updateData &&
+      (msg.includes("subcategory_id") || errCode === "PGRST204" || msg.includes("column"))
+    ) {
+      delete updateData.subcategory_id;
+      const retryRes = await supabase
+        .from("products")
+        .update(updateData as unknown as Database["public"]["Tables"]["products"]["Update"])
+        .eq("id", id)
+        .select("*, categories(*)")
+        .single();
+      if (retryRes.error) throw new Error(extractErrorMessage(retryRes.error));
+      data = retryRes.data as unknown as AdminProduct;
+    } else if (msg.includes("column") || msg.includes("does not exist") || errCode === "PGRST204") {
       const minimalUpdate: Record<string, unknown> = {};
       if (payload.title !== undefined) minimalUpdate.title = payload.title.trim();
       if (payload.category_id !== undefined) minimalUpdate.category_id = payload.category_id;
@@ -476,10 +533,10 @@ export async function updateProduct(
         .eq("id", id)
         .select("*, categories(*)")
         .single();
-      if (retry.error) throw retry.error;
+      if (retry.error) throw new Error(extractErrorMessage(retry.error));
       data = retry.data as unknown as AdminProduct;
     } else {
-      throw err;
+      throw new Error(msg);
     }
   }
 
@@ -818,6 +875,148 @@ export async function safeDeleteCategory(
   });
 
   return { reassignedCount: 0, action: "deleted" };
+}
+
+// ------------------------------------------------------------------------------
+// SUBCATEGORIES MANAGEMENT
+// ------------------------------------------------------------------------------
+
+export async function fetchAdminSubcategories(categoryId?: number | unknown): Promise<Subcategory[]> {
+  const numCategoryId = typeof categoryId === "number" ? categoryId : undefined;
+  try {
+    let customSubs: Subcategory[] = [];
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("realz_custom_subcategories") : null;
+      if (stored) customSubs = JSON.parse(stored);
+    } catch {
+      // Ignore
+    }
+
+    let query = supabase.from("subcategories").select("*").order("name", { ascending: true });
+    if (numCategoryId) {
+      query = query.eq("category_id", numCategoryId);
+    }
+    const { data: subs, error: sErr } = await query;
+    let finalSubs = (subs as unknown as Subcategory[]) || [];
+    if (sErr || finalSubs.length === 0) {
+      if (sErr) console.warn("Subcategories fetch notice:", sErr.message);
+      finalSubs = (numCategoryId
+        ? DEFAULT_SUBCATEGORIES.filter((s) => s.category_id === numCategoryId)
+        : DEFAULT_SUBCATEGORIES) as unknown as Subcategory[];
+    }
+
+    if (customSubs.length > 0) {
+      for (const cs of customSubs) {
+        if (!finalSubs.some((s) => s.slug === cs.slug && s.category_id === cs.category_id)) {
+          if (!numCategoryId || cs.category_id === numCategoryId) {
+            finalSubs.push(cs);
+          }
+        }
+      }
+    }
+
+    // Compute product counts per subcategory
+    let prods: { image_storage_key?: string | null; subcategory_id?: number | null }[] = [];
+    try {
+      const { data } = await supabase.from("products").select("image_storage_key");
+      prods = data || [];
+    } catch {
+      // Ignore
+    }
+
+    return (finalSubs || []).map((s) => {
+      const count = prods.filter((p) => p.image_storage_key?.includes(`/${s.slug}/`)).length;
+      return {
+        ...s,
+        product_count: count,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function createSubcategory(
+  categoryId: number,
+  name: string,
+  slug?: string,
+  categorySlug?: string,
+): Promise<Subcategory> {
+  const cleanName = name.trim();
+  const cleanSlug =
+    slug?.trim().toLowerCase().replace(/[\s_]+/g, "-").replace(/[^a-z0-9-]+/g, "") ||
+    cleanName.toLowerCase().replace(/[\s_]+/g, "-").replace(/[^a-z0-9-]+/g, "");
+
+  // Initialize storage folder if categorySlug provided
+  if (categorySlug) {
+    try {
+      await imageStorageService.createStorageFolder(`${categorySlug}/${cleanSlug}`);
+    } catch (storageErr) {
+      console.warn("Subcategory storage folder initialization notice:", storageErr);
+    }
+  }
+
+  let data: Subcategory | null = null;
+  try {
+    const res = await supabase
+      .from("subcategories")
+      .insert({ category_id: categoryId, name: cleanName, slug: cleanSlug })
+      .select()
+      .single();
+
+    if (res.error) throw res.error;
+    data = res.data as unknown as Subcategory;
+  } catch (dbErr) {
+    console.warn("Subcategories table not available in DB, using persistent client storage:", dbErr);
+    const fallbackId = Date.now();
+    const newSub: Subcategory = {
+      id: fallbackId,
+      category_id: categoryId,
+      name: cleanName,
+      slug: cleanSlug,
+      product_count: 0,
+    };
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("realz_custom_subcategories") : null;
+      const list: Subcategory[] = stored ? JSON.parse(stored) : [];
+      list.push(newSub);
+      localStorage.setItem("realz_custom_subcategories", JSON.stringify(list));
+    } catch {
+      // Ignore
+    }
+    data = newSub;
+  }
+
+  await recordAuditLog("CREATE_SUBCATEGORY", "subcategories", String(data.id), {
+    categoryId,
+    name: cleanName,
+    slug: cleanSlug,
+  });
+
+  return data;
+}
+
+export async function deleteSubcategory(id: number): Promise<void> {
+  try {
+    await supabase.from("subcategories").delete().eq("id", id);
+  } catch {
+    // Ignore
+  }
+
+  try {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("realz_custom_subcategories") : null;
+    if (stored) {
+      const list: Subcategory[] = JSON.parse(stored);
+      const filtered = list.filter((s) => s.id !== id);
+      localStorage.setItem("realz_custom_subcategories", JSON.stringify(filtered));
+    }
+  } catch {
+    // Ignore
+  }
+
+  await recordAuditLog("DELETE_SUBCATEGORY", "subcategories", String(id), {
+    action: "Deleted subcategory",
+  });
 }
 
 // ------------------------------------------------------------------------------
