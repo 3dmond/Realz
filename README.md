@@ -10,6 +10,30 @@ Art takes the centre stage. Laid on a deep canvas to ensure the colours and die-
 
 ---
 
+## Visual Cart & Seamless Checkout
+
+Realz turns your cart into your personal sticker wall - a place to review your stash, manage quantities effortlessly, and see real savings as your collection grows
+
+<table>
+  <tr>
+    <td align="center" width="65%">
+      <img src="https://github.com/user-attachments/assets/fdcc321b-deb4-42e2-b346-0b1f2fe6f353" alt="Realz Sticker Wall & Checkout" style="width:100%; border-radius: 6px;" />
+      <br />
+      <b>The Sticker Wall & Live Receipt</b>
+    </td>
+    <td align="center" width="35%">
+      <img src="https://github.com/user-attachments/assets/e1554cc8-113e-471a-9c44-0e875d0e3dcc" alt="Sticker Hover Controls" style="width:100%; border-radius: 6px;" />
+      <br />
+      <b>Quick Hover Actions</b>
+    </td>
+  </tr>
+</table>
+
+The cart is an open visual tray displaying the artwork you've handpicked, keeping the visual experience alive right to the end.
+You can hover over any sticker to fine-tune your order. Bump counts up or down, check quantities, or trash an item instantly
+No password hurdles or email confirmations. Just enter your name, phone number, and drop-off neighborhood on a clean lined-paper slip to place your order
+
+---
 Inside each category, Realz keeps your flow going with curated sub-filters. Whether you're hunting specifically for *Rick and Morty*, *The Simpsons*, or *The Boondocks*, jump between specific shows with one click or browse the whole collection in a clean, visual grid.
 
 <p align="center">
@@ -18,36 +42,6 @@ Inside each category, Realz keeps your flow going with curated sub-filters. Whet
 
 * **Subcategory Tags:** Filter directly without reloading the page.
 * **Instant Collect Button:** Add any piece straight to your bag the second it catches your eye.
-
-## Visual Cart & Seamless Checkout
-
-Realz treats your cart like a desk where you lay out your physical stickers before sticking them anywhere.
-
-<table>
-  <tr>
-    <td align="center" width="33%">
-      <img src="https://github.com/user-attachments/assets/ba6e7ec1-9f86-423e-a2ee-743d23197dc0" alt="Sticker Tray" style="width:100%; border-radius: 6px;" />
-      <br />
-      <b>1. The Visual Tray</b>
-    </td>
-    <td align="center" width="33%">
-      <img src="https://github.com/user-attachments/assets/84841099-1446-418c-a30a-1aa6e56f5594" alt="Hover Interaction" style="width:100%; border-radius: 6px;" />
-      <br />
-      <b>2. Quick Adjustments</b>
-    </td>
-    <td align="center" width="33%">
-      <img src="https://github.com/user-attachments/assets/79d4f3aa-ce6c-4fe2-a6dd-ec00c6dbbfde" alt="Receipt and Checkout" style="width:100%; border-radius: 6px;" />
-      <br />
-      <b>3. Tier Pricing & Bag</b>
-    </td>
-  </tr>
-</table>
-
-* **The Collection Tray:** Your cart isn't an inventory list but rather a visual showcase of the stickers you’ve gathered, laid out clean and flat
-* **Instant In-Place Controls:** Click or tap any sticker directly to bring up count controls, Increase quantity or discard a piece on the fly without page reloads.
-* **Transparent Volume Discounts:** The receipt dynamically tracks your price drops as you add more art. Grab 20+ or 45+ stickers, and your rate per piece automatically scales down.
-* **3-Field Quick Checkout:** No password creation, no verification loops. Just your name, phone number, and drop-off spot on a notebook-style pad to wrap it up.
-
 ---
 
 ## Realz Admin
