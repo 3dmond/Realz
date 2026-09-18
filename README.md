@@ -10,6 +10,14 @@ Art takes the centre stage. Laid on a deep canvas to ensure the colours and die-
 
 ---
 
+## Table of Contents
+
+* [Visual Cart & Seamless Checkout](#visual-cart--seamless-checkout)
+* [Behind the Scenes: Category Taxonomy](#behind-the-scenes-category-taxonomy)
+* [Precision Artwork Pipeline](#precision-artwork-pipeline)
+
+---
+
 ## Visual Cart & Seamless Checkout
 
 Realz turns your cart into your personal sticker wall - a place to review your stash, manage quantities effortlessly, and see real savings as your collection grows
