@@ -51,29 +51,6 @@ Realz treats your cart like a desk where you lay out your physical stickers befo
 * **Transparent Volume Discounts:** The receipt dynamically tracks your price drops as you add more art. Grab 20+ or 45+ stickers, and your rate per piece automatically scales down.
 * **3-Field Quick Checkout:** No password creation, no verification loops. Just your name, phone number, and drop-off spot on a notebook-style pad to wrap it up.
 
-## Trending Drops
-
-Grab what's hot instantly. The **Trending Drops** section puts high-demand pieces right on your front porch.
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/2a993b48-6f9a-4a5f-a961-f7e12240dcf2" alt="Trending Drops Feed" width="850" />
-</p>
-
-* **Single-Tap Stashing:** Hit the `+` button directly on any sticker to slide it into your bag without interrupting your browse.
-* **Instant Visual Confirmation:** Dynamic checkmark states confirm what’s in your stash immediately
-
----
-
-## Put Them Everywhere
-
-The hardest part of buying art online is imagining how it looks outside of a white box. This section helps solve that with real world samples of sticker placement on various objects. 
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/fb089c65-34dc-4ec6-8f38-cd7da1e686f6" alt="Put Them Everywhere Lifestyle Preview" width="850" />
-</p>
-
-* **In-Context Previews:** See stickers scaled directly onto laptops, notebooks, and vacuum flasks.
-
 ---
 
 ## Realz Admin
