@@ -34,27 +34,50 @@ You can hover over any sticker to fine-tune your order. Bump counts up or down, 
 No password hurdles or email confirmations. Just enter your name, phone number, and drop-off neighborhood on a clean lined-paper slip to place your order
 
 ---
-Inside each category, Realz keeps your flow going with curated sub-filters. Whether you're hunting specifically for *Rick and Morty*, *The Simpsons*, or *The Boondocks*, jump between specific shows with one click or browse the whole collection in a clean, visual grid.
+What feels like effortless exploration on the storefront is powered by a fine-tuned management engine behind the scenes. From customer discovery down to pixel-level inventory control
+
+Visitors are met with clean, transparent sticker silhouettes, live drop counts, and instant filter tags for quick navigation.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/44f0bac1-d070-4fe7-b33e-d01233d60550" alt="Realz Category View Preview" width="850" />
+  <img src="https://github.com/user-attachments/assets/4f61d5d9-1420-4925-9e9c-3f9fbfde53c3" alt="Storefront Category View" width="850" />
 </p>
 
-* **Subcategory Tags:** Filter directly without reloading the page.
-* **Instant Collect Button:** Add any piece straight to your bag the second it catches your eye.
----
 
-## Realz Admin
-
-Behind the frictionless storefront sits a purpose-built operational cockpit. Managing drops, tracking cash flow, and dispatching orders is built to be fast, visual, and zero-stress.
+Behind that storefront view sits the **Category Taxonomy** dashboard. This is where high-level parent categories are created, assigned web-friendly paths, and tracked for total active inventory.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/7f52a18d-bdef-4956-9fb7-2187d6e53b7f" alt="Realz Operational Dashboard" width="850" />
+  <img src="https://github.com/user-attachments/assets/0641c0f3-d296-43ff-87cb-1f2b9084d03e" alt="Category Taxonomy Manager" width="850" />
 </p>
 
-* **Pulse Metrics at a Glance:** Live top-line numbers track orders needing phone confirmation, active stickers on the floor, fulfillment counts, and gross sales instantly.
-* **Streamlined Order Dispatch:** An incoming order feed captures customer details, delivery neighborhoods, and selected sticker packs the moment an order drops.
-* **Direct Inventory Controls:** Launch single fresh designs or trigger bulk drops into the catalogue with one click.
-* **Clear Revenue Dynamics:** Visual sales charting tracks daily gross momentum so you always know your top-performing days.
-* **Built-in Operations Suite:** Dedicated workspaces for media libraries, category organization, order auditing, and recovery bins to keep the catalog clean.
+
+Diving into a category opens the **Subcategory Folder System**. Instead of dumping dozens of designs into a single messy bucket, artwork is neatly partitioned into recognizable universes.
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0fa5c18e-4e19-4bf7-ada2-92f1115f77da" alt="Subcategory Folders" width="850" />
+</p>
+
+
+Opening the sticker view reveals the **Catalogue Floor**. Here, every piece is monitored with status indicators, pricing, subcategory tags, and source asset filenames.
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/aada31f3-daff-4b74-875f-8af6b54666c5" alt="Admin Sticker Grid" width="850" />
+</p>
+
+The **Sticker Editor** opens a focused inspection dock
+
+<table>
+  <tr>
+    <td align="center" width="55%">
+      <img src="https://github.com/user-attachments/assets/081d7a9d-3aa0-4c65-9d23-64fbc021136e" alt="Sticker Editor Modal" style="width:100%; border-radius: 6px;" />
+      <br />
+      <b>Fine-Grained Controls</b>
+    </td>
+    <td align="center" width="45%">
+      <img src="https://github.com/user-attachments/assets/17c7c625-cc5b-4f74-af8b-2e7530597a03" alt="Card Status Badges" style="width:100%; border-radius: 6px;" />
+      <br />
+      <b>Live Asset Card Badges</b>
+    </td>
+  </tr>
+</table>
+
 
