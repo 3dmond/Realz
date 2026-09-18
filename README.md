@@ -80,4 +80,31 @@ The **Sticker Editor** opens a focused inspection dock
   </tr>
 </table>
 
+---
+
+
+Stickers only look as good as their edges. Low-res artifacts, fringing backgrounds, or inconsistent scales ruin the experience.
+
+Before any sticker enters Realz, raw artwork runs through an automated batch pipeline in GIMP, transforming messy art into crisp, store-ready physical assets.
+
+Automated alpha extraction strips out raw backgrounds using tight color-boundary detection and edge feathering, preventing pixelated halos
+Every piece runs through automated dynamic level adjustment to bring vibrancy and depth to illustration colors
+Artwork is auto-cropped, centered, and fitted into a uniform 1000×1000 canvas with high-fidelity Lanczos resampling ensuring consistent sizing across the store.
+A sharpening mask pass brings out intricate linework and detail.
+Fully automated batch export to lossless WebP format, delivering maximum visual clarity with instant load times
+
+<details>
+<summary><b>View Automated Batch Script Reference</b></summary>
+
+The preparation pipeline is executed via automated Python scripting interfacing directly with GIMP’s batch engine:
+
+```python
+# Realz Batch Asset Pipeline (High-Level Summary)
+# 1. Add Alpha & Invert Selection Mask
+# 2. Alpha Threshold (15) to kill color bleed
+# 3. Dynamic Levels Calibration
+# 4. Auto-crop, Scale to 1000px, & Center Canvas
+# 5. GEGL Unsharp Mask Filter Pass
+# 6. Lossless WebP Multi-Export
+
 
