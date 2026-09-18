@@ -1,15 +1,12 @@
 Realz
 ---
-
 **Realz** is a sticker e-commerce platform designed to make stickers feel tangible, collectible, and expressive rather than flat images in a grid.
 
 Built around an artwork-first philosophy, the storefront strips away the clutter of conventional retail to create an immersive, visual world. Discovery is effortless and checkout is straightforward, minimizing friction so the focus remains entirely on the art itself.
 
 ![Realz Homepage Preview](https://github.com/user-attachments/assets/f1ee38b8-ded1-4ccd-b279-fe36055bea9b)
 
-* **Art Takes Center Stage:** Just pure artwork against a deep canvas so the colors and die-cut shapes grab your attention instantly.
-* **Effortless Discovery:** Dive straight into your vibe organized so you can find what you love in seconds.
-* **One-Tap Collecting:** Found a sticker you love? Tap once to bag it directly from the feed.
+Art takes the centre stage. Laid on a deep canvas to ensure the colours and die-cut shapes grab attention instantly. And once someone finds what they love, they can easily add them to the cart in just one tap.  
 
 ---
 
