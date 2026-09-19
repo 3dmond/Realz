@@ -97,6 +97,8 @@ Fully automated batch export to lossless WebP format, delivering maximum visual 
 <details>
 <summary><b>View Automated Batch Script Reference</b></summary>
 
+The batch preparation routine is fully automated via GIMP’s Python 3 engine. See [scripts/prepare_stickers.py](scripts/prepare_stickers.py) for the complete extraction and export pipeline.
 
+</details>
 
 
