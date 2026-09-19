@@ -28,3 +28,7 @@ dist-ssr
 # Scratch & temporary testing files
 scratch/
 supabase/.temp/
+
+# Python
+__pycache__/
+*.py[cod]
