@@ -1365,3 +1365,323 @@ export async function fetchProductPerformanceLeaderboard(): Promise<ProductPerfo
     };
   }).sort((a, b) => b.unitsSold - a.unitsSold);
 }
+
+// ------------------------------------------------------------------------------
+// STICKER PACKS & BUNDLES
+// ------------------------------------------------------------------------------
+
+export interface StickerPack {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  badge?: string; // e.g. "HOT DROP", "30% OFF", "LIMITED", "BEST VALUE"
+  price: number;
+  compare_at_price?: number; // Sum of individual sticker prices
+  cover_image_url?: string;
+  status: "published" | "draft" | "archived";
+  sticker_ids: number[];
+  stickers?: AdminProduct[];
+  created_at: string;
+  updated_at?: string;
+}
+
+const PACKS_STORAGE_KEY = "realz_sticker_packs_v1";
+
+function getStoredLocalPacks(): StickerPack[] {
+  try {
+    const raw = localStorage.getItem(PACKS_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function setStoredLocalPacks(packs: StickerPack[]): void {
+  try {
+    localStorage.setItem(PACKS_STORAGE_KEY, JSON.stringify(packs));
+    window.dispatchEvent(new Event("realz_packs_updated"));
+  } catch (e) {
+    console.error("Failed to persist packs to local storage:", e);
+  }
+}
+
+export async function fetchAdminPacks(): Promise<StickerPack[]> {
+  // Fetch products to map pack sticker previews
+  let allProducts: AdminProduct[] = [];
+  try {
+    const res = await fetchAdminProducts({ pageSize: 500 });
+    allProducts = res.products;
+  } catch {
+    // Graceful fallback
+  }
+
+  const productMap = new Map<number, AdminProduct>();
+  allProducts.forEach((p) => productMap.set(p.id, p));
+
+  let rawPacks: StickerPack[] = [];
+
+  // 1. Try querying Supabase
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from("sticker_packs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rawPacks = data.map((item: any) => ({
+        id: String(item.id),
+        title: item.title,
+        slug: item.slug || item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        description: item.description || "",
+        badge: item.badge || "",
+        price: Number(item.price) || 0,
+        compare_at_price: item.compare_at_price ? Number(item.compare_at_price) : undefined,
+        cover_image_url: item.cover_image_url || "",
+        status: (item.status as ProductStatus) || "published",
+        sticker_ids: Array.isArray(item.sticker_ids)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? item.sticker_ids.map((x: any) => Number(x))
+          : [],
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: item.updated_at,
+      }));
+    } else {
+      rawPacks = getStoredLocalPacks();
+    }
+  } catch {
+    rawPacks = getStoredLocalPacks();
+  }
+
+  // Ensure the special "Trending Picks" pack exists and contains the current homepage trending stickers
+  const hasTrendingPack = rawPacks.some(
+    (p) => p.id === TRENDING_PACK_ID || p.slug === TRENDING_PACK_SLUG,
+  );
+  if (!hasTrendingPack && allProducts.length > 0) {
+    const featured = allProducts.filter((p) => p.is_featured);
+    const chosen = featured.length > 0 ? featured.slice(0, 16) : allProducts.slice(0, 16);
+    const initialTrendingPack: StickerPack = {
+      id: TRENDING_PACK_ID,
+      title: "Trending Picks",
+      slug: TRENDING_PACK_SLUG,
+      description: "Official curated trending drops showcased on the Realz homepage.",
+      badge: "LIVE DROP",
+      price: 350,
+      status: "published",
+      sticker_ids: chosen.map((p) => p.id),
+      created_at: new Date().toISOString(),
+    };
+    rawPacks = [initialTrendingPack, ...rawPacks];
+    setStoredLocalPacks(rawPacks);
+  }
+
+  // Populate stickers and calculate compare_at_price if not defined
+  return rawPacks.map((pack) => {
+    const matchedStickers = pack.sticker_ids
+      .map((id) => productMap.get(id))
+      .filter((s): s is AdminProduct => !!s);
+
+    const calculatedCompareAt = matchedStickers.reduce(
+      (sum, s) => sum + (Number(s.price) || 100),
+      0,
+    );
+
+    return {
+      ...pack,
+      stickers: matchedStickers,
+      compare_at_price:
+        pack.compare_at_price ??
+        (calculatedCompareAt > pack.price ? calculatedCompareAt : undefined),
+    };
+  });
+}
+
+export async function createPack(payload: {
+  title: string;
+  slug?: string;
+  description?: string;
+  badge?: string;
+  price: number;
+  compare_at_price?: number;
+  cover_image_url?: string;
+  status: "published" | "draft" | "archived";
+  sticker_ids: number[];
+}): Promise<StickerPack> {
+  const cleanTitle = payload.title.trim();
+  const cleanSlug =
+    payload.slug?.trim() ||
+    cleanTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+  const id = `pack_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const now = new Date().toISOString();
+
+  const newPack: StickerPack = {
+    id,
+    title: cleanTitle,
+    slug: cleanSlug,
+    description: payload.description?.trim() || "",
+    badge: payload.badge?.trim() || "",
+    price: Number(payload.price) || 0,
+    compare_at_price: payload.compare_at_price ? Number(payload.compare_at_price) : undefined,
+    cover_image_url: payload.cover_image_url?.trim() || "",
+    status: payload.status || "published",
+    sticker_ids: payload.sticker_ids,
+    created_at: now,
+    updated_at: now,
+  };
+
+  // 1. Try Supabase
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from("sticker_packs").insert({
+      id: newPack.id,
+      title: newPack.title,
+      slug: newPack.slug,
+      description: newPack.description,
+      badge: newPack.badge,
+      price: newPack.price,
+      compare_at_price: newPack.compare_at_price,
+      cover_image_url: newPack.cover_image_url,
+      status: newPack.status,
+      sticker_ids: newPack.sticker_ids,
+      created_at: newPack.created_at,
+      updated_at: newPack.updated_at,
+    });
+    if (error) throw error;
+  } catch (err) {
+    console.warn("[createPack] Supabase notice, saved to persistent local storage:", err);
+  }
+
+  // 2. Update local storage cache
+  const existing = getStoredLocalPacks();
+  setStoredLocalPacks([newPack, ...existing]);
+
+  await recordAuditLog("CREATE_STICKER_PACK", "sticker_packs", newPack.id, {
+    title: newPack.title,
+    price: newPack.price,
+    stickersCount: newPack.sticker_ids.length,
+  });
+
+  return newPack;
+}
+
+export async function updatePack(
+  id: string,
+  payload: Partial<Omit<StickerPack, "id" | "created_at" | "stickers">>,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const updates: Record<string, unknown> = { ...payload, updated_at: now };
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("sticker_packs").update(updates).eq("id", id);
+  } catch (err) {
+    console.warn("[updatePack] Supabase notice:", err);
+  }
+
+  const existing = getStoredLocalPacks();
+  const updated = existing.map((p) =>
+    p.id === id ? { ...p, ...payload, updated_at: now } : p,
+  );
+  setStoredLocalPacks(updated);
+
+  await recordAuditLog("UPDATE_STICKER_PACK", "sticker_packs", id, payload);
+}
+
+export async function deletePack(id: string): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("sticker_packs").delete().eq("id", id);
+  } catch (err) {
+    console.warn("[deletePack] Supabase notice:", err);
+  }
+
+  const existing = getStoredLocalPacks();
+  setStoredLocalPacks(existing.filter((p) => p.id !== id));
+
+  await recordAuditLog("DELETE_STICKER_PACK", "sticker_packs", id);
+}
+
+export async function togglePackStatus(
+  id: string,
+  newStatus: "published" | "draft" | "archived",
+): Promise<void> {
+  await updatePack(id, { status: newStatus });
+}
+
+// ------------------------------------------------------------------------------
+// TRENDING PICKS PACK (HOMEPAGE CURATION)
+// ------------------------------------------------------------------------------
+
+export const TRENDING_PACK_ID = "pack_trending_picks";
+export const TRENDING_PACK_SLUG = "trending-picks";
+
+export async function fetchTrendingPack(): Promise<StickerPack> {
+  const packs = await fetchAdminPacks();
+  let trending = packs.find(
+    (p) => p.id === TRENDING_PACK_ID || p.slug === TRENDING_PACK_SLUG,
+  );
+
+  if (!trending) {
+    let initialIds: number[] = [];
+    try {
+      const res = await fetchAdminProducts({ pageSize: 50 });
+      const prods = res.products || [];
+      const featured = prods.filter((p) => p.is_featured);
+      const chosen = featured.length > 0 ? featured.slice(0, 16) : prods.slice(0, 16);
+      initialIds = chosen.map((p) => p.id);
+    } catch {
+      // Fallback
+    }
+
+    const created = await createPack({
+      title: "Trending Picks",
+      slug: TRENDING_PACK_SLUG,
+      description: "Official curated trending drops showcased on the Realz homepage.",
+      badge: "LIVE DROP",
+      price: 350,
+      status: "published",
+      sticker_ids: initialIds,
+    });
+
+    const allStored = getStoredLocalPacks();
+    const normalized = allStored.map((p) =>
+      p.id === created.id ? { ...p, id: TRENDING_PACK_ID } : p,
+    );
+    setStoredLocalPacks(normalized);
+    trending = { ...created, id: TRENDING_PACK_ID };
+  }
+
+  return trending;
+}
+
+export async function updateTrendingStickers(stickerIds: number[]): Promise<void> {
+  const trending = await fetchTrendingPack();
+  await updatePack(trending.id, { sticker_ids: stickerIds });
+
+  try {
+    window.dispatchEvent(new Event("realz_trending_updated"));
+  } catch {
+    // Ignore
+  }
+}
+
+export async function addStickerToTrending(stickerId: number): Promise<void> {
+  const trending = await fetchTrendingPack();
+  if (!trending.sticker_ids.includes(stickerId)) {
+    const nextIds = [stickerId, ...trending.sticker_ids];
+    await updateTrendingStickers(nextIds);
+  }
+}
+
+export async function removeStickerFromTrending(stickerId: number): Promise<void> {
+  const trending = await fetchTrendingPack();
+  const nextIds = trending.sticker_ids.filter((id) => id !== stickerId);
+  await updateTrendingStickers(nextIds);
+}

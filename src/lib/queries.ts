@@ -146,3 +146,38 @@ export async function fetchProduct(id: number): Promise<Product> {
   if (error) throw error;
   return data as Product;
 }
+
+export async function fetchTrendingStickerIds(): Promise<number[]> {
+  try {
+    // 1. Try Supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from("sticker_packs")
+      .select("sticker_ids")
+      .or("id.eq.pack_trending_picks,slug.eq.trending-picks")
+      .maybeSingle();
+
+    if (data?.sticker_ids && Array.isArray(data.sticker_ids) && data.sticker_ids.length > 0) {
+      return data.sticker_ids.map(Number);
+    }
+  } catch {
+    // Fallback to local storage
+  }
+
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem("realz_sticker_packs_v1") : null;
+    if (raw) {
+      const packs = JSON.parse(raw);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const t = packs.find((p: any) => p.id === "pack_trending_picks" || p.slug === "trending-picks");
+      if (t && Array.isArray(t.sticker_ids) && t.sticker_ids.length > 0) {
+        return t.sticker_ids.map(Number);
+      }
+    }
+  } catch {
+    // Ignore
+  }
+
+  return [];
+}
+

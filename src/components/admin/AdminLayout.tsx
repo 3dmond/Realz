@@ -4,8 +4,7 @@ import {
   LayoutDashboard,
   ShoppingBag,
   Sparkles,
-  Tags,
-  ScrollText,
+  Package,
   Settings,
   LogOut,
   Menu,
@@ -13,7 +12,6 @@ import {
   ExternalLink,
   ShieldCheck,
   BarChart3,
-  Image as ImageIcon,
   Trash2,
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/admin-auth";
@@ -25,12 +23,9 @@ const NAV_ITEMS = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag, end: false },
   { to: "/admin/products", label: "Stickers", icon: Sparkles, end: false },
-  { to: "/admin/bin", label: "Bin", icon: Trash2, end: false },
-  { to: "/admin/media", label: "Media Library", icon: ImageIcon, end: false },
-  { to: "/admin/categories", label: "Categories", icon: Tags, end: false },
+  { to: "/admin/packs", label: "Sticker Packs", icon: Package, end: false },
   { to: "/admin/analytics", label: "Analytics & BI", icon: BarChart3, end: false },
-  { to: "/admin/activity", label: "Audit Trail", icon: ScrollText, end: false },
-  { to: "/admin/settings", label: "Settings", icon: Settings, end: false },
+  { to: "/admin/bin", label: "Bin", icon: Trash2, end: false },
 ];
 
 export default function AdminLayout() {
@@ -120,13 +115,20 @@ export default function AdminLayout() {
         {/* Footer info & Logout */}
         <div className="border-t border-white/[0.08] p-4 bg-[#0a0b14]">
           <div className="mb-3 flex items-center justify-between">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-bold text-foreground">{user?.email}</p>
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                 <ShieldCheck className="h-3 w-3 text-primary" />
                 <span className="capitalize">{role || "Administrator"}</span>
               </div>
             </div>
+            <Link
+              to="/admin/settings"
+              title="Store Settings"
+              className="p-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-muted-foreground hover:text-foreground hover:bg-white/[0.08] transition-colors shrink-0 ml-2"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
           </div>
 
           <div className="flex items-center gap-2">
@@ -220,11 +222,21 @@ export default function AdminLayout() {
               })}
             </nav>
             <div className="border-t border-white/[0.08] p-4 bg-[#0a0b14]">
-              <div className="mb-3">
-                <p className="truncate text-xs font-bold text-foreground">{user?.email}</p>
-                <p className="text-[10px] text-muted-foreground capitalize">
-                  {role || "Administrator"}
-                </p>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-foreground">{user?.email}</p>
+                  <p className="text-[10px] text-muted-foreground capitalize">
+                    {role || "Administrator"}
+                  </p>
+                </div>
+                <Link
+                  to="/admin/settings"
+                  onClick={() => setMobileOpen(false)}
+                  title="Store Settings"
+                  className="p-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-muted-foreground hover:text-foreground hover:bg-white/[0.08] transition-colors shrink-0 ml-2"
+                >
+                  <Settings className="h-4 w-4" />
+                </Link>
               </div>
               <button
                 onClick={handleLogout}

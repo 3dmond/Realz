@@ -1,13 +1,20 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { fetchCategories, fetchSubcategories, fetchProducts } from "@/lib/queries";
+import {
+  fetchCategories,
+  fetchSubcategories,
+  fetchProducts,
+  fetchTrendingStickerIds,
+} from "@/lib/queries";
 import { formatCategoryTitle, cn } from "@/lib/utils";
 import ProductCard from "@/components/ui-bits/ProductCard";
 import CategoryCard from "@/components/ui-bits/CategoryCard";
 import PutThemEverywhere from "@/components/ui-bits/PutThemEverywhere";
 
 export default function Home() {
+  const queryClient = useQueryClient();
+
   const { data: cats = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
@@ -20,6 +27,23 @@ export default function Home() {
     queryKey: ["products"],
     queryFn: fetchProducts,
   });
+  const { data: trendingIds = [] } = useQuery({
+    queryKey: ["trending-sticker-ids"],
+    queryFn: fetchTrendingStickerIds,
+  });
+
+  // Listen for admin live updates to trending drops
+  useEffect(() => {
+    const handleTrendingUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["trending-sticker-ids"] });
+    };
+    window.addEventListener("realz_trending_updated", handleTrendingUpdate);
+    window.addEventListener("realz_packs_updated", handleTrendingUpdate);
+    return () => {
+      window.removeEventListener("realz_trending_updated", handleTrendingUpdate);
+      window.removeEventListener("realz_packs_updated", handleTrendingUpdate);
+    };
+  }, [queryClient]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string | number>("ALL");
@@ -97,9 +121,16 @@ export default function Home() {
 
   const trendingProducts = useMemo(() => {
     if (!dbProducts || dbProducts.length === 0) return [];
+    if (trendingIds && trendingIds.length > 0) {
+      const idMap = new Map(dbProducts.map((p) => [p.id, p]));
+      const matched = trendingIds
+        .map((id) => idMap.get(id))
+        .filter((p): p is (typeof dbProducts)[0] => !!p);
+      if (matched.length > 0) return matched;
+    }
     const featured = dbProducts.filter((p) => p.is_featured);
     return featured.length > 0 ? featured.slice(0, 16) : dbProducts.slice(0, 16);
-  }, [dbProducts]);
+  }, [dbProducts, trendingIds]);
 
   const showcaseStickers = useMemo(() => {
     if (!dbProducts || dbProducts.length === 0) return [];
