@@ -316,8 +316,6 @@ export async function fetchAdminProducts(params: {
     prods = prods.filter(
       (p) =>
         !p.image_url ||
-        !p.description ||
-        p.description.trim().length === 0 ||
         (p.stock_quantity ?? 100) <= 0 ||
         !p.category_id,
     );

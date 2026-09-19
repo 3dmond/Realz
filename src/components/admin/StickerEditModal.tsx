@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Sparkles, X, Save, CheckCircle2, EyeOff, Trash2, Tag, Percent, ShieldCheck } from "lucide-react";
 import ImageDropzone from "@/components/admin/ImageDropzone";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, formatStickerTitleFromFilename } from "@/lib/utils";
 import type { AdminProduct, ProductStatus, Subcategory } from "@/lib/admin-api";
 
 interface StickerEditModalProps {
@@ -34,7 +33,6 @@ export default function StickerEditModal({
   onMoveToBin,
 }: StickerEditModalProps) {
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [storageKey, setStorageKey] = useState("");
   const [subcategoryId, setSubcategoryId] = useState<number | null>(null);
@@ -48,7 +46,6 @@ export default function StickerEditModal({
   useEffect(() => {
     if (product) {
       setTitle(product.title || "");
-      setDescription(product.description || "");
       setImageUrl(product.image_url || "");
       setStorageKey(product.image_storage_key || "");
       setSubcategoryId(product.subcategory_id ?? null);
@@ -98,7 +95,6 @@ export default function StickerEditModal({
     try {
       await onSave(product.id, {
         title: title.trim(),
-        description: description.trim() || undefined,
         image_url: imageUrl.trim(),
         image_storage_key: storageKey.trim() || undefined,
         subcategory_id: subcategoryId,
@@ -190,20 +186,6 @@ export default function StickerEditModal({
               </select>
             </div>
           )}
-
-          {/* Description */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-foreground">Description</label>
-              <span className="text-[10px] text-muted-foreground">Optional</span>
-            </div>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="bg-white/[0.04] border-white/[0.1] rounded-xl text-xs resize-none"
-            />
-          </div>
 
           {/* Status */}
           <div className="space-y-1.5">

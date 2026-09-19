@@ -77,9 +77,11 @@ export default function Product() {
         <div className="flex flex-col">
           <p className="text-micro text-accent">Sticker</p>
           <h1 className="mt-3 text-4xl sm:text-5xl text-foreground">{product.title}</h1>
-          <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-            {product.description}
-          </p>
+          {product.description && (
+            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+              {product.description}
+            </p>
+          )}
 
           <div className="mt-6 flex flex-wrap gap-2">
             {product.keywords?.map((k) => (

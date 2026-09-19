@@ -30,3 +30,22 @@ export function extractErrorMessage(err: unknown, fallback = "An unexpected erro
   if (typeof err === "string" && err.trim()) return err;
   return fallback;
 }
+
+export function formatStickerTitleFromFilename(filename: string): string {
+  if (!filename) return "";
+  // Strip file extension
+  const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+  // Replace hyphens, underscores, dots, parentheses, brackets, and extra spaces
+  const cleaned = nameWithoutExt
+    .replace(/[-_.]+/g, " ")
+    .replace(/[\(\)\[\]]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Capitalize first letter of each word (Title Case)
+  return cleaned
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}

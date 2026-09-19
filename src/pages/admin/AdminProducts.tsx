@@ -67,6 +67,8 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
   const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
   const [createSubcategoryOpen, setCreateSubcategoryOpen] = useState(false);
   const [uploadStickerOpen, setUploadStickerOpen] = useState(false);
+  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
+  const [isFolderDragging, setIsFolderDragging] = useState(false);
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
 
   // Search & View Mode
@@ -602,7 +604,10 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
                 <span className="hidden sm:inline">New Subcategory</span>
               </button>
               <button
-                onClick={() => setUploadStickerOpen(true)}
+                onClick={() => {
+                  setDroppedFiles([]);
+                  setUploadStickerOpen(true);
+                }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -835,6 +840,70 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
                 </div>
               )}
 
+              {/* Quick Drag & Drop Upload Zone */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsFolderDragging(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setIsFolderDragging(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsFolderDragging(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    const validFiles = Array.from(e.dataTransfer.files).filter((f) =>
+                      f.type.startsWith("image/"),
+                    );
+                    if (validFiles.length > 0) {
+                      setDroppedFiles(validFiles);
+                      setUploadStickerOpen(true);
+                    } else {
+                      toast.error("Please drop image files (PNG, JPG, WEBP, SVG)");
+                    }
+                  }
+                }}
+                className={cn(
+                  "relative border-2 border-dashed rounded-2xl p-5 transition-all text-center mb-6 cursor-pointer group",
+                  isFolderDragging
+                    ? "border-primary bg-primary/10 scale-[1.005] shadow-lg shadow-primary/20"
+                    : "border-white/[0.08] bg-[#121324]/40 hover:border-primary/50 hover:bg-primary/[0.02]",
+                )}
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.multiple = true;
+                  input.accept = "image/*";
+                  input.onchange = (ev) => {
+                    const target = ev.target as HTMLInputElement;
+                    if (target.files && target.files.length > 0) {
+                      setDroppedFiles(Array.from(target.files));
+                      setUploadStickerOpen(true);
+                    }
+                  };
+                  input.click();
+                }}
+              >
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform">
+                    <UploadCloud className="w-5 h-5" />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-xs sm:text-sm font-bold text-foreground">
+                      Drag &amp; drop stickers here to quickly upload (single or bulk)
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Sticker titles are automatically capitalized from filenames into{" "}
+                      <span className="text-primary font-medium">
+                        {activeSubcategory ? `${activeCategory.name} / ${activeSubcategory.name}` : activeCategory.name}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {prodsLoading ? (
                 <div className="py-20 text-center text-sm text-muted-foreground">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -855,7 +924,10 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
                     Upload your first sticker into this folder.
                   </p>
                   <button
-                    onClick={() => setUploadStickerOpen(true)}
+                    onClick={() => {
+                      setDroppedFiles([]);
+                      setUploadStickerOpen(true);
+                    }}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
@@ -916,12 +988,16 @@ export default function AdminProducts({ defaultView }: AdminProductsProps = {}) 
       {activeCategory && (
         <StickerUploadModal
           open={uploadStickerOpen}
-          onClose={() => setUploadStickerOpen(false)}
+          onClose={() => {
+            setUploadStickerOpen(false);
+            setDroppedFiles([]);
+          }}
           categoryId={activeCategory.id}
           categoryName={activeCategory.name}
           categorySlug={activeCategorySlug}
           subcategories={subcategories}
           defaultSubcategoryId={activeSubcategory?.id ?? null}
+          initialFiles={droppedFiles}
           onSave={async (payload) => {
             await saveStickerMutation.mutateAsync(payload);
           }}

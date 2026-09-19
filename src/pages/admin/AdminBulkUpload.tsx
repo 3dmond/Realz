@@ -26,7 +26,7 @@ import {
 } from "@/lib/storage-service";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatStickerTitleFromFilename, extractErrorMessage } from "@/lib/utils";
 
 type BulkCandidate = {
   id: string;
@@ -59,17 +59,6 @@ export default function AdminBulkUpload() {
     queryFn: fetchAdminCategories,
   });
 
-  const inferTitleFromFilename = (name: string): string => {
-    const base = name.replace(/\.[^/.]+$/, "");
-    return base
-      .replace(/[-_]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .split(" ")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(" ");
-  };
-
   const handleFilesSelected = async (files: FileList | File[]) => {
     const defaultCatId = categories?.[0]?.id ?? 49134;
     const newItems: BulkCandidate[] = [];
@@ -79,7 +68,7 @@ export default function AdminBulkUpload() {
       if (!file.type.startsWith("image/")) continue;
 
       const objectUrl = URL.createObjectURL(file);
-      const title = inferTitleFromFilename(file.name);
+      const title = formatStickerTitleFromFilename(file.name);
 
       newItems.push({
         id: `${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`,
@@ -196,7 +185,7 @@ export default function AdminBulkUpload() {
           done++;
           setCompletedCount(done);
         } catch (err: unknown) {
-          const errMsg = err instanceof Error ? err.message : "Failed to import";
+          const errMsg = extractErrorMessage(err, "Failed to import");
           updateCandidate(item.id, {
             uploadState: "error",
             errorMessage: errMsg,
