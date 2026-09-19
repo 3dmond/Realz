@@ -13,8 +13,8 @@ Art takes the centre stage. Laid on a deep canvas to ensure the colours and die-
 ## Table of Contents
 
 * [Visual Cart & Seamless Checkout](#visual-cart--seamless-checkout)
-* [Behind the Scenes: Category Taxonomy](#behind-the-scenes-category-taxonomy)
-* [Precision Artwork Pipeline](#precision-artwork-pipeline)
+* [Categories](#categories)
+* [Artwork Pipeline](#artwork-pipeline)
 
 ---
 
@@ -22,26 +22,22 @@ Art takes the centre stage. Laid on a deep canvas to ensure the colours and die-
 
 Realz turns your cart into your personal sticker wall - a place to review your stash, manage quantities effortlessly, and see real savings as your collection grows
 
-<table>
-  <tr>
-    <td align="center" width="65%">
-      <img src="https://github.com/user-attachments/assets/fdcc321b-deb4-42e2-b346-0b1f2fe6f353" alt="Realz Sticker Wall & Checkout" style="width:100%; border-radius: 6px;" />
-      <br />
-      <b>The Sticker Wall & Live Receipt</b>
-    </td>
-    <td align="center" width="35%">
-      <img src="https://github.com/user-attachments/assets/e1554cc8-113e-471a-9c44-0e875d0e3dcc" alt="Sticker Hover Controls" style="width:100%; border-radius: 6px;" />
-      <br />
-      <b>Quick Hover Actions</b>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/fdcc321b-deb4-42e2-b346-0b1f2fe6f353" alt="Realz Sticker Wall & Checkout" width="550" style="border-radius: 6px; vertical-align: middle; margin-right: 14px;" />
+  <img src="https://github.com/user-attachments/assets/e1554cc8-113e-471a-9c44-0e875d0e3dcc" alt="Sticker Hover Controls" width="280" style="border-radius: 6px; vertical-align: middle;" />
+</p>
+<p align="center">
+  <sub><b>The Sticker Wall & Live Receipt</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Quick Hover Actions</b></sub>
+</p>
 
 The cart is an open visual tray displaying the artwork you've handpicked, keeping the visual experience alive right to the end.
 You can hover over any sticker to fine-tune your order. Bump counts up or down, check quantities, or trash an item instantly
 No password hurdles or email confirmations. Just enter your name, phone number, and drop-off neighborhood on a clean lined-paper slip to place your order
 
 ---
+
+## Categories
+
 What feels like effortless exploration on the storefront is powered by a fine-tuned management engine behind the scenes. From customer discovery down to pixel-level inventory control
 
 Visitors are met with clean, transparent sticker silhouettes, live drop counts, and instant filter tags for quick navigation.
@@ -73,27 +69,24 @@ Opening the sticker view reveals the **Catalogue Floor**. Here, every piece is m
 
 The **Sticker Editor** opens a focused inspection dock
 
-<table>
-  <tr>
-    <td align="center" width="55%">
-      <img src="https://github.com/user-attachments/assets/081d7a9d-3aa0-4c65-9d23-64fbc021136e" alt="Sticker Editor Modal" style="width:100%; border-radius: 6px;" />
-      <br />
-      <b>Fine-Grained Controls</b>
-    </td>
-    <td align="center" width="45%">
-      <img src="https://github.com/user-attachments/assets/17c7c625-cc5b-4f74-af8b-2e7530597a03" alt="Card Status Badges" style="width:100%; border-radius: 6px;" />
-      <br />
-      <b>Live Asset Card Badges</b>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <a href="https://github.com/user-attachments/assets/081d7a9d-3aa0-4c65-9d23-64fbc021136e">
+    <img src="https://github.com/user-attachments/assets/081d7a9d-3aa0-4c65-9d23-64fbc021136e" alt="Sticker Editor Modal" width="260" style="border-radius: 6px; vertical-align: middle; margin-right: 16px;" />
+  </a>
+  <a href="https://github.com/user-attachments/assets/17c7c625-cc5b-4f74-af8b-2e7530597a03">
+    <img src="https://github.com/user-attachments/assets/17c7c625-cc5b-4f74-af8b-2e7530597a03" alt="Card Status Badges" width="540" style="border-radius: 6px; vertical-align: middle;" />
+  </a>
+</p>
+<p align="center">
+  <sub><b>Fine-Grained Controls</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Live Asset Card Badges</b></sub>
+</p>
 
 ---
 
+## Artwork Pipeline
 
 Stickers only look as good as their edges. Low-res artifacts, fringing backgrounds, or inconsistent scales ruin the experience.
-
-Before any sticker enters Realz, raw artwork runs through an automated batch pipeline in GIMP, transforming messy art into crisp, store-ready physical assets.
+Before any sticker enters Realz, raw artwork runs through an automated batch pipeline in GIMP, transforming messy art into store ready physical assets.
 
 Automated alpha extraction strips out raw backgrounds using tight color-boundary detection and edge feathering, preventing pixelated halos
 Every piece runs through automated dynamic level adjustment to bring vibrancy and depth to illustration colors
@@ -104,15 +97,7 @@ Fully automated batch export to lossless WebP format, delivering maximum visual 
 <details>
 <summary><b>View Automated Batch Script Reference</b></summary>
 
-The preparation pipeline is executed via automated Python scripting interfacing directly with GIMP’s batch engine:
+Gimp.displays_flush()
 
-```python
-# Realz Batch Asset Pipeline (High-Level Summary)
-# 1. Add Alpha & Invert Selection Mask
-# 2. Alpha Threshold (15) to kill color bleed
-# 3. Dynamic Levels Calibration
-# 4. Auto-crop, Scale to 1000px, & Center Canvas
-# 5. GEGL Unsharp Mask Filter Pass
-# 6. Lossless WebP Multi-Export
 
 
