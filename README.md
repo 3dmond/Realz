@@ -97,7 +97,6 @@ Fully automated batch export to lossless WebP format, delivering maximum visual 
 <details>
 <summary><b>View Automated Batch Script Reference</b></summary>
 
-Gimp.displays_flush()
 
 
 
