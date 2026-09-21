@@ -5,6 +5,7 @@ import Home from "@/pages/Home";
 import Product from "@/pages/Product";
 import Selections from "@/pages/Selections";
 import Connect from "@/pages/Connect";
+import MockupStudio from "@/pages/MockupStudio";
 import NotFound from "@/pages/NotFound";
 
 // Admin System
@@ -29,6 +30,8 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Home />} />
           <Route path="/product/:id" element={<Product />} />
+          <Route path="/mockup" element={<MockupStudio />} />
+          <Route path="/mockup/:id" element={<MockupStudio />} />
           <Route path="/selections" element={<Selections />} />
           <Route path="/connect" element={<Connect />} />
         </Route>
