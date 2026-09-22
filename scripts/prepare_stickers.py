@@ -1,88 +1,90 @@
+exec('''
 import gi
 gi.require_version('Gimp', '3.0')
 from gi.repository import Gimp
 
+TARGET_MAX_DIM = 512
+GROW_PX = 6
+SAMPLE_THRESHOLD = 15.0 / 255.0
+
 pdb = Gimp.get_pdb()
-autocrop_proc = pdb.lookup_procedure('plug-in-autocrop')
-scale_proc = pdb.lookup_procedure('gimp-image-scale-full')
+bounds_proc = pdb.lookup_procedure('gimp-selection-bounds')
 
-images = list(Gimp.get_images())
+# Set interpolation globally in the context for all scale operations
+Gimp.context_set_interpolation(Gimp.InterpolationType.NOHALO)
 
-for image in images:
+for image in Gimp.get_images():
     image.undo_group_start()
     try:
-        # 1. Alpha Channels
-        for layer in image.get_selected_layers():
-            if not layer.has_alpha():
-                layer.add_alpha()
+        layers = image.get_selected_layers()
+        if not layers:
+            layers = image.get_layers()
+        if not layers:
+            continue
 
-        # 2. Core Die-Cut Masking
-        Gimp.context_set_sample_threshold(0.01)
-        for layer in image.get_selected_layers():
-            if layer.get_mask():
-                continue
-            image.select_contiguous_color(Gimp.ChannelOps.REPLACE, layer, 0.0, 0.0)
-            Gimp.Selection.invert(image)
-            Gimp.Selection.shrink(image, 11)
-            mask = layer.create_mask(Gimp.AddMaskType.SELECTION)
-            layer.add_mask(mask)
-            Gimp.Selection.none(image)
+        layer = layers[0]
+        if not layer.has_alpha():
+            layer.add_alpha()
 
-            if layer.get_mask():
-                layer.remove_mask(Gimp.MaskApplyMode.APPLY)
+        # Step 1 & 2: Background Selection & 6px Grow
+        Gimp.context_set_sample_threshold(SAMPLE_THRESHOLD)
+        Gimp.context_set_sample_transparent(False)
+        Gimp.Selection.none(image)
 
-        # 3. Initial Autocrop Pass
-        if autocrop_proc:
-            for layer in image.get_selected_layers():
-                config = autocrop_proc.create_config()
-                config.set_property('run-mode', Gimp.RunMode.NONINTERACTIVE)
-                config.set_property('image', image)
-                config.set_property('drawable', layer)
-                autocrop_proc.run(config)
-                break
+        image.select_contiguous_color(Gimp.ChannelOps.REPLACE, layer, 0.0, 0.0)
+        Gimp.Selection.grow(image, GROW_PX)
+        layer.edit_clear()
+        Gimp.Selection.none(image)
 
-        # 4. Geometry Pipeline (Scale to 1000px, Center Canvas)
-        width = image.get_width()
-        height = image.get_height()
-        max_side = max(width, height)
+        # Step 3: Exact Bounding Box Autocrop
+        image.select_item(Gimp.ChannelOps.REPLACE, layer)
+        
+        cfg = bounds_proc.create_config()
+        cfg.set_property('image', image)
+        val = bounds_proc.run(cfg)
 
-        if max_side > 1000 and scale_proc:
-            scale_factor = 1000.0 / max_side
-            new_width = int(round(width * scale_factor))
-            new_height = int(round(height * scale_factor))
-            config = scale_proc.create_config()
-            config.set_property('image', image)
-            config.set_property('width', new_width)
-            config.set_property('height', new_height)
-            config.set_property('interpolation', Gimp.InterpolationType.LANCZOS)
-            scale_proc.run(config)
+        non_empty = val.index(1)
+        x1 = val.index(2)
+        y1 = val.index(3)
+        x2 = val.index(4)
+        y2 = val.index(5)
 
-        current_w = image.get_width()
-        current_h = image.get_height()
-        target_size = 1000
-        offset_x = (target_size - current_w) / 2.0
-        offset_y = (target_size - current_h) / 2.0
-        image.resize(target_size, target_size, int(offset_x), int(offset_y))
+        Gimp.Selection.none(image)
 
-        for layer in image.get_layers():
-            if not layer.is_floating_sel():
-                layer.resize_to_image_size()
+        if non_empty:
+            crop_w = int(x2 - x1)
+            crop_h = int(y2 - y1)
+            image.crop(crop_w, crop_h, int(x1), int(y1))
 
-        # 5. GEGL Unsharp Mask Filter
-        for layer in image.get_selected_layers():
-            if layer.is_floating_sel():
-                continue
-            filt = Gimp.DrawableFilter.new(layer, "gegl:unsharp-mask", "Unsharp Mask")
-            if filt:
-                config = filt.get_config()
-                if config:
-                    config.set_property('std-dev', 1.5)
-                    config.set_property('scale', 0.5)
-                    config.set_property('threshold', 0.0)
-                filt.update()
-                layer.append_filter(filt)
+        # Step 4: Native Image Scale (Max 512px, NoHalo via context)
+        w = image.get_width()
+        h = image.get_height()
+        max_side = max(w, h)
+
+        if max_side > TARGET_MAX_DIM:
+            factor = float(TARGET_MAX_DIM) / float(max_side)
+            new_w = int(round(w * factor))
+            new_h = int(round(h * factor))
+            image.scale(new_w, new_h)
+
+        for l in image.get_layers():
+            if not l.is_floating_sel():
+                l.resize_to_image_size()
+
+        # Step 5: GEGL Unsharp Mask Commit
+        filt = Gimp.DrawableFilter.new(layer, "gegl:unsharp-mask", "Sharpen")
+        if filt:
+            config = filt.get_config()
+            if config:
+                config.set_property('std-dev', 0.9)
+                config.set_property('scale', 1.4)
+                config.set_property('threshold', 0.0)
+            filt.update()
+            layer.merge_filter(filt)
 
     finally:
         image.undo_group_end()
 
 Gimp.displays_flush()
+print("Success: Snapped tight bounding box, scaled to <= 512px via native image.scale, and sharpened.")
+''')
