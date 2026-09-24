@@ -11,14 +11,17 @@ export default function Header() {
       className="sticky top-0 z-40 border-b border-white/[0.08] backdrop-blur-xl transition-all"
       style={{ background: "oklch(0.14 0.055 278 / 0.85)" }}
     >
-      <div className="mx-auto flex py-3 md:py-4 max-w-[1600px] items-center justify-between px-4 sm:px-8">
-        {/* Brand Logo */}
+      <div className="relative mx-auto flex py-3 md:py-4 max-w-[1600px] items-center justify-between px-4 sm:px-8">
+        {/* Left spacer to balance layout */}
+        <div className="w-12 h-12 md:w-14 md:h-14 shrink-0 pointer-events-none" aria-hidden="true" />
+
+        {/* Brand Logo Centered */}
         <Link
           to="/"
           onClick={() => {
             window.dispatchEvent(new CustomEvent("reset-home"));
           }}
-          className="realz-logo text-4xl sm:text-5xl md:text-6xl leading-[0.85] tracking-tight text-white drop-shadow-[0_2px_12px_rgba(139,92,246,0.3)] shrink-0"
+          className="realz-logo absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl sm:text-5xl md:text-6xl leading-[0.85] tracking-tight text-white drop-shadow-[0_2px_12px_rgba(139,92,246,0.3)] shrink-0 z-10 select-none"
         >
           Rea<span className="lz text-primary">lz</span>
         </Link>

@@ -86,5 +86,5 @@ for image in Gimp.get_images():
         image.undo_group_end()
 
 Gimp.displays_flush()
-print("Success: Snapped tight bounding box, scaled to <= 512px via native image.scale, and sharpened.")
+print("Batch Processing Finished")
 ''')

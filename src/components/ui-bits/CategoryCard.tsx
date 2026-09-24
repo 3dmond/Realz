@@ -100,29 +100,14 @@ export default function CategoryCard({
           </div>
         )}
       </div>
-      {/* Footer Title: Solid Horizontal Alignment Preserved */}
-      <div
-        className={`w-full shrink-0 pt-2 flex items-center justify-between border-t mt-1 z-10 transition-colors ${
-          isActive
-            ? "border-primary/60"
-            : "border-white/[0.08] group-hover:border-primary/40"
-        }`}
-      >
+      {/* Footer Title: Clean, Borderless & Centered */}
+      <div className="w-full shrink-0 pt-1.5 flex items-center justify-center text-center z-10">
         <span
           className={`text-[11px] md:text-[12px] font-black uppercase tracking-wider transition-colors leading-tight break-words ${
-            isActive ? "text-primary" : "text-foreground group-hover:text-primary"
+            isActive ? "text-primary" : "text-foreground/90 group-hover:text-primary"
           }`}
         >
           {formattedTitle}
-        </span>
-        <span
-          className={`text-[10px] transition-all duration-200 ${
-            isActive
-              ? "text-primary font-bold"
-              : "text-muted-foreground group-hover:text-primary group-hover:translate-x-1"
-          }`}
-        >
-          {isActive ? "●" : "→"}
         </span>
       </div>
     </div>

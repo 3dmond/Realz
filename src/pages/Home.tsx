@@ -129,7 +129,29 @@ export default function Home() {
       if (matched.length > 0) return matched;
     }
     const featured = dbProducts.filter((p) => p.is_featured);
-    return featured.length > 0 ? featured.slice(0, 16) : dbProducts.slice(0, 16);
+    if (featured.length > 0) return featured.slice(0, 16);
+
+    // Pick diverse items from various categories
+    const byCategory = new Map<number | string, (typeof dbProducts)[0][]>();
+    for (const p of dbProducts) {
+      if (!byCategory.has(p.category_id)) {
+        byCategory.set(p.category_id, []);
+      }
+      byCategory.get(p.category_id)!.push(p);
+    }
+    const diverse: (typeof dbProducts)[0][] = [];
+    const catArrays = Array.from(byCategory.values());
+    let round = 0;
+    while (diverse.length < 16 && catArrays.some((arr) => arr.length > round)) {
+      for (const arr of catArrays) {
+        if (diverse.length >= 16) break;
+        if (arr.length > round) {
+          diverse.push(arr[round]);
+        }
+      }
+      round++;
+    }
+    return diverse.length > 0 ? diverse : dbProducts.slice(0, 16);
   }, [dbProducts, trendingIds]);
 
   const showcaseStickers = useMemo(() => {
@@ -244,10 +266,10 @@ export default function Home() {
                 }}
               />
 
-              <div className="relative z-10 flex items-center justify-between mb-6 border-b border-white/[0.08] pb-4">
+              <div className="relative z-10 flex items-center justify-between mb-5 sm:mb-6">
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground flex items-center gap-3 font-['Caveat',cursive] tracking-wide select-none">
                   <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
-                  Categories
+                  <span className="border-b border-white/[0.18] pb-1">Categories</span>
                 </h2>
               </div>
 
@@ -288,14 +310,14 @@ export default function Home() {
                   }}
                 />
 
-                <div className="relative z-10 flex items-center justify-between mb-6 border-b border-white/[0.08] pb-4">
+                <div className="relative z-10 flex items-center justify-between mb-8 sm:mb-12">
                   <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground flex items-center gap-3 font-['Caveat',cursive] tracking-wide select-none">
                     <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
-                    Trending Drops
+                    <span className="border-b border-white/[0.18] pb-1">Trending Drops</span>
                   </h2>
                 </div>
 
-                <div className="relative z-10 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-5 md:gap-6 items-center">
+                <div className="relative z-10 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-5 md:gap-6 items-center pt-2 sm:pt-4">
                   {trendingProducts.map((pack, idx) => (
                     <div key={pack.id} className="transition-all duration-300">
                       <ProductCard product={pack} index={idx} />
@@ -312,10 +334,10 @@ export default function Home() {
           /* Filtered Category View: Subcategory vertical list on the left, stickers on the right */
           <section className="mx-auto w-full max-w-[1600px] px-4 pb-8 sm:px-8">
             {/* Category Header with Clean Title & Back Button (Breadcrumbs and extra text info removed) */}
-            <div className="flex items-center justify-between mb-8 border-b border-white/[0.08] pb-4">
+            <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground flex items-center gap-3 font-['Caveat',cursive] tracking-wide select-none">
                 <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
-                {getCategoryName(selectedCategory)}
+                <span className="border-b border-white/[0.18] pb-1">{getCategoryName(selectedCategory)}</span>
               </h2>
               <button
                 onClick={() => handleCategoryClick("ALL")}
