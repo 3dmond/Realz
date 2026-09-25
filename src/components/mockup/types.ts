@@ -74,11 +74,17 @@ export interface StickerTransform {
   rotation: number;
 }
 
+export type StickerPhysicalSizeTier = '4cm' | '5cm' | '8cm' | 'custom';
+
 export interface PlacedSticker {
   instanceId: string;
   stickerId: number | string;
   title: string;
   imageUrl: string;
   transform: StickerTransform;
+  /** Physical target base size in mm (default 50 for 5.0 cm Medium) */
+  baseSizeMm?: number;
+  /** Aspect ratio of the graphic (naturalWidth / naturalHeight) */
+  aspectRatio?: number;
 }
 

@@ -50,6 +50,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string | number>("ALL");
   const [currentSubCategorySlug, setCurrentSubCategorySlug] = useState<string | null>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllTrending, setShowAllTrending] = useState(false);
 
   // Sync state with URL params
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function Home() {
       setSelectedCategory("ALL");
       setCurrentSubCategorySlug(null);
       setShowAllCategories(false);
+      setShowAllTrending(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
     window.addEventListener("reset-home", handleReset);
@@ -283,7 +285,7 @@ export default function Home() {
               <div className="relative z-10 flex items-center justify-between mb-5 sm:mb-6">
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground flex items-center gap-3 font-['Caveat',cursive] tracking-wide select-none">
                   <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
-                  <span className="border-b border-white/[0.18] pb-1">Categories</span>
+                  <span className="border-b border-white/[0.18] pb-1">Stick Your Vibe</span>
                 </h2>
 
                 {availableCategories.length > 3 && (
@@ -357,11 +359,38 @@ export default function Home() {
                     <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
                     <span className="border-b border-white/[0.18] pb-1">Trending Drops</span>
                   </h2>
+
+                  {trendingProducts.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllTrending((prev) => !prev)}
+                      className={cn(
+                        "group flex items-center gap-1 text-xs sm:text-sm font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider cursor-pointer select-none",
+                        trendingProducts.length <= 4 && "sm:hidden",
+                        trendingProducts.length <= 5 && "md:hidden",
+                        trendingProducts.length <= 6 && "lg:hidden",
+                        trendingProducts.length <= 8 && "xl:hidden",
+                      )}
+                    >
+                      <span>{showAllTrending ? "Show less" : "See all drops"}</span>
+                      {showAllTrending ? (
+                        <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 <div className="relative z-10 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-5 md:gap-6 items-center pt-2 sm:pt-4">
                   {trendingProducts.map((pack, idx) => (
-                    <div key={pack.id} className="transition-all duration-300">
+                    <div
+                      key={pack.id}
+                      className={cn(
+                        "transition-all duration-300",
+                        getCategoryVisibilityClass(idx, showAllTrending),
+                      )}
+                    >
                       <ProductCard product={pack} index={idx} />
                     </div>
                   ))}

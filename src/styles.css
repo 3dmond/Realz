@@ -70,11 +70,11 @@
 
   /* Rich dark indigo / violet foundation */
   --background: oklch(0.14 0.055 278);
-  --foreground: oklch(0.97 0.01 285); /* crisp high-contrast off-white */
+  --foreground: oklch(0.935 0.022 345); /* soft cream / gentle white-pink */
   --card: oklch(0.17 0.04 278 / 0.65);
-  --card-foreground: oklch(0.97 0.01 285);
+  --card-foreground: oklch(0.935 0.022 345);
   --popover: oklch(0.16 0.045 278);
-  --popover-foreground: oklch(0.97 0.01 285);
+  --popover-foreground: oklch(0.935 0.022 345);
 
   /* Vivid Royal/Electric Purple primary */
   --primary: oklch(0.58 0.25 285);
@@ -83,9 +83,9 @@
 
   /* Dark translucent indigo surfaces */
   --secondary: oklch(0.2 0.04 278);
-  --secondary-foreground: oklch(0.94 0.01 285);
+  --secondary-foreground: oklch(0.91 0.02 345);
   --muted: oklch(0.2 0.035 278);
-  --muted-foreground: oklch(0.7 0.03 285); /* clear accessible silver-lilac */
+  --muted-foreground: oklch(0.72 0.03 330); /* soft lilac-silver muted */
 
   /* Electric Fuchsia Accent */
   --accent: oklch(0.62 0.26 315);

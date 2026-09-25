@@ -394,6 +394,35 @@ export default function LiveStickerMockupView({
     );
   };
 
+  const handleUpdateSticker = (instanceId: string, updates: Partial<PlacedSticker>) => {
+    setPlacedStickers((prev) =>
+      prev.map((s) => (s.instanceId === instanceId ? { ...s, ...updates } : s)),
+    );
+  };
+
+  const handleSetStickerPhysicalSize = (sizeMm: number) => {
+    if (!activeInstanceId) return;
+    setPlacedStickers((prev) =>
+      prev.map((s) =>
+        s.instanceId === activeInstanceId
+          ? {
+              ...s,
+              baseSizeMm: sizeMm,
+              transform: { ...s.transform, scale: 1.0 },
+            }
+          : s,
+      ),
+    );
+  };
+
+  const activePlacedSticker = useMemo(() => {
+    return (
+      placedStickers.find((s) => s.instanceId === activeInstanceId) ||
+      placedStickers[0] ||
+      null
+    );
+  }, [placedStickers, activeInstanceId]);
+
   // Render surface with children layer
   const renderSurface = () => {
     const child = (
@@ -405,6 +434,7 @@ export default function LiveStickerMockupView({
         onSelectSticker={handleSelectStickerFromSurface}
         onChangeTransform={handleChangeTransform}
         onRemoveSticker={handleRemoveSticker}
+        onUpdateSticker={handleUpdateSticker}
       />
     );
 
@@ -643,7 +673,49 @@ export default function LiveStickerMockupView({
             </div>
           </div>
 
-          {/* D. QUICK ADJUST & REMOVE STICKER BUTTONS */}
+          {/* D. PHYSICAL PRINT SIZE SELECTOR (GIMP Scaled Dimensions) */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-micro text-muted-foreground">4. Physical Print Size</label>
+              <span className="text-[10px] font-mono font-bold text-primary">
+                {activePlacedSticker?.baseSizeMm
+                  ? `${(activePlacedSticker.baseSizeMm / 10).toFixed(0)} cm Base`
+                  : '5.0 cm (Medium)'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { label: '4 cm', sub: 'Standard', mm: 40 },
+                { label: '5 cm', sub: 'Medium', mm: 50 },
+                { label: '8 cm', sub: 'Large', mm: 80 },
+              ].map((tier) => {
+                const currentMm = activePlacedSticker?.baseSizeMm || 50;
+                const isSelected = currentMm === tier.mm;
+                return (
+                  <button
+                    key={tier.mm}
+                    type="button"
+                    onClick={() => handleSetStickerPhysicalSize(tier.mm)}
+                    disabled={!activeInstanceId}
+                    className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl border text-center transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_12px_var(--color-primary-glow)] font-black'
+                        : 'bg-white/[0.04] border-white/[0.08] text-muted-foreground hover:bg-white/[0.08] hover:text-foreground'
+                    }`}
+                  >
+                    <span className="text-xs font-bold leading-tight">{tier.label}</span>
+                    <span className="text-[9px] opacity-75">{tier.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-[9px] text-muted-foreground/70 leading-tight">
+              Scaled to real-world {activeVariant.name} dimensions.
+            </p>
+          </div>
+
+          {/* E. QUICK ADJUST & REMOVE STICKER BUTTONS */}
           <div className="mt-auto pt-3 border-t border-white/[0.08]">
             <div className="flex items-center justify-between mb-2">
               <label className="text-micro text-muted-foreground">Quick Adjust</label>

@@ -13,10 +13,7 @@ function createPhoneVariant(
   const aspectRatio = +(widthMm / heightMm).toFixed(4);
   // Baseline phone height is ~147mm (iPhone standard)
   const physicalScaleFactor = +(147 / heightMm).toFixed(2);
-  const isFold = formFactor === 'foldable';
-  const bounds = isFold
-    ? { left: 0.06, top: 0.08, width: 0.88, height: 0.84 }
-    : { left: 0.08, top: 0.16, width: 0.84, height: 0.78 };
+  const bounds = { left: 0, top: 0, width: 1, height: 1 };
 
   return {
     id,
@@ -245,7 +242,7 @@ function createLaptopVariant(
     dimensionNote: `${widthMm.toFixed(1)} × ${depthMm.toFixed(1)} mm (${screenInches}″)`,
     aspectRatio,
     physicalScaleFactor,
-    bounds: { left: 0.1, top: 0.12, width: 0.8, height: 0.76 },
+    bounds: { left: 0, top: 0, width: 1, height: 1 },
     formFactor: 'laptop',
   };
 }
@@ -295,7 +292,7 @@ const STICKER_SHEET_VARIANTS: MockupVariant[] = [
     dimensionNote: '1.0 × 1.0 m (100 × 100 cm)',
     aspectRatio: 1.0,
     physicalScaleFactor: 1.0,
-    bounds: { left: 0.05, top: 0.05, width: 0.9, height: 0.9 },
+    bounds: { left: 0, top: 0, width: 1, height: 1 },
     heightMm: 1000,
     widthMm: 1000,
     formFactor: 'sheet',
@@ -307,7 +304,7 @@ const STICKER_SHEET_VARIANTS: MockupVariant[] = [
     dimensionNote: '2.0 × 2.0 m (200 × 200 cm)',
     aspectRatio: 1.0,
     physicalScaleFactor: 0.5,
-    bounds: { left: 0.05, top: 0.05, width: 0.9, height: 0.9 },
+    bounds: { left: 0, top: 0, width: 1, height: 1 },
     heightMm: 2000,
     widthMm: 2000,
     formFactor: 'sheet',
@@ -319,7 +316,7 @@ const STICKER_SHEET_VARIANTS: MockupVariant[] = [
     dimensionNote: '3.0 × 3.0 m (300 × 300 cm)',
     aspectRatio: 1.0,
     physicalScaleFactor: 0.33,
-    bounds: { left: 0.05, top: 0.05, width: 0.9, height: 0.9 },
+    bounds: { left: 0, top: 0, width: 1, height: 1 },
     heightMm: 3000,
     widthMm: 3000,
     formFactor: 'sheet',
@@ -337,7 +334,9 @@ const BOTTLE_VARIANTS: MockupVariant[] = [
     dimensionNote: 'Standard 24oz Insulated Tumbler',
     aspectRatio: 80 / 220,
     physicalScaleFactor: 1.0,
-    bounds: { left: 0.12, top: 0.22, width: 0.76, height: 0.64 },
+    bounds: { left: 0, top: 0, width: 1, height: 1 },
+    widthMm: 80,
+    heightMm: 220,
   },
   {
     id: 'bottle-32oz',
@@ -346,7 +345,9 @@ const BOTTLE_VARIANTS: MockupVariant[] = [
     dimensionNote: 'Heavy Duty 32oz Trail Bottle',
     aspectRatio: 92 / 240,
     physicalScaleFactor: 0.88,
-    bounds: { left: 0.12, top: 0.24, width: 0.76, height: 0.62 },
+    bounds: { left: 0, top: 0, width: 1, height: 1 },
+    widthMm: 92,
+    heightMm: 240,
   },
   {
     id: 'bottle-40oz',
@@ -355,7 +356,9 @@ const BOTTLE_VARIANTS: MockupVariant[] = [
     dimensionNote: 'Large 40oz Commuter Mug with Handle',
     aspectRatio: 100 / 280,
     physicalScaleFactor: 0.75,
-    bounds: { left: 0.14, top: 0.2, width: 0.72, height: 0.65 },
+    bounds: { left: 0, top: 0, width: 1, height: 1 },
+    widthMm: 100,
+    heightMm: 280,
   },
 ];
 
