@@ -8,6 +8,7 @@ import {
   fetchTrendingStickerIds,
 } from "@/lib/queries";
 import { formatCategoryTitle, cn } from "@/lib/utils";
+import { ChevronRight, ChevronUp } from "lucide-react";
 import ProductCard from "@/components/ui-bits/ProductCard";
 import CategoryCard from "@/components/ui-bits/CategoryCard";
 import PutThemEverywhere from "@/components/ui-bits/PutThemEverywhere";
@@ -48,6 +49,7 @@ export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string | number>("ALL");
   const [currentSubCategorySlug, setCurrentSubCategorySlug] = useState<string | null>(null);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   // Sync state with URL params
   useEffect(() => {
@@ -71,6 +73,7 @@ export default function Home() {
       setSearchParams({});
       setSelectedCategory("ALL");
       setCurrentSubCategorySlug(null);
+      setShowAllCategories(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
     window.addEventListener("reset-home", handleReset);
@@ -167,10 +170,21 @@ export default function Home() {
     return diverse.length >= 4 ? diverse.slice(0, 4) : valid.slice(0, 4);
   }, [dbProducts]);
 
+  const getCategoryVisibilityClass = (idx: number, showAll: boolean) => {
+    if (showAll) return "";
+    if (idx < 3) return "";
+    if (idx === 3) return "hidden sm:block";
+    if (idx === 4) return "hidden md:block";
+    if (idx === 5) return "hidden lg:block";
+    if (idx < 8) return "hidden xl:block";
+    return "hidden";
+  };
+
   const handleCategoryClick = (catId: number | string) => {
     if (catId === "ALL") {
       setSearchParams({});
       setSelectedCategory("ALL");
+      setShowAllCategories(false);
     } else {
       setSearchParams({ category: String(catId) });
       setSelectedCategory(catId);
@@ -271,17 +285,45 @@ export default function Home() {
                   <span className="w-2.5 h-8 bg-primary rounded-full shrink-0 shadow-[0_0_14px_var(--color-primary-glow)]" />
                   <span className="border-b border-white/[0.18] pb-1">Categories</span>
                 </h2>
+
+                {availableCategories.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllCategories((prev) => !prev)}
+                    className={cn(
+                      "group flex items-center gap-1 text-xs sm:text-sm font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider cursor-pointer select-none",
+                      availableCategories.length <= 4 && "sm:hidden",
+                      availableCategories.length <= 5 && "md:hidden",
+                      availableCategories.length <= 6 && "lg:hidden",
+                      availableCategories.length <= 8 && "xl:hidden",
+                    )}
+                  >
+                    <span>{showAllCategories ? "Show less" : "See all categories"}</span>
+                    {showAllCategories ? (
+                      <ChevronUp className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    )}
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 text-left">
                 {availableCategories.map((cat, idx) => (
-                  <CategoryCard
+                  <div
                     key={cat.id}
-                    index={idx}
-                    title={cat.name}
-                    image={getCategoryThumbnail(cat.id)}
-                    onClick={() => handleCategoryClick(cat.id)}
-                  />
+                    className={cn(
+                      "transition-all duration-300",
+                      getCategoryVisibilityClass(idx, showAllCategories),
+                    )}
+                  >
+                    <CategoryCard
+                      index={idx}
+                      title={cat.name}
+                      image={getCategoryThumbnail(cat.id)}
+                      onClick={() => handleCategoryClick(cat.id)}
+                    />
+                  </div>
                 ))}
               </div>
             </section>
