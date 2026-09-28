@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FolderPlus, X, Folder, AlertCircle, Sparkles } from "lucide-react";
+import { FolderPlus, X, Folder, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { extractErrorMessage } from "@/lib/utils";
 
@@ -70,61 +70,61 @@ export default function SubcategoryCreateModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-      <div className="relative w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0f101f] shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md rounded-xl border border-white/[0.08] bg-[#0c0d18] shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 bg-[#121324]">
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 bg-[#0e0f1b]">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
-              <FolderPlus className="h-4 w-4" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 border border-primary/20 text-primary">
+              <FolderPlus className="h-3.5 w-3.5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">New Subcategory Folder</h3>
+              <h3 className="text-xs font-semibold text-foreground">New Subcategory</h3>
               <p className="text-[11px] text-muted-foreground">
-                Inside <span className="text-primary font-semibold">{categoryName}</span>
+                Parent: <span className="text-foreground font-medium">{categoryName}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground hover:bg-white/[0.05] hover:text-foreground cursor-pointer"
+            className="rounded-md p-1 text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-400">
-              <AlertCircle className="h-4 w-4 shrink-0" />
+            <div className="flex items-center gap-2 rounded-md bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs text-rose-400">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground">Subcategory Name</label>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Subcategory Name</label>
             <Input
               type="text"
               placeholder="e.g. Rick and Morty, The Simpsons, Anime Heroes"
               value={name}
               onChange={handleNameChange}
               autoFocus
-              className="bg-white/[0.04] border-white/[0.1] rounded-xl text-sm"
+              className="bg-white/[0.03] border-white/[0.08] focus:border-primary/50 rounded-md text-xs h-9"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground">Folder Slug (Path)</label>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Folder Slug (Path)</label>
             <Input
               type="text"
               placeholder="e.g. rick-and-morty"
               value={slug}
               onChange={(e) => setSlug(autoSlug(e.target.value))}
-              className="bg-white/[0.04] border-white/[0.1] rounded-xl text-sm font-mono"
+              className="bg-white/[0.03] border-white/[0.08] focus:border-primary/50 rounded-md text-xs font-mono h-9"
             />
-            <p className="text-[11px] text-muted-foreground">
-              Storage destination:{" "}
-              <code className="text-primary/90 bg-white/[0.05] px-1 py-0.5 rounded text-[10px]">
+            <p className="text-[10px] text-muted-foreground font-mono mt-1">
+              Destination:{" "}
+              <code className="text-primary/90 bg-white/[0.04] px-1 py-0.5 rounded text-[10px]">
                 stickers/{categorySlug}/{previewSlug}/
               </code>
             </p>
@@ -134,17 +134,17 @@ export default function SubcategoryCreateModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !name.trim()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 disabled:opacity-50 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {loading ? (
-                <span>Creating...</span>
+                <div className="h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
                   <FolderPlus className="w-3.5 h-3.5" />

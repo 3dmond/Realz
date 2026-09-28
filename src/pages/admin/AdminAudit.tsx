@@ -60,37 +60,37 @@ export default function AdminAudit() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
             Administrative Audit Trail
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Immutable log of catalogue mutations, publishing states, inventory adjustments, and order updates.
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-400">
-          <ShieldCheck className="h-4 w-4" />
+        <div className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-400 shrink-0">
+          <ShieldCheck className="h-3.5 w-3.5" />
           <span>Append-Only Security</span>
         </div>
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="rounded-xl border border-white/[0.06] bg-[#0e0f1b] p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search action, actor, entity ID…"
-            className="h-10 bg-white/[0.04] border-white/[0.1] pl-9 text-xs rounded-xl text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary"
+            className="h-8 bg-white/[0.03] border-white/[0.08] pl-8 text-xs rounded-md text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
           />
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <select
             value={entityFilter}
             onChange={(e) => setEntityFilter(e.target.value)}
-            className="h-10 rounded-xl border border-white/[0.1] bg-[#0c0d18] px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            className="h-8 rounded-md border border-white/[0.08] bg-[#0c0d18] px-2.5 text-xs font-medium text-foreground focus:outline-none focus:border-primary/50 cursor-pointer"
           >
             <option value="ALL">All Entity Types</option>
             <option value="products">Products</option>
@@ -105,51 +105,51 @@ export default function AdminAudit() {
       </div>
 
       {/* Audit Log Table */}
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d] overflow-hidden shadow-xl">
+      <div className="rounded-xl border border-white/[0.06] bg-[#0e0f1b] overflow-hidden">
         {isLoading ? (
-          <div className="py-24 text-center text-xs text-muted-foreground">
+          <div className="py-20 text-center text-xs text-muted-foreground">
             Loading audit records…
           </div>
         ) : filteredLogs.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-white/[0.08] bg-white/[0.02] text-muted-foreground text-[10px] font-black uppercase tracking-widest">
-                  <th className="py-3.5 px-4">Timestamp</th>
-                  <th className="py-3.5 px-4">Operator / Actor</th>
-                  <th className="py-3.5 px-4">Action</th>
-                  <th className="py-3.5 px-4">Entity</th>
-                  <th className="py-3.5 px-4">Target ID</th>
-                  <th className="py-3.5 px-4">Context Payload</th>
+                <tr className="border-b border-white/[0.06] bg-white/[0.02] text-muted-foreground text-[11px] font-medium uppercase tracking-wider">
+                  <th className="py-3 px-4">Timestamp</th>
+                  <th className="py-3 px-4">Operator / Actor</th>
+                  <th className="py-3 px-4">Action</th>
+                  <th className="py-3 px-4">Entity</th>
+                  <th className="py-3 px-4">Target ID</th>
+                  <th className="py-3 px-4">Context Payload</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
                 {filteredLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3.5 px-4 text-muted-foreground font-mono text-[11px] whitespace-nowrap">
+                    <td className="py-3 px-4 text-muted-foreground font-mono text-[11px] whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-foreground">
+                    <td className="py-3 px-4 font-medium text-foreground">
                       <div className="flex items-center gap-1.5">
-                        <User className="h-3 w-3 text-muted-foreground" />
-                        <span>{log.actor_email || "System"}</span>
+                        <User className="h-3 w-3 text-muted-foreground/60" />
+                        <span className="text-xs">{log.actor_email || "System"}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary">
+                    <td className="py-3 px-4">
+                      <span className="rounded bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[10px] font-mono font-medium text-primary">
                         {log.action}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-muted-foreground uppercase text-[10px] font-bold">
-                      <div className="flex items-center gap-1">
+                    <td className="py-3 px-4 text-muted-foreground text-xs">
+                      <div className="flex items-center gap-1.5">
                         {getEntityIcon(log.entity_type)}
-                        <span>{log.entity_type}</span>
+                        <span className="capitalize">{log.entity_type}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-muted-foreground text-[11px]">
+                    <td className="py-3 px-4 font-mono text-muted-foreground text-[11px]">
                       {log.entity_id ? `#${log.entity_id}` : "—"}
                     </td>
-                    <td className="py-3.5 px-4 text-muted-foreground font-mono text-[11px] max-w-sm truncate">
+                    <td className="py-3 px-4 text-muted-foreground font-mono text-[11px] max-w-sm truncate">
                       {JSON.stringify(log.metadata)}
                     </td>
                   </tr>
@@ -158,10 +158,10 @@ export default function AdminAudit() {
             </table>
           </div>
         ) : (
-          <div className="py-24 text-center">
-            <ScrollText className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
-            <h3 className="text-sm font-bold text-foreground">No audit entries found</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
+          <div className="py-20 text-center">
+            <ScrollText className="mx-auto h-8 w-8 text-muted-foreground/30 mb-2.5" />
+            <h3 className="text-xs font-semibold text-foreground">No audit entries found</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Administrative actions will automatically appear here as operations are performed.
             </p>
           </div>

@@ -60,6 +60,7 @@ export const ORDER_STATUSES: {
 export type AdminStats = {
   totalOrders: number;
   pendingOrders: number;
+  inProductionOrders: number;
   deliveredOrders: number;
   totalRevenue: number;
   activeProducts: number;
@@ -140,6 +141,13 @@ export async function fetchAdminStats(): Promise<AdminStats> {
 
   const totalOrders = orders?.length ?? 0;
   const pendingOrders = orders?.filter((o) => o.status === "pending").length ?? 0;
+  const inProductionOrders =
+    orders?.filter(
+      (o) =>
+        o.status === "confirmed" ||
+        o.status === "processing" ||
+        o.status === "out_for_delivery",
+    ).length ?? 0;
   const deliveredOrders = orders?.filter((o) => o.status === "delivered").length ?? 0;
 
   const totalRevenue = (orders ?? [])
@@ -186,6 +194,7 @@ export async function fetchAdminStats(): Promise<AdminStats> {
   return {
     totalOrders,
     pendingOrders,
+    inProductionOrders,
     deliveredOrders,
     totalRevenue: Math.round(totalRevenue * 100) / 100,
     activeProducts,
@@ -748,11 +757,13 @@ export async function bulkCreateProducts(
 // CATEGORIES MANAGEMENT
 // ------------------------------------------------------------------------------
 
-export async function fetchAdminCategories(): Promise<
-  (Database["public"]["Tables"]["categories"]["Row"] & {
-    product_count: number;
-  })[]
-> {
+export type AdminCategory = Database["public"]["Tables"]["categories"]["Row"] & {
+  product_count: number;
+  draft_count: number;
+  previews: string[];
+};
+
+export async function fetchAdminCategories(): Promise<AdminCategory[]> {
   const { data: cats, error: cErr } = await supabase
     .from("categories")
     .select("*")
@@ -762,19 +773,63 @@ export async function fetchAdminCategories(): Promise<
 
   const { data: prods, error: pErr } = await supabase
     .from("products")
-    .select("category_id");
+    .select("id, category_id, image_url, status, is_active")
+    .order("id", { ascending: false });
 
   const counts: Record<number, number> = {};
+  const draftCounts: Record<number, number> = {};
+  const previews: Record<number, string[]> = {};
+
   if (!pErr && prods) {
     for (const p of prods) {
-      counts[p.category_id] = (counts[p.category_id] || 0) + 1;
+      const isArchived = p.status === "archived" || p.is_active === false;
+      if (isArchived) continue;
+
+      const catId = p.category_id;
+      counts[catId] = (counts[catId] || 0) + 1;
+
+      if (p.status === "draft") {
+        draftCounts[catId] = (draftCounts[catId] || 0) + 1;
+      }
+
+      if (p.image_url) {
+        if (!previews[catId]) previews[catId] = [];
+        if (previews[catId].length < 3) {
+          previews[catId].push(p.image_url);
+        }
+      }
     }
   }
 
   return (cats || []).map((c) => ({
     ...c,
     product_count: counts[c.id] || 0,
+    draft_count: draftCounts[c.id] || 0,
+    previews: previews[c.id] || [],
   }));
+}
+
+export async function updateMultipleProductsStatus(
+  productIds: number[],
+  status: ProductStatus,
+): Promise<void> {
+  const isActive = status === "published";
+  const { error } = await supabase
+    .from("products")
+    .update({ status, is_active: isActive })
+    .in("id", productIds);
+
+  if (error) throw error;
+
+  await recordAuditLog("BATCH_UPDATE_PRODUCT_STATUS", "products", null, {
+    count: productIds.length,
+    productIds,
+    status,
+  });
+}
+
+export async function moveMultipleProductsToBin(productIds: number[]): Promise<void> {
+  await updateMultipleProductsStatus(productIds, "archived");
 }
 
 export async function createCategory(
@@ -1190,6 +1245,25 @@ export async function updateOrderStatus(
   });
 }
 
+export async function updateMultipleOrdersStatus(
+  orderIds: string[],
+  newStatus: OrderStatus,
+): Promise<void> {
+  if (orderIds.length === 0) return;
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ status: newStatus })
+    .in("id", orderIds);
+
+  if (error) throw error;
+
+  await recordAuditLog("BATCH_UPDATE_ORDER_STATUS", "orders", orderIds.join(","), {
+    count: orderIds.length,
+    newStatus,
+  });
+}
+
 // ------------------------------------------------------------------------------
 // AUDIT LOGS
 // ------------------------------------------------------------------------------
@@ -1286,7 +1360,7 @@ export async function fetchExecutiveFinancials(): Promise<ExecutiveFinancialSumm
     totalOrders++;
     if (o.status === "pending") pendingOrders++;
     if (o.status === "delivered") deliveredOrders++;
-    if (o.status === "cancelled") {
+    if (o.status === "cancelled" || o.status === "failed") {
       cancelledOrders++;
       continue;
     }
@@ -1363,7 +1437,12 @@ export async function fetchProductPerformanceLeaderboard(): Promise<ProductPerfo
       revenue: Math.round(stats.revenue * 100) / 100,
       grossProfit: Math.round(grossProfit * 100) / 100,
     };
-  }).sort((a, b) => b.unitsSold - a.unitsSold);
+  }).sort((a, b) => {
+    if (b.unitsSold !== a.unitsSold) {
+      return b.unitsSold - a.unitsSold;
+    }
+    return a.title.localeCompare(b.title);
+  });
 }
 
 // ------------------------------------------------------------------------------

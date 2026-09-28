@@ -193,18 +193,18 @@ export default function ImageDropzone({
   const activeDisplayUrl = previewUrl || activeImageUrl;
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2.5", className)}>
       <div className="flex items-center justify-between">
-        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ml-0.5">
           {label}
         </label>
         {activeDisplayUrl && onClearImage && !selectedFile && (
           <button
             type="button"
             onClick={onClearImage}
-            className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+            className="text-[10px] font-medium text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
           >
-            Remove Current Asset
+            Remove Asset
           </button>
         )}
       </div>
@@ -223,11 +223,11 @@ export default function ImageDropzone({
           fileInputRef.current?.click();
         }}
         className={cn(
-          "relative rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden p-5 flex flex-col items-center justify-center min-h-[220px]",
+          "relative rounded-xl border border-dashed transition-colors cursor-pointer overflow-hidden p-4 flex flex-col items-center justify-center min-h-[160px]",
           isDragging
-            ? "border-primary bg-primary/10 shadow-[0_0_25px_oklch(0.58_0.25_285/0.3)] scale-[1.01]"
-            : "border-white/[0.12] bg-[#090a12] hover:border-white/[0.25] hover:bg-[#0c0d18]",
-          uploadError && "border-rose-500/50 bg-rose-500/[0.04]",
+            ? "border-primary bg-primary/5"
+            : "border-white/[0.12] bg-[#0e0f1b]/50 hover:border-white/[0.22] hover:bg-[#0e0f1b]",
+          uploadError && "border-rose-500/40 bg-rose-500/[0.02]",
         )}
       >
         <input
@@ -240,32 +240,32 @@ export default function ImageDropzone({
         />
 
         {activeDisplayUrl ? (
-          <div className="w-full flex flex-col sm:flex-row items-center gap-5">
-            {/* Artwork Preview Canvas with Transparency Checkerboard */}
-            <div className="relative h-36 w-36 sm:h-40 sm:w-40 shrink-0 rounded-xl overflow-hidden border border-white/[0.15] shadow-inner flex items-center justify-center bg-[linear-gradient(45deg,#121324_25%,transparent_25%),linear-gradient(-45deg,#121324_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#121324_75%),linear-gradient(-45deg,transparent_75%,#121324_75%)] bg-[size:16px_16px] bg-[#07080f]">
+          <div className="w-full flex flex-col sm:flex-row items-center gap-4">
+            {/* Artwork Preview Canvas */}
+            <div className="relative h-28 w-28 sm:h-32 sm:w-32 shrink-0 rounded-lg overflow-hidden border border-white/[0.08] bg-[#070810] flex items-center justify-center p-2">
               <img
                 src={activeDisplayUrl}
                 alt="Artwork preview"
-                className="max-h-full max-w-full object-contain p-2 drop-shadow-md transition-transform hover:scale-105"
+                className="max-h-full max-w-full object-contain"
               />
               {selectedFile && (
-                <span className="absolute bottom-2 left-2 right-2 rounded bg-black/80 backdrop-blur-sm py-0.5 text-center text-[9px] font-mono font-bold text-primary border border-white/10">
+                <span className="absolute bottom-1.5 left-1.5 right-1.5 rounded bg-black/80 py-0.5 text-center text-[9px] font-mono font-medium text-primary border border-white/10">
                   New Selection
                 </span>
               )}
             </div>
 
             {/* Metadata & Validation Card */}
-            <div className="flex-1 min-w-0 space-y-3 text-left w-full">
+            <div className="flex-1 min-w-0 space-y-2 text-left w-full">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-foreground truncate max-w-[220px]">
+                  <p className="text-xs font-medium text-foreground truncate max-w-[220px]">
                     {selectedFile ? selectedFile.name : "Sticker Artwork"}
                   </p>
                   <p className="text-[10px] font-mono text-muted-foreground">
                     {selectedFile
                       ? `${(selectedFile.size / 1024).toFixed(1)} KB`
-                      : "Sticker Design Ready"}
+                      : "Artwork Ready"}
                   </p>
                 </div>
 
@@ -273,7 +273,7 @@ export default function ImageDropzone({
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="grid h-7 w-7 place-items-center rounded-lg border border-white/[0.1] bg-white/[0.04] text-muted-foreground hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
+                    className="grid h-6 w-6 place-items-center rounded-md border border-white/[0.08] bg-white/[0.04] text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                     title="Remove artwork"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -284,14 +284,14 @@ export default function ImageDropzone({
               {/* Status / Validation Badges */}
               <div className="flex flex-wrap items-center gap-1.5">
                 {!isUploading && activeDisplayUrl && (
-                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                  <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                     <CheckCircle2 className="h-2.5 w-2.5" />
-                    <span>Artwork Ready</span>
+                    <span>Valid Artwork</span>
                   </span>
                 )}
 
                 {validation?.width && validation?.height && (
-                  <span className="rounded-full bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 text-[9px] font-mono font-bold text-muted-foreground">
+                  <span className="rounded-md bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
                     {validation.width} × {validation.height}px
                   </span>
                 )}
@@ -299,15 +299,15 @@ export default function ImageDropzone({
 
               {/* Upload Progress */}
               {isUploading && (
-                <div className="space-y-1.5 pt-2">
+                <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1.5 text-primary">
                       <RefreshCw className="h-3 w-3 animate-spin" />
-                      <span>Uploading sticker artwork…</span>
+                      <span>Uploading artwork…</span>
                     </span>
-                    <span className="font-mono font-bold">{uploadProgress}%</span>
+                    <span className="font-mono">{uploadProgress}%</span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-white/[0.08] overflow-hidden">
+                  <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
                     <div
                       className="h-full bg-primary transition-all duration-200"
                       style={{ width: `${uploadProgress}%` }}
@@ -318,39 +318,39 @@ export default function ImageDropzone({
 
               {/* Replace helper */}
               {!isUploading && activeDisplayUrl && (
-                <p className="text-[10px] text-muted-foreground pt-1">
-                  Click box or drag another file to replace artwork.
+                <p className="text-[10px] text-muted-foreground">
+                  Click or drag another file to replace artwork.
                 </p>
               )}
             </div>
           </div>
         ) : !folder && !productId ? (
           /* Missing Category State */
-          <div className="py-6 text-center space-y-2">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto">
-              <AlertTriangle className="h-5 w-5" />
+          <div className="py-4 text-center space-y-1.5">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto">
+              <AlertTriangle className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs font-bold text-amber-400">
+              <p className="text-xs font-medium text-amber-400">
                 Please select a category above
               </p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                A category is required to store artwork in the correct Storage folder.
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                A category is required to store artwork in the correct folder.
               </p>
             </div>
           </div>
         ) : (
           /* Empty / Unselected State with Category Ready */
-          <div className="py-6 text-center space-y-2">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/[0.04] border border-white/[0.08] text-muted-foreground mx-auto group-hover:text-primary transition-colors">
-              <Upload className="h-5 w-5" />
+          <div className="py-4 text-center space-y-1.5">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-white/[0.04] border border-white/[0.08] text-muted-foreground mx-auto">
+              <Upload className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs font-bold text-foreground">
+              <p className="text-xs font-medium text-foreground">
                 Drop sticker artwork here, or <span className="text-primary underline">browse</span>
               </p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Target Storage folder: <code className="font-mono text-primary font-bold">stickers/{folder}/</code>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Target: <code className="font-mono text-muted-foreground">stickers/{folder}/</code>
               </p>
             </div>
           </div>

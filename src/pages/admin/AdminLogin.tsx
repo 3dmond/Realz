@@ -54,119 +54,119 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center bg-[#0a0b14] px-4 py-12 font-sans selection:bg-primary selection:text-white">
+    <div className="relative min-h-screen w-full flex items-center justify-center bg-[#070810] px-4 py-12 font-sans selection:bg-primary selection:text-white">
       {/* Ambient background decoration */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-40 z-0"
+        className="absolute inset-0 pointer-events-none opacity-30 z-0"
         style={{
-          backgroundImage: `radial-gradient(ellipse 60% 50% at 50% 0%, oklch(0.58 0.25 285 / 0.18), transparent 100%)`,
+          backgroundImage: `radial-gradient(ellipse 50% 40% at 50% 0%, oklch(0.58 0.25 285 / 0.12), transparent 100%)`,
         }}
       />
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-sm">
         {/* Brand Banner */}
-        <div className="mb-8 text-center">
+        <div className="mb-6 text-center">
           <Link to="/" className="inline-block">
-            <h1 className="realz-logo text-5xl tracking-tight text-white drop-shadow-[0_2px_16px_rgba(139,92,246,0.3)]">
+            <h1 className="realz-logo text-4xl tracking-tight text-white drop-shadow-[0_2px_12px_rgba(139,92,246,0.25)]">
               Rea<span className="lz text-primary">lz</span>
             </h1>
           </Link>
-          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
-            <ShieldCheck className="h-3 w-3" />
-            <span>OPERATIONAL MANAGEMENT</span>
+          <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-mono uppercase text-muted-foreground">
+            <ShieldCheck className="h-3 w-3 text-primary" />
+            <span>OPERATIONS CONSOLE</span>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground font-medium">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             Authorized administrative access only
           </p>
         </div>
 
         {/* Login Panel */}
-        <div className="rounded-2xl border border-white/[0.08] bg-[#0f101d]/90 p-8 shadow-2xl backdrop-blur-xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-xl border border-white/[0.08] bg-[#0e0f1b] p-6 shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {errorMsg && (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300 font-medium">
+              <div className="rounded-md border border-rose-500/20 bg-rose-500/10 p-2.5 text-xs text-rose-300 font-medium">
                 {errorMsg}
               </div>
             )}
 
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">
                 Admin Email
               </label>
-              <div className="relative mt-1">
+              <div className="relative">
                 <Input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@realz.co.ke"
-                  className="h-12 bg-white/[0.04] border-white/[0.1] pl-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl focus-visible:ring-primary"
+                  className="h-9 bg-white/[0.03] border-white/[0.08] pl-8 text-xs text-foreground placeholder:text-muted-foreground/40 rounded-md focus-visible:ring-primary/50"
                   autoComplete="email"
                 />
-                <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                <Mail className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
               </div>
             </div>
 
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">
                 Password
               </label>
-              <div className="relative mt-1">
+              <div className="relative">
                 <Input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="h-12 bg-white/[0.04] border-white/[0.1] pl-10 text-foreground placeholder:text-muted-foreground/50 rounded-xl focus-visible:ring-primary"
+                  className="h-9 bg-white/[0.03] border-white/[0.08] pl-8 text-xs text-foreground placeholder:text-muted-foreground/40 rounded-md focus-visible:ring-primary/50"
                   autoComplete="current-password"
                 />
-                <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                <Lock className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_oklch(0.58_0.25_285/0.4)] transition-all hover:scale-[1.01] hover:shadow-[0_0_30px_oklch(0.58_0.25_285/0.7)] disabled:opacity-60 cursor-pointer"
+              className="mt-1 w-full h-9 flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
-                <div className="h-5 w-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
               ) : (
                 <>
-                  <span>Authenticate Session</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <span>Sign In</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </>
               )}
             </button>
           </form>
 
           {/* Instant 1-Click Access Option */}
-          <div className="mt-4 pt-4 border-t border-white/[0.06]">
+          <div className="mt-4 pt-3.5 border-t border-white/[0.06]">
             <button
               type="button"
               onClick={handleInstantEnter}
               disabled={loading}
-              className="w-full h-11 flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-wider transition hover:bg-emerald-500/20 cursor-pointer"
+              className="w-full h-9 flex items-center justify-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-medium transition hover:bg-emerald-500/15 cursor-pointer"
             >
-              <Zap className="h-4 w-4" />
+              <Zap className="h-3.5 w-3.5" />
               <span>Instant Access (No Login Required)</span>
             </button>
           </div>
 
-          <div className="mt-6 text-center">
+          <div className="mt-4 text-center">
             <Link
               to="/"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              ← Return to Realz Storefront
+              ← Return to Storefront
             </Link>
           </div>
         </div>
 
         {/* Security Note */}
-        <p className="mt-6 text-center text-[11px] text-muted-foreground/60">
-          All administrative sessions and actions are logged for security and compliance.
+        <p className="mt-4 text-center text-[11px] text-muted-foreground/50">
+          All administrative sessions and actions are logged in the audit ledger.
         </p>
       </div>
     </div>

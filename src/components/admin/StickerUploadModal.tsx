@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Sparkles,
   X,
   UploadCloud,
   CheckCircle2,
@@ -356,21 +355,21 @@ export default function StickerUploadModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-        <div className="relative w-full max-w-xl rounded-2xl border border-white/[0.08] bg-[#0f101f] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+        <div className="relative w-full max-w-xl rounded-xl border border-white/[0.1] bg-[#0c0d18] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 bg-[#121324] shrink-0">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 bg-[#090a13] shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
-                <Sparkles className="h-4 w-4" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] text-primary">
+                <UploadCloud className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground">
+                <h3 className="text-sm font-semibold text-foreground">
                   {isBulk
-                    ? `Bulk Upload to ${categoryName} (${items.length} Stickers)`
+                    ? `Bulk Upload (${items.length} Stickers)`
                     : `Add Sticker to ${categoryName}`}
                 </h3>
-                <p className="text-[11px] font-mono text-primary flex items-center gap-1 mt-0.5">
+                <p className="text-[11px] font-mono text-muted-foreground flex items-center gap-1 mt-0.5">
                   <Folder className="h-3 w-3" />
                   Target: stickers/{effectiveFolder}/
                 </p>
@@ -378,7 +377,7 @@ export default function StickerUploadModal({
             </div>
             <button
               onClick={handleResetAndClose}
-              className="rounded-lg p-1 text-muted-foreground hover:bg-white/[0.05] hover:text-foreground cursor-pointer"
+              className="rounded-md p-1 text-muted-foreground hover:bg-white/[0.05] hover:text-foreground cursor-pointer transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
@@ -395,12 +394,12 @@ export default function StickerUploadModal({
           />
 
           {/* Form Body */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+          <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
             {/* Folder / Subcategory selector */}
             {subcategories.length > 0 && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-purple-400" />
+                <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
                   <span>Target Subcategory Folder</span>
                 </label>
                 <select
@@ -408,7 +407,7 @@ export default function StickerUploadModal({
                   onChange={(e) =>
                     setSubcategoryId(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="w-full h-10 px-3 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs font-medium text-foreground focus:outline-none"
+                  className="w-full h-8.5 px-2.5 rounded-md bg-[#090a13] border border-white/[0.08] text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
                   <option value="">None (Category Root: stickers/{categorySlug}/)</option>
                   {subcategories.map((sub) => (
@@ -427,39 +426,36 @@ export default function StickerUploadModal({
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 className={cn(
-                  "p-8 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer",
+                  "p-6 rounded-xl border border-dashed transition-colors flex flex-col items-center justify-center text-center cursor-pointer",
                   isDragging
-                    ? "border-primary bg-primary/10 scale-[1.01]"
-                    : "border-white/[0.12] bg-white/[0.02] hover:border-primary/50 hover:bg-white/[0.04]",
+                    ? "border-primary bg-primary/5"
+                    : "border-white/[0.12] bg-[#0e0f1b]/50 hover:border-white/[0.22] hover:bg-[#0e0f1b]",
                 )}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary mb-3.5">
-                  <UploadCloud className="h-7 w-7" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] text-muted-foreground mb-2.5">
+                  <UploadCloud className="h-5 w-5" />
                 </div>
-                <h4 className="text-sm font-bold text-foreground">
-                  Drag & drop sticker artwork here
+                <h4 className="text-sm font-semibold text-foreground">
+                  Drop sticker artwork files here
                 </h4>
-                <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
                   Drop single stickers or drag multiple files at once for bulk upload.
                 </p>
-                <p className="text-[11px] text-primary/80 font-medium mt-2">
-                  ✓ Titles are automatically generated from filenames in Title Case
-                </p>
 
-                <div className="mt-5 flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-4 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Browse Files (Single or Bulk)</span>
+                    <span>Browse Files</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setMediaPickerOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/[0.05] hover:bg-white/[0.1] text-foreground border border-white/[0.1] transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-foreground border border-white/[0.08] transition-colors cursor-pointer"
                   >
                     <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>Choose from Library</span>
@@ -470,14 +466,14 @@ export default function StickerUploadModal({
 
             {/* CASE 2: Single file selected */}
             {items.length === 1 && !libraryItem && (
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 {/* Artwork Preview Card */}
-                <div className="relative rounded-2xl border border-white/[0.08] bg-black/40 p-4 flex items-center gap-4">
-                  <div className="relative h-24 w-24 rounded-xl bg-black/60 border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0">
+                <div className="relative rounded-xl border border-white/[0.06] bg-[#0e0f1b] p-3 flex items-center gap-3">
+                  <div className="relative h-20 w-20 rounded-lg bg-[#070810] border border-white/[0.06] overflow-hidden flex items-center justify-center shrink-0 p-1">
                     <img
                       src={items[0].previewUrl}
                       alt={items[0].title}
-                      className="h-full w-full object-contain p-1"
+                      className="h-full w-full object-contain"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -487,35 +483,32 @@ export default function StickerUploadModal({
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {(items[0].file.size / 1024).toFixed(1)} KB • Image
                     </p>
-                    <p className="text-[11px] font-mono text-primary mt-1">
+                    <p className="text-[11px] font-mono text-muted-foreground mt-1 truncate">
                       → stickers/{effectiveFolder}/{items[0].file.name.toLowerCase().replace(/[\s_]+/g, "-")}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => removeItem(items[0].id)}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    className="p-1 rounded-md text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                     title="Remove file"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* Title Input (Auto-capitalized from filename) */}
+                {/* Title Input */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground">
+                    <label className="text-xs font-medium text-foreground">
                       Display Title <span className="text-rose-400">*</span>
                     </label>
-                    <span className="text-[10px] text-primary/80 font-medium">
-                      Auto-capitalized from filename
-                    </span>
                   </div>
                   <Input
                     type="text"
                     value={items[0].title}
                     onChange={(e) => updateItemTitle(items[0].id, e.target.value)}
-                    className="bg-white/[0.04] border-white/[0.1] rounded-xl text-sm font-semibold"
+                    className="bg-[#090a13] border-white/[0.08] rounded-md text-xs font-medium h-8"
                     placeholder="Sticker display name"
                   />
                 </div>
@@ -526,7 +519,7 @@ export default function StickerUploadModal({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-primary hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                    className="text-primary hover:underline font-medium flex items-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add more files</span>
@@ -537,18 +530,18 @@ export default function StickerUploadModal({
 
             {/* CASE 3: Library item selected */}
             {libraryItem && (
-              <div className="space-y-4">
-                <div className="relative rounded-2xl border border-white/[0.08] bg-black/40 p-4 flex items-center gap-4">
-                  <div className="relative h-24 w-24 rounded-xl bg-black/60 border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0">
+              <div className="space-y-3.5">
+                <div className="relative rounded-xl border border-white/[0.06] bg-[#0e0f1b] p-3 flex items-center gap-3">
+                  <div className="relative h-20 w-20 rounded-lg bg-[#070810] border border-white/[0.06] overflow-hidden flex items-center justify-center shrink-0 p-1">
                     <img
                       src={libraryItem.url}
                       alt={libraryItem.title}
-                      className="h-full w-full object-contain p-1"
+                      className="h-full w-full object-contain"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 text-[10px] font-bold">
-                      <ImageIcon className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.04] text-muted-foreground text-[10px] font-medium border border-white/[0.06]">
+                      <ImageIcon className="w-3 h-3 text-muted-foreground" />
                       Media Library Asset
                     </span>
                     <p className="text-xs font-mono text-muted-foreground mt-1 truncate">
@@ -558,14 +551,14 @@ export default function StickerUploadModal({
                   <button
                     type="button"
                     onClick={() => setLibraryItem(null)}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    className="p-1 rounded-md text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">
+                  <label className="text-xs font-medium text-foreground">
                     Display Title <span className="text-rose-400">*</span>
                   </label>
                   <Input
@@ -574,7 +567,7 @@ export default function StickerUploadModal({
                     onChange={(e) =>
                       setLibraryItem({ ...libraryItem, title: e.target.value })
                     }
-                    className="bg-white/[0.04] border-white/[0.1] rounded-xl text-sm font-semibold"
+                    className="bg-[#090a13] border-white/[0.08] rounded-md text-xs font-medium h-8"
                   />
                 </div>
               </div>
@@ -584,16 +577,13 @@ export default function StickerUploadModal({
             {isBulk && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
-                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
                     <span>Batch Queue ({items.length} stickers)</span>
-                    <span className="text-[10px] text-muted-foreground font-normal">
-                      Titles auto-capitalized
-                    </span>
                   </p>
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add More</span>
@@ -602,8 +592,8 @@ export default function StickerUploadModal({
 
                 {/* Progress bar if uploading */}
                 {isSaving && (
-                  <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-semibold text-primary">
+                  <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-medium text-primary">
                       <span>Uploading stickers...</span>
                       <span>
                         {completedCount} / {items.length}
@@ -621,26 +611,26 @@ export default function StickerUploadModal({
                 )}
 
                 {/* List of bulk items */}
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {items.map((item, idx) => (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {items.map((item) => (
                     <div
                       key={item.id}
                       className={cn(
-                        "p-2.5 rounded-xl border flex items-center gap-3 transition-colors",
+                        "p-2 rounded-lg border flex items-center gap-2.5 transition-colors",
                         item.status === "uploading"
                           ? "bg-primary/5 border-primary/30"
                           : item.status === "success"
                           ? "bg-emerald-500/5 border-emerald-500/30"
                           : item.status === "error"
                           ? "bg-rose-500/5 border-rose-500/30"
-                          : "bg-white/[0.02] border-white/[0.06]",
+                          : "bg-[#0e0f1b] border-white/[0.06]",
                       )}
                     >
-                      <div className="h-10 w-10 rounded-lg bg-black/40 border border-white/[0.06] overflow-hidden flex items-center justify-center shrink-0">
+                      <div className="h-9 w-9 rounded bg-[#070810] border border-white/[0.06] overflow-hidden flex items-center justify-center shrink-0 p-0.5">
                         <img
                           src={item.previewUrl}
                           alt={item.title}
-                          className="h-full w-full object-contain p-0.5"
+                          className="h-full w-full object-contain"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -649,10 +639,10 @@ export default function StickerUploadModal({
                           value={item.title}
                           disabled={isSaving}
                           onChange={(e) => updateItemTitle(item.id, e.target.value)}
-                          className="h-7 text-xs bg-transparent border-transparent hover:border-white/[0.1] focus:border-primary px-1.5 font-medium"
+                          className="h-6.5 text-xs bg-transparent border-transparent hover:border-white/[0.08] focus:border-primary px-1 font-medium"
                           placeholder="Sticker title"
                         />
-                        <p className="text-[10px] text-muted-foreground px-1.5 truncate">
+                        <p className="text-[10px] text-muted-foreground px-1 truncate">
                           {item.file.name} • {(item.file.size / 1024).toFixed(1)} KB
                         </p>
                       </div>
@@ -660,7 +650,7 @@ export default function StickerUploadModal({
                       {/* Status indicator */}
                       <div className="shrink-0 flex items-center gap-2">
                         {item.status === "uploading" && (
-                          <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <div className="h-3.5 w-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                         )}
                         {item.status === "success" && (
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -689,37 +679,37 @@ export default function StickerUploadModal({
               </div>
             )}
 
-            {/* Status (Published / Draft) - Applicable to single or bulk */}
+            {/* Status (Published / Draft) */}
             {(items.length > 0 || libraryItem) && (
-              <div className="space-y-1.5 pt-2">
-                <label className="text-xs font-bold text-foreground">
-                  Catalogue Status {isBulk && "(Applied to all in batch)"}
+              <div className="space-y-1.5 pt-1">
+                <label className="text-xs font-medium text-foreground">
+                  Catalogue Status {isBulk && "(Batch)"}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setStatus("published")}
                     className={cn(
-                      "p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer",
+                      "p-2 rounded-md border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer",
                       status === "published"
-                        ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-400 shadow-sm"
-                        : "border-white/[0.08] text-muted-foreground hover:bg-white/[0.04]",
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                        : "border-white/[0.08] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04]",
                     )}
                   >
-                    <CheckCircle2 className="w-4 h-4" />
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     Published (Live)
                   </button>
                   <button
                     type="button"
                     onClick={() => setStatus("draft")}
                     className={cn(
-                      "p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer",
+                      "p-2 rounded-md border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer",
                       status === "draft"
-                        ? "bg-amber-500/15 border-amber-500/50 text-amber-400 shadow-sm"
-                        : "border-white/[0.08] text-muted-foreground hover:bg-white/[0.04]",
+                        ? "border-white/[0.12] bg-white/[0.06] text-foreground"
+                        : "border-white/[0.08] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04]",
                     )}
                   >
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="w-3.5 h-3.5" />
                     Draft (Hidden)
                   </button>
                 </div>
@@ -727,12 +717,12 @@ export default function StickerUploadModal({
             )}
 
             {/* Footer */}
-            <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-white/[0.08]">
+            <div className="pt-3 flex items-center justify-end gap-2 border-t border-white/[0.06]">
               <button
                 type="button"
                 onClick={handleResetAndClose}
                 disabled={isSaving}
-                className="rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-colors cursor-pointer"
+                className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -740,7 +730,7 @@ export default function StickerUploadModal({
                 <button
                   type="submit"
                   disabled={isSaving || (items.length === 0 && !libraryItem)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isSaving ? (
                     <div className="h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
@@ -749,7 +739,7 @@ export default function StickerUploadModal({
                   )}
                   <span>
                     {isBulk
-                      ? `Upload All (${items.length} Stickers)`
+                      ? `Upload All (${items.length})`
                       : "Save Sticker"}
                   </span>
                 </button>

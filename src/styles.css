@@ -274,4 +274,16 @@
   .no-scrollbar {
     scrollbar-width: none;
   }
+
+  /* Studio Die-Cut Transparency Grid (Subtle Alpha Checkerboard) */
+  .bg-transparency-grid {
+    background-color: #0c0d18;
+    background-image: 
+      linear-gradient(45deg, #181926 25%, transparent 25%),
+      linear-gradient(-45deg, #181926 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #181926 75%),
+      linear-gradient(-45deg, transparent 75%, #181926 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  }
 }

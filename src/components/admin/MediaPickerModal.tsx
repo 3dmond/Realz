@@ -7,7 +7,6 @@ import {
   Folder,
   Check,
   ImageIcon,
-  Sparkles,
   AlertCircle,
 } from "lucide-react";
 import {
@@ -58,63 +57,63 @@ export default function MediaPickerModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in">
-      <div className="bg-card border border-border/80 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-[#0c0d18] border border-white/[0.08] rounded-xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border/60 flex items-center justify-between">
+        <div className="px-5 py-3.5 border-b border-white/[0.06] bg-[#0e0f1b] flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-              <ImageIcon className="w-4 h-4 text-primary" />
-              <span>Choose from Artwork Library</span>
+            <h3 className="font-semibold text-xs text-foreground flex items-center gap-2">
+              <ImageIcon className="w-3.5 h-3.5 text-primary" />
+              <span>Artwork Storage Library</span>
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Select existing artwork stored in Supabase Storage to reuse without re-uploading.
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Select an asset from Supabase Storage to reuse without re-uploading.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => refetch()}
               disabled={isRefetching || filesLoading}
               title="Refresh Storage contents"
-              className="p-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="p-1.5 rounded-md border border-white/[0.08] bg-white/[0.02] text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className={cn("w-4 h-4", (isRefetching || filesLoading) && "animate-spin")} />
+              <RefreshCw className={cn("w-3.5 h-3.5", (isRefetching || filesLoading) && "animate-spin")} />
             </button>
             <button
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground text-sm font-bold p-1 rounded-lg hover:bg-secondary"
+              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors cursor-pointer"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Toolbar: Search and Category Pills */}
-        <div className="p-4 border-b border-border/50 bg-secondary/15 space-y-3">
+        {/* Toolbar: Search and Category Tabs */}
+        <div className="p-3.5 border-b border-white/[0.06] bg-[#0e0f1b]/60 space-y-2.5">
           {/* Search */}
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
             <Input
               type="text"
               placeholder="Filter by filename (e.g. gtr, bart, lion)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 bg-background/80 border-border/60 rounded-xl text-xs"
+              className="pl-8 h-8 bg-white/[0.03] border-white/[0.08] focus:border-primary/50 rounded-md text-xs"
             />
           </div>
 
           {/* Folder Pills Bar */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-xs">
             <button
               onClick={() => setSelectedFolder("ALL")}
               className={cn(
-                "px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 text-xs",
+                "px-2.5 py-1 rounded-md text-xs font-medium transition-colors shrink-0 cursor-pointer",
                 selectedFolder === "ALL"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/40",
+                  ? "bg-white/[0.1] text-foreground border border-white/[0.15]"
+                  : "bg-white/[0.02] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] border border-white/[0.06]",
               )}
             >
-              All Artwork
+              All Assets
             </button>
 
             {folders.map((f) => (
@@ -122,10 +121,10 @@ export default function MediaPickerModal({
                 key={f}
                 onClick={() => setSelectedFolder(f)}
                 className={cn(
-                  "px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 text-xs flex items-center gap-1.5",
+                  "px-2.5 py-1 rounded-md text-xs font-medium transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer",
                   selectedFolder === f
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/40",
+                    ? "bg-white/[0.1] text-foreground border border-white/[0.15]"
+                    : "bg-white/[0.02] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] border border-white/[0.06]",
                 )}
               >
                 <Folder className="w-3 h-3 opacity-60" />
@@ -136,31 +135,31 @@ export default function MediaPickerModal({
         </div>
 
         {/* Artwork Grid Body */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto p-4 bg-[#0a0b14]">
           {filesLoading ? (
-            <div className="py-24 text-center text-sm text-muted-foreground">
-              <RefreshCw className="w-8 h-8 border-primary animate-spin mx-auto mb-3 text-primary" />
+            <div className="py-20 text-center text-xs text-muted-foreground">
+              <RefreshCw className="w-6 h-6 text-primary animate-spin mx-auto mb-2.5" />
               <p>Scanning Supabase Storage bucket…</p>
             </div>
           ) : isError ? (
-            <div className="py-20 text-center text-rose-400 text-sm">
-              <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-80" />
+            <div className="py-20 text-center text-rose-400 text-xs">
+              <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-80" />
               <p>Failed to load Storage artwork. Please refresh.</p>
             </div>
           ) : artworkFiles.length === 0 ? (
             <div className="py-20 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-secondary/80 text-muted-foreground flex items-center justify-center mx-auto mb-3">
-                <ImageIcon className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-md bg-white/[0.03] border border-white/[0.06] text-muted-foreground flex items-center justify-center mx-auto mb-2.5">
+                <ImageIcon className="w-5 h-5 opacity-60" />
               </div>
-              <p className="font-bold text-foreground text-sm">No artwork files found</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="font-semibold text-foreground text-xs">No artwork files found</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
                 {search
                   ? `No files matching "${search}" in ${selectedFolder === "ALL" ? "any folder" : selectedFolder}.`
                   : `Folder "${selectedFolder}" does not contain any artwork files yet.`}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {artworkFiles.map((file) => (
                 <div
                   key={file.storageKey}
@@ -168,20 +167,20 @@ export default function MediaPickerModal({
                     onSelectArtwork(file);
                     onClose();
                   }}
-                  className="group relative rounded-2xl border border-border/60 bg-card/60 hover:border-primary hover:bg-secondary/40 transition-all cursor-pointer overflow-hidden p-2 flex flex-col"
+                  className="group relative rounded-lg border border-white/[0.06] bg-[#0e0f1b] hover:border-white/[0.15] transition-all cursor-pointer overflow-hidden p-2 flex flex-col"
                 >
-                  {/* Thumbnail with checkerboard background */}
-                  <div className="w-full aspect-square rounded-xl overflow-hidden relative flex items-center justify-center bg-[linear-gradient(45deg,#151624_25%,transparent_25%),linear-gradient(-45deg,#151624_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#151624_75%),linear-gradient(-45deg,transparent_75%,#151624_75%)] bg-[size:10px_10px] bg-[#0c0d18] border border-border/40">
+                  {/* Thumbnail with neutral dark canvas */}
+                  <div className="w-full aspect-square rounded-md overflow-hidden relative flex items-center justify-center bg-[#070810] border border-white/[0.04]">
                     <img
                       src={file.publicUrl}
                       alt={file.name}
-                      className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform"
+                      className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform"
                       loading="lazy"
                     />
 
                     {/* Hover Overlay Button */}
-                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary text-primary-foreground font-bold text-[11px] shadow-md">
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary text-primary-foreground font-medium text-[11px]">
                         <Check className="w-3 h-3" />
                         Select
                       </span>
@@ -190,11 +189,11 @@ export default function MediaPickerModal({
 
                   {/* Metadata */}
                   <div className="mt-2 space-y-0.5 min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate" title={file.name}>
+                    <p className="text-xs font-medium text-foreground truncate" title={file.name}>
                       {file.name}
                     </p>
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
-                      <span className="truncate max-w-[90px]">{file.folder}</span>
+                      <span className="truncate max-w-[85px]">{file.folder}</span>
                       {file.size > 0 && <span>{(file.size / 1024).toFixed(0)} KB</span>}
                     </div>
                   </div>
@@ -205,14 +204,14 @@ export default function MediaPickerModal({
         </div>
 
         {/* Footer Summary */}
-        <div className="px-6 py-3 border-t border-border/60 bg-secondary/20 flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            Found <strong className="text-foreground">{artworkFiles.length}</strong> artwork files in Storage
+        <div className="px-5 py-2.5 border-t border-white/[0.06] bg-[#0e0f1b] flex items-center justify-between text-xs text-muted-foreground">
+          <span className="text-[11px]">
+            Total <strong className="text-foreground font-mono">{artworkFiles.length}</strong> assets found
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="px-3.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors cursor-pointer"
           >
             Cancel
           </button>
