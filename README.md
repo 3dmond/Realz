@@ -1,4 +1,74 @@
-Realz
+## Realz
+
+*Live Production Platform:* [realz254.vercel.app](https://realz254.vercel.app)
+*Engineering Stack:* React 19 • TypeScript 5.8 • Vite 7 • Tailwind CSS v4 • Supabase (PostgreSQL & Realtime) • Zustand • TanStack Query • GIMP 3.0 / GEGL Python Engine
+
+```mermaid
+flowchart LR
+    A["Raw Artwork Intake\n(PNG / JPG / WebP)"] --> B["GIMP 3.0 / GEGL Pipeline\n(Alpha Cut, Autocrop, Resample, Sharpen)"]
+    B --> C["Supabase CDN Storage\n& PostgreSQL Database"]
+    C --> D["Storefront Discovery"]
+    D --> E["Interactive Studio\n(Scale, Rotate, Device Mockup)"]
+    E --> F["Tactile Sticker Wall Cart\n(Progressive Tiered Pricing)"]
+    F --> G["One-Tap Lined Receipt Checkout"]
+    G --> H["Realtime Admin Console"]
+```
+
+## Technical Stack & Architecture
+
+```mermaid
+graph TD
+    subgraph Client ["Frontend Architecture (React 19 & Vite 7)"]
+        UI["Radix UI Primitives + Tailwind CSS v4"]
+        Store["Zustand Cart Store (Local Persistence)"]
+        Query["TanStack React Query v5 (Optimistic Sync)"]
+        Router["React Router v7 (Deep-Linking)"]
+        Mockup["LiveStickerMockupView (Matrix Transforms)"]
+    end
+
+    subgraph Backend ["Backend & Cloud (Supabase Edge)"]
+        Postgres[("PostgreSQL 15 Database")]
+        Auth["Supabase Auth (Admin Role Guard)"]
+        Realtime["Realtime Engine (Postgres Changes Stream)"]
+        Storage["Storage CDN Bucket ('stickers')"]
+    end
+
+    subgraph Automation ["Asset Processing (GIMP 3.0 & Python)"]
+        GimpPy["PyGObject Gimp 3.0 Engine"]
+        GEGL["GEGL Unsharp Mask & Threshold Filters"]
+        PDB["Procedural Database (Autocrop / Scale)"]
+    end
+
+    Client --> Backend
+    Automation --> Storage
+```
+---
+
+## GIMP 3.0 
+
+To eliminate manual graphic design overhead, Realz utilizes an automated batch pipeline written in Python 3 using GIMP 3.0’s GObject Introspection bindings (`gi.repository.Gimp`).
+
+```mermaid
+flowchart TD
+    Raw["Raw Design Input (.png, .jpg, .webp)"] --> Alpha["1. Alpha Channel Injection\n(layer.has_alpha -> layer.add_alpha)"]
+    Alpha --> Fuzzy["2. Fuzzy Select Contiguous Background\n(0.01 Threshold / 15.0 Alpha Cut)"]
+    Fuzzy --> DieCut["3. Die-Cut Boundary Processing\n(Invert -> Shrink 7-11px -> Feather 3px)"]
+    DieCut --> Crop["4. Sub-Pixel Autocrop Pass\n(gimp-selection-bounds PDB / plug-in-autocrop)"]
+    Crop --> Resample["5. High-Fidelity Downscaling\n(Lanczos / NoHalo Interpolation to 512/1000px)"]
+    Resample --> GEGL["6. GEGL Unsharp Mask Filter\n(std-dev: 0.9–1.5, scale: 0.5–1.4, threshold: 0.0)"]
+    GEGL --> WebP["7. Lossless WebP Serialization\n(Alpha color values preserved)"]
+```
+
+---
+
+## Detailed Visual Pitch & Screenshot Walkthrough
+
+Below is a complete, photographic walkthrough of the 15 primary screens that comprise the Realz platform, spanning the public storefront, the customer checkout experience, and the administrative operations suite.
+
+---
+
+
+
 ---
 **Realz** is a sticker e-commerce platform designed to make stickers feel tangible, collectible, and expressive rather than flat images in a grid.
 
