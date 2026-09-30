@@ -1,161 +1,340 @@
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import type { Product } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 export type PutThemEverywhereProps = {
   stickers: Product[];
 };
 
-export default function PutThemEverywhere({ stickers }: PutThemEverywhereProps) {
-  // If no stickers available yet, gracefully return null
-  if (!stickers || stickers.length === 0) return null;
+interface GalleryItem {
+  id: number;
+  image_url: string;
+}
 
-  // Selected stickers for the physical objects
-  const laptopHeroSticker = stickers[0];
-  const laptopEdgeSticker = stickers[1] || stickers[0];
-  const notebookSticker = stickers[2] || stickers[0];
-  const tumblerSticker = stickers[3] || stickers[1] || stickers[0];
+// Built-in fallback list using local assets to guarantee instant rendering
+const FALLBACK_GALLERY_IMAGES: GalleryItem[] = [
+  { id: 10598, image_url: "/your_designs/anime-stickerbomb-thinkbook-laptop.jpg" },
+  { id: 10599, image_url: "/your_designs/star-pattern-airpods-case.jpg" },
+  { id: 10600, image_url: "/your_designs/monarch-butterfly-airpods-case.jpg" },
+  { id: 10601, image_url: "/your_designs/goku-dbz-mjolnir-power-adapters.jpg" },
+  { id: 10602, image_url: "/your_designs/silhouette-men-wall-switch-sticker.jpg" },
+  { id: 10603, image_url: "/your_designs/rick-and-morty-lighter-wraps.jpg" },
+  { id: 10604, image_url: "/your_designs/joker-hahaha-red-iphone-case.jpg" },
+  { id: 10605, image_url: "/your_designs/rick-morty-gravity-falls-car-subwoofer.jpg" },
+  { id: 10606, image_url: "/your_designs/bart-simpson-peeking-car-window-decals.jpg" },
+  { id: 10607, image_url: "/your_designs/monochrome-stickerbomb-laptop-deck.jpg" },
+  { id: 10608, image_url: "/your_designs/persona-5-ps4-console-controller-skin.jpg" },
+  { id: 10609, image_url: "/your_designs/arcane-jinx-matte-splatter-ps5-controller.jpg" },
+  { id: 10610, image_url: "/your_designs/spiderman-black-red-ps5-dualsense.jpg" },
+  { id: 10611, image_url: "/your_designs/spiderman-casio-scientific-calculator.jpg" },
+  { id: 10612, image_url: "/your_designs/dell-latitude-bw-comic-stickerbomb.jpg" },
+  { id: 10613, image_url: "/your_designs/plankton-krabby-patty-car-subwoofer.jpg" },
+];
+
+const TOTAL_BOXES = 9;
+
+const TRANSITION_EFFECTS = [
+  "gallery-zoom-in",
+  "gallery-zoom-out",
+  "gallery-slide-up",
+  "gallery-slide-down",
+  "gallery-slide-left",
+  "gallery-slide-right",
+  "gallery-blur-dissolve",
+  "gallery-gentle-drift",
+] as const;
+
+type TransitionEffect = (typeof TRANSITION_EFFECTS)[number];
+
+// Reduced viewing seconds and fast initial delays for a lively, modern cadence
+const BOX_CONFIGS: {
+  interval: number;
+  delay: number;
+  zoomOrigin: string;
+}[] = [
+  // 5 Main FIFA Bento Tiles (Fast, cinematic cadence: 2.7s - 3.4s)
+  { interval: 3100, delay: 400, zoomOrigin: "origin-top-left" },
+  { interval: 2700, delay: 1200, zoomOrigin: "origin-center" },
+  { interval: 3400, delay: 700, zoomOrigin: "origin-bottom-right" },
+  { interval: 2900, delay: 1700, zoomOrigin: "origin-top-right" },
+  { interval: 3300, delay: 900, zoomOrigin: "origin-bottom-left" },
+  // 4 Far Right Thumbnail Rail Tiles (Snappy, continuous rotation: 2.3s - 2.8s)
+  { interval: 2300, delay: 500, zoomOrigin: "origin-center" },
+  { interval: 2700, delay: 1400, zoomOrigin: "origin-top-left" },
+  { interval: 2500, delay: 800, zoomOrigin: "origin-bottom-right" },
+  { interval: 2800, delay: 1800, zoomOrigin: "origin-top-right" },
+];
+
+export default function PutThemEverywhere({ stickers }: PutThemEverywhereProps) {
+  // Combine database stickers with fallback images, ensuring at least 16 unique items in pool
+  const allImages = useMemo<GalleryItem[]>(() => {
+    if (stickers && stickers.length >= TOTAL_BOXES) {
+      return stickers.map((s) => ({
+        id: s.id,
+        image_url: s.image_url,
+      }));
+    }
+    if (stickers && stickers.length > 0) {
+      const existingIds = new Set(stickers.map((s) => s.id));
+      return [
+        ...stickers.map((s) => ({ id: s.id, image_url: s.image_url })),
+        ...FALLBACK_GALLERY_IMAGES.filter((f) => !existingIds.has(f.id)),
+      ];
+    }
+    return FALLBACK_GALLERY_IMAGES;
+  }, [stickers]);
+
+  // Current image state for each of the 9 tiles
+  // currentId: currently visible image ID
+  // nextId: incoming image ID during transition
+  // isFading: true when fading/animating to next image
+  // effect: random transition effect applied to this transition
+  const [boxStates, setBoxStates] = useState<
+    {
+      currentId: number;
+      nextId: number | null;
+      isFading: boolean;
+      effect: TransitionEffect;
+    }[]
+  >(() => {
+    return Array.from({ length: TOTAL_BOXES }).map((_, i) => ({
+      currentId: allImages[i % allImages.length].id,
+      nextId: null,
+      isFading: false,
+      effect: TRANSITION_EFFECTS[i % TRANSITION_EFFECTS.length],
+    }));
+  });
+
+  // Keep a ref to the latest state to read inside timer callbacks
+  const boxStatesRef = useRef(boxStates);
+  boxStatesRef.current = boxStates;
+
+  const allImagesRef = useRef(allImages);
+  allImagesRef.current = allImages;
+
+  // Staggered independent slideshow runners
+  useEffect(() => {
+    const timeouts: NodeJS.Timeout[] = [];
+    const intervals: NodeJS.Timeout[] = [];
+
+    BOX_CONFIGS.forEach((cfg, boxIdx) => {
+      // Function to advance this box to a new image that is NOT displayed anywhere else
+      const transitionBox = () => {
+        const pool = allImagesRef.current;
+        if (pool.length <= TOTAL_BOXES) return;
+
+        const currentStates = boxStatesRef.current;
+
+        // Collect all IDs currently displayed or transitioning in ANY OTHER box
+        const inUseIds = new Set<number>();
+        currentStates.forEach((b, idx) => {
+          if (idx !== boxIdx) {
+            inUseIds.add(b.currentId);
+            if (b.nextId !== null) inUseIds.add(b.nextId);
+          }
+        });
+        // Also exclude this box's current image
+        inUseIds.add(currentStates[boxIdx].currentId);
+
+        // Filter available pool
+        const available = pool.filter((item) => !inUseIds.has(item.id));
+        if (available.length === 0) return;
+
+        // Pick next image
+        const chosen = available[Math.floor(Math.random() * available.length)];
+
+        // Pick a random transition effect different from the previous one
+        const prevEffect = currentStates[boxIdx].effect;
+        const eligibleEffects = TRANSITION_EFFECTS.filter((e) => e !== prevEffect);
+        const nextEffect =
+          eligibleEffects[Math.floor(Math.random() * eligibleEffects.length)];
+
+        // Phase 1: Set nextId, effect, and trigger animation
+        setBoxStates((prev) => {
+          const next = [...prev];
+          next[boxIdx] = {
+            ...next[boxIdx],
+            nextId: chosen.id,
+            effect: nextEffect,
+            isFading: true,
+          };
+          return next;
+        });
+
+        // Phase 2: After transition completes (650ms), commit nextId as currentId
+        const finishTimer = setTimeout(() => {
+          setBoxStates((prev) => {
+            const next = [...prev];
+            next[boxIdx] = {
+              currentId: chosen.id,
+              nextId: null,
+              effect: nextEffect,
+              isFading: false,
+            };
+            return next;
+          });
+        }, 650);
+
+        timeouts.push(finishTimer);
+      };
+
+      // Initial staggered trigger
+      const initialTimer = setTimeout(() => {
+        transitionBox();
+        // Regular recurring interval thereafter
+        const loopTimer = setInterval(transitionBox, cfg.interval);
+        intervals.push(loopTimer);
+      }, cfg.delay);
+
+      timeouts.push(initialTimer);
+    });
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+      intervals.forEach(clearInterval);
+    };
+  }, []);
+
+  // Quick lookup map for image URLs
+  const imageMap = useMemo(() => {
+    const map = new Map<number, string>();
+    allImages.forEach((img) => map.set(img.id, img.image_url));
+    return map;
+  }, [allImages]);
+
+  // Helper to render an individual FIFA tile with continuous motion and smooth keyframe transitions
+  const renderTile = (
+    boxIdx: number,
+    extraClasses: string,
+    roundedClass = "rounded-xl md:rounded-2xl",
+  ) => {
+    const state = boxStates[boxIdx] || {
+      currentId: allImages[boxIdx % allImages.length].id,
+      nextId: null,
+      isFading: false,
+      effect: "gallery-zoom-in" as TransitionEffect,
+    };
+    const currentUrl = imageMap.get(state.currentId) || allImages[0]?.image_url;
+    const nextUrl = state.nextId !== null ? imageMap.get(state.nextId) : null;
+    const cfg = BOX_CONFIGS[boxIdx % BOX_CONFIGS.length];
+
+    return (
+      <div
+        className={cn(
+          "group relative overflow-hidden border border-white/[0.12] bg-[#0c0d18] shadow-[0_16px_40px_rgba(0,0,0,0.7)] transition-all duration-500 hover:border-primary/60 hover:shadow-[0_20px_50px_rgba(124,58,237,0.22)] cursor-pointer select-none",
+          roundedClass,
+          extraClasses,
+        )}
+      >
+        {/* Outgoing Image: when isFading is true, plays random exit animation; otherwise rests */}
+        {currentUrl && (
+          <div
+            key={`curr-wrap-${state.currentId}`}
+            className={cn(
+              "absolute inset-0 w-full h-full overflow-hidden",
+              state.isFading && "gallery-anim-exit",
+            )}
+            style={
+              state.isFading
+                ? { animationName: `${state.effect}-exit` }
+                : undefined
+            }
+          >
+            <img
+              src={currentUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className={cn(
+                "w-full h-full object-cover pointer-events-none animate-kenburns",
+                cfg.zoomOrigin,
+              )}
+            />
+          </div>
+        )}
+
+        {/* Incoming Image: plays matching enter animation immediately upon mounting */}
+        {nextUrl && (
+          <div
+            key={`next-wrap-${state.nextId}`}
+            className="absolute inset-0 w-full h-full overflow-hidden gallery-anim-enter"
+            style={{ animationName: `${state.effect}-enter` }}
+          >
+            <img
+              src={nextUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className={cn(
+                "w-full h-full object-cover pointer-events-none animate-kenburns",
+                cfg.zoomOrigin,
+              )}
+            />
+          </div>
+        )}
+
+        {/* Ambient Gloss & Light Sheen Overlay */}
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-black/40 via-transparent to-white/[0.06] opacity-60 group-hover:opacity-30 transition-opacity duration-500 z-10" />
+        <div
+          className={cn(
+            "absolute inset-0 pointer-events-none ring-1 ring-inset ring-white/[0.08] group-hover:ring-primary/40 transition-colors duration-500 z-10",
+            roundedClass,
+          )}
+        />
+      </div>
+    );
+  };
 
   return (
-    <section className="relative mx-auto w-full max-w-[1600px] px-4 pt-12 pb-20 sm:px-8 overflow-hidden">
-      {/* Soft atmospheric background glow connecting smoothly from above */}
+    <section
+      id="realz-gallery"
+      className="relative mx-auto w-full max-w-[1600px] px-3 sm:px-6 md:px-8 py-2.5 sm:py-3.5 h-[62vh] sm:h-[65vh] min-h-[380px] max-h-[70vh] flex flex-col justify-between overflow-hidden select-none"
+    >
+      {/* Ambient background glow */}
       <div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[1300px] h-[500px] pointer-events-none -z-10 blur-3xl opacity-35"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[1400px] h-[360px] pointer-events-none -z-10 blur-3xl opacity-20"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at center, rgba(124, 58, 237, 0.12) 0%, rgba(49, 46, 129, 0.05) 50%, transparent 80%)",
+            "radial-gradient(ellipse 70% 50% at center, rgba(139, 92, 246, 0.18) 0%, rgba(59, 130, 246, 0.06) 50%, transparent 80%)",
         }}
       />
 
-      {/* Section Header */}
-      <div className="relative z-10 max-w-2xl mb-8 sm:mb-12">
-        <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-wide font-['Caveat',cursive] leading-[0.95] select-none">
-          Put Them <span className="text-primary">Everywhere</span>
+      {/* Section Header: ONLY THE TITLE, ZERO OTHER TEXT */}
+      <div className="relative z-10 mb-2 sm:mb-2.5 shrink-0">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-wide font-['Caveat',cursive] leading-none flex items-center gap-2.5">
+          <span className="w-2 h-5 sm:h-6 bg-primary rounded-full shrink-0 shadow-[0_0_12px_var(--color-primary-glow)]" />
+          <span>
+            Realz <span className="text-primary">Gallery</span>
+          </span>
         </h2>
       </div>
 
-      {/* Editorial Physical Arrangement (Laptop + Notebook + Tumbler) */}
-      <div className="relative z-10 w-full flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 xl:gap-16">
-        {/* 1. Primary Hero Object: Space-Gray Aluminum Laptop Lid */}
-        <div className="relative w-full max-w-[660px] aspect-[16/10] rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 flex items-center justify-center overflow-hidden border border-white/[0.12] shadow-[0_30px_70px_-15px_rgba(0,0,0,0.95),inset_0_1px_1px_rgba(255,255,255,0.22),inset_0_-2px_6px_rgba(0,0,0,0.7)] transition-transform duration-500 hover:scale-[1.01] bg-gradient-to-br from-[#221f35] via-[#151324] to-[#0c0a18]">
-          {/* Milled Aluminum Diagonal Light Reflection */}
-          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(115deg,transparent_25%,rgba(255,255,255,0.06)_42%,rgba(255,255,255,0)_60%)]" />
+      {/* Gallery Layout: FIFA Career Mode Bento (Left) + Vertical Thumbnail Strip (Far Right) */}
+      <div className="relative z-10 w-full flex-1 min-h-0 flex flex-row gap-2.5 sm:gap-3.5 md:gap-4">
+        {/* Main FIFA Career Mode Bento Grid (5 Interlocking Tiles) */}
+        <div className="flex-1 min-w-0 h-full grid grid-cols-12 grid-rows-2 gap-2.5 sm:gap-3.5 md:gap-4">
+          {/* TILE 0 (Grand Featured Left Pillar): spans 5 cols & 2 rows */}
+          {renderTile(0, "col-span-5 row-span-2 h-full", "rounded-xl sm:rounded-2xl md:rounded-3xl")}
 
-          {/* Precision Top Edge Hinge Indentation */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-1.5 bg-black/60 rounded-b-md border-b border-white/[0.08]" />
+          {/* TILE 1 (Top-Mid Wide Tile): spans 4 cols & row 1 */}
+          {renderTile(1, "col-span-4 row-span-1 h-full", "rounded-lg sm:rounded-xl md:rounded-2xl")}
 
-          {/* Minimalist Center Logo Recess */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-black/25 border border-white/[0.04] flex items-center justify-center pointer-events-none">
-            <span className="realz-logo text-xs text-white/20 tracking-tighter select-none">
-              RZ
-            </span>
-          </div>
+          {/* TILE 2 (Top-Right Tile): spans 3 cols & row 1 */}
+          {renderTile(2, "col-span-3 row-span-1 h-full", "rounded-lg sm:rounded-xl md:rounded-2xl")}
 
-          {/* Slapped Sticker 1 (Center-Left Hero Placement) */}
-          <Link
-            to={`/product/${laptopHeroSticker.id}`}
-            aria-label={`View ${laptopHeroSticker.title}`}
-            className="group absolute top-[20%] left-[16%] w-28 sm:w-36 md:w-40 aspect-square z-20 transition-all duration-300 ease-out origin-center -rotate-[6deg] hover:-rotate-2 hover:scale-105 hover:-translate-y-1"
-          >
-            {/* White die-cut vinyl sticker with contact shadow onto aluminum */}
-            <img
-              src={laptopHeroSticker.image_url}
-              alt={laptopHeroSticker.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-contain filter drop-shadow-[0_8px_14px_rgba(0,0,0,0.9)] group-hover:drop-shadow-[0_14px_22px_rgba(0,0,0,0.95)] transition-all duration-300"
-            />
-            {/* Subtle gloss highlight on the sticker surface */}
-            <div className="absolute inset-0 pointer-events-none rounded-full bg-gradient-to-tr from-transparent via-white/[0.06] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </Link>
+          {/* TILE 3 (Bottom-Mid Tile): spans 3 cols & row 2 */}
+          {renderTile(3, "col-span-3 row-span-1 h-full", "rounded-lg sm:rounded-xl md:rounded-2xl")}
 
-          {/* Slapped Sticker 2 (Bottom-Right Angle Placement) */}
-          <Link
-            to={`/product/${laptopEdgeSticker.id}`}
-            aria-label={`View ${laptopEdgeSticker.title}`}
-            className="group absolute bottom-[14%] right-[14%] w-24 sm:w-32 md:w-36 aspect-square z-20 transition-all duration-300 ease-out origin-center rotate-[8deg] hover:rotate-3 hover:scale-105 hover:-translate-y-1"
-          >
-            <img
-              src={laptopEdgeSticker.image_url}
-              alt={laptopEdgeSticker.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-contain filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.85)] group-hover:drop-shadow-[0_12px_20px_rgba(0,0,0,0.95)] transition-all duration-300"
-            />
-          </Link>
+          {/* TILE 4 (Bottom-Right Wide Tile): spans 4 cols & row 2 */}
+          {renderTile(4, "col-span-4 row-span-1 h-full", "rounded-lg sm:rounded-xl md:rounded-2xl")}
         </div>
 
-        {/* 2 & 3. Secondary Group: Hardcover Journal & Insulated Tumbler */}
-        <div className="relative flex items-center justify-center gap-6 sm:gap-8 w-full max-w-[500px] lg:w-auto">
-          {/* Secondary Object: Textured Dark Hardcover Journal / Sketchbook */}
-          <div className="relative w-[190px] sm:w-[230px] md:w-[250px] aspect-[3/4] rounded-xl p-4 sm:p-5 flex flex-col justify-between overflow-hidden border border-white/[0.09] shadow-[0_24px_50px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-transform duration-500 hover:scale-[1.01] -rotate-2 hover:rotate-0 bg-[#141221]">
-            {/* Debossed cover perimeter line */}
-            <div className="absolute inset-2.5 rounded-lg border border-white/[0.04] pointer-events-none" />
-
-            {/* Elastic Ribbon Bookmark Band in Realz Purple */}
-            <div className="absolute right-5 top-0 bottom-0 w-3 bg-primary/75 border-x border-primary/40 shadow-sm pointer-events-none" />
-
-            {/* Journal Header Monogram */}
-            <div className="relative z-10">
-              <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-white/30 font-semibold">
-                NOTEBOOK 01
-              </span>
-            </div>
-
-            {/* Slapped Sticker 3 on Journal Cover */}
-            <Link
-              to={`/product/${notebookSticker.id}`}
-              aria-label={`View ${notebookSticker.title}`}
-              className="group relative self-center w-24 sm:w-32 aspect-square z-20 my-auto transition-all duration-300 ease-out origin-center rotate-[6deg] hover:rotate-1 hover:scale-105 hover:-translate-y-1"
-            >
-              <img
-                src={notebookSticker.image_url}
-                alt={notebookSticker.title}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-contain filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.9)] group-hover:drop-shadow-[0_12px_20px_rgba(0,0,0,0.95)] transition-all duration-300"
-              />
-            </Link>
-
-            {/* Journal Footer Deboss */}
-            <div className="relative z-10 flex items-center justify-between border-t border-white/[0.06] pt-2">
-              <span className="font-mono text-[8px] uppercase tracking-widest text-white/20 font-bold">
-                REALZ ARCHIVE
-              </span>
-            </div>
-          </div>
-
-          {/* Tertiary Object: Matte Insulated Steel Flask / Tumbler */}
-          <div className="relative w-[80px] sm:w-[96px] md:w-[104px] h-[260px] sm:h-[310px] flex flex-col items-center justify-between transition-transform duration-500 hover:scale-[1.01] rotate-3 hover:rotate-1">
-            {/* Flask Steel Cap with Milled Grip Rings */}
-            <div className="w-12 sm:w-14 h-8 rounded-t-lg bg-[#27233f] border-t border-white/[0.2] border-x border-white/[0.08] shadow-md flex flex-col justify-around py-1">
-              <div className="w-full h-[1px] bg-white/[0.1]" />
-              <div className="w-full h-[1px] bg-white/[0.1]" />
-            </div>
-
-            {/* Flask Neck Transition */}
-            <div className="w-8 sm:w-10 h-2 bg-[#1b182d] border-x border-white/[0.06]" />
-
-            {/* Flask Main Cylindrical Body */}
-            <div className="relative w-full flex-1 rounded-b-[24px] sm:rounded-b-[28px] overflow-hidden border-b border-x border-white/[0.1] shadow-[0_24px_50px_rgba(0,0,0,0.92),inset_0_1px_1px_rgba(255,255,255,0.18)] bg-gradient-to-r from-[#171526] via-[#2a2646] to-[#12101f] flex items-center justify-center p-2">
-              {/* Cylindrical Metallic Specular Highlight */}
-              <div className="absolute inset-y-0 left-[22%] w-[18%] bg-gradient-to-r from-transparent via-white/[0.1] to-transparent pointer-events-none" />
-
-              {/* Slapped Sticker 4 on Flask (Curved hug placement) */}
-              <Link
-                to={`/product/${tumblerSticker.id}`}
-                aria-label={`View ${tumblerSticker.title}`}
-                className="group relative w-16 sm:w-20 aspect-square z-20 transition-all duration-300 ease-out origin-center -rotate-[3deg] hover:rotate-0 hover:scale-105 hover:-translate-y-1"
-              >
-                <img
-                  src={tumblerSticker.image_url}
-                  alt={tumblerSticker.title}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-contain filter drop-shadow-[0_5px_10px_rgba(0,0,0,0.85)] group-hover:drop-shadow-[0_10px_16px_rgba(0,0,0,0.95)] transition-all duration-300"
-                />
-              </Link>
-            </div>
-          </div>
+        {/* Far Right Vertical Rail: Small Thumbnail Size Image Boxes */}
+        <div className="w-18 sm:w-24 md:w-32 lg:w-40 xl:w-48 shrink-0 h-full flex flex-col gap-2.5 sm:gap-3.5 md:gap-4">
+          {renderTile(5, "flex-1 min-h-0 w-full", "rounded-md sm:rounded-lg md:rounded-xl")}
+          {renderTile(6, "flex-1 min-h-0 w-full", "rounded-md sm:rounded-lg md:rounded-xl")}
+          {renderTile(7, "flex-1 min-h-0 w-full", "rounded-md sm:rounded-lg md:rounded-xl")}
+          {renderTile(8, "flex-1 min-h-0 w-full", "rounded-md sm:rounded-lg md:rounded-xl")}
         </div>
       </div>
     </section>

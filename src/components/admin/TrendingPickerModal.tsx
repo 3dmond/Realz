@@ -21,6 +21,10 @@ interface TrendingPickerModalProps {
   onToggleSticker: (stickerId: number) => Promise<void>;
   targetSlotIndex?: number | null;
   onAssignToSlot?: (stickerId: number, slotIndex: number) => Promise<void>;
+  title?: string;
+  badgeLabel?: string;
+  addButtonText?: string;
+  defaultCategory?: number | "ALL";
 }
 
 export default function TrendingPickerModal({
@@ -30,9 +34,14 @@ export default function TrendingPickerModal({
   onToggleSticker,
   targetSlotIndex,
   onAssignToSlot,
+  title = "Catalogue Selection — Trending",
+  badgeLabel = "Live",
+  addButtonText = "+ Add to Trending",
+  defaultCategory = "ALL",
 }: TrendingPickerModalProps) {
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<number | "ALL">("ALL");
+  const [selectedCategory, setSelectedCategory] = useState<number | "ALL">(defaultCategory);
+
   const [loadingId, setLoadingId] = useState<number | null>(null);
 
   const { data: productsData, isLoading: prodsLoading } = useQuery({
@@ -106,10 +115,10 @@ export default function TrendingPickerModal({
               <h2 className="text-sm font-semibold text-foreground">
                 {isSlotAssignment
                   ? `Assign Sticker to Slot ${targetSlotLabel}`
-                  : "Catalogue Selection — Trending"}
+                  : title}
               </h2>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-muted-foreground border border-white/[0.08] font-mono font-medium">
-                {currentTrendingIds.length} / 16 Live
+                {currentTrendingIds.length} / 16 {badgeLabel}
               </span>
               {isSlotAssignment && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
@@ -221,7 +230,7 @@ export default function TrendingPickerModal({
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-medium">
-                            + Add to Trending
+                            {addButtonText}
                           </span>
                         )}
                       </div>

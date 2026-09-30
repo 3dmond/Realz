@@ -181,3 +181,38 @@ export async function fetchTrendingStickerIds(): Promise<number[]> {
   return [];
 }
 
+export async function fetchShowcaseStickerIds(): Promise<number[]> {
+  try {
+    // 1. Try Supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from("sticker_packs")
+      .select("sticker_ids")
+      .or("id.eq.pack_put_them_everywhere,slug.eq.put-them-everywhere")
+      .maybeSingle();
+
+    if (data?.sticker_ids && Array.isArray(data.sticker_ids) && data.sticker_ids.length > 0) {
+      return data.sticker_ids.map(Number);
+    }
+  } catch {
+    // Fallback to local storage
+  }
+
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem("realz_sticker_packs_v1") : null;
+    if (raw) {
+      const packs = JSON.parse(raw);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s = packs.find((p: any) => p.id === "pack_put_them_everywhere" || p.slug === "put-them-everywhere");
+      if (s && Array.isArray(s.sticker_ids) && s.sticker_ids.length > 0) {
+        return s.sticker_ids.map(Number);
+      }
+    }
+  } catch {
+    // Ignore
+  }
+
+  return [];
+}
+
+

@@ -1764,3 +1764,80 @@ export async function removeStickerFromTrending(stickerId: number): Promise<void
   const nextIds = trending.sticker_ids.filter((id) => id !== stickerId);
   await updateTrendingStickers(nextIds);
 }
+
+// ------------------------------------------------------------------------------
+// PUT THEM ANYWHERE / SHOWCASE SURFACES PACK (HOMEPAGE SHOWCASE CURATION)
+// ------------------------------------------------------------------------------
+
+export const SHOWCASE_PACK_ID = "pack_put_them_everywhere";
+export const SHOWCASE_PACK_SLUG = "put-them-everywhere";
+
+export async function fetchShowcasePack(): Promise<StickerPack> {
+  const packs = await fetchAdminPacks();
+  let showcase = packs.find(
+    (p) => p.id === SHOWCASE_PACK_ID || p.slug === SHOWCASE_PACK_SLUG,
+  );
+
+  if (!showcase) {
+    let initialIds: number[] = [];
+    try {
+      const res = await fetchAdminProducts({ pageSize: 50 });
+      const prods = res.products || [];
+      const yourDesigns = prods.filter(
+        (p) =>
+          p.categories?.slug === "your_designs" ||
+          p.categories?.slug === "your-designs" ||
+          p.image_storage_key?.startsWith("your_designs/"),
+      );
+      const chosen = yourDesigns.length > 0 ? yourDesigns.slice(0, 16) : prods.slice(0, 16);
+      initialIds = chosen.map((p) => p.id);
+    } catch {
+      // Fallback
+    }
+
+    const created = await createPack({
+      title: "Put Them Anywhere",
+      slug: SHOWCASE_PACK_SLUG,
+      description: "Real-world surfaces showcasing stickers out in the wild: laptops, controllers, chargers, car audio & daily gear.",
+      badge: "SURFACE SHOWCASE",
+      price: 350,
+      status: "published",
+      sticker_ids: initialIds,
+    });
+
+    const allStored = getStoredLocalPacks();
+    const normalized = allStored.map((p) =>
+      p.id === created.id ? { ...p, id: SHOWCASE_PACK_ID } : p,
+    );
+    setStoredLocalPacks(normalized);
+    showcase = { ...created, id: SHOWCASE_PACK_ID };
+  }
+
+  return showcase;
+}
+
+export async function updateShowcaseStickers(stickerIds: number[]): Promise<void> {
+  const showcase = await fetchShowcasePack();
+  await updatePack(showcase.id, { sticker_ids: stickerIds });
+
+  try {
+    window.dispatchEvent(new Event("realz_showcase_updated"));
+  } catch {
+    // Ignore
+  }
+}
+
+export async function addStickerToShowcase(stickerId: number): Promise<void> {
+  const showcase = await fetchShowcasePack();
+  if (!showcase.sticker_ids.includes(stickerId)) {
+    const nextIds = [stickerId, ...showcase.sticker_ids];
+    await updateShowcaseStickers(nextIds);
+  }
+}
+
+export async function removeStickerFromShowcase(stickerId: number): Promise<void> {
+  const showcase = await fetchShowcasePack();
+  const nextIds = showcase.sticker_ids.filter((id) => id !== stickerId);
+  await updateShowcaseStickers(nextIds);
+}
+

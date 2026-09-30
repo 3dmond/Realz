@@ -21,6 +21,15 @@ interface TrendingSlotBoardProps {
   onRemoveSticker: (stickerId: number) => Promise<void>;
   onUploadClick?: () => void;
   isUploading?: boolean;
+  title?: string;
+  badgeLabel?: string;
+  subtitle?: string;
+  uploadLabel?: string;
+  uploadTitle?: string;
+  previewUrl?: string;
+  previewLabel?: string;
+  removeTitle?: string;
+  totalSlots?: number;
 }
 
 export default function TrendingSlotBoard({
@@ -32,7 +41,17 @@ export default function TrendingSlotBoard({
   onRemoveSticker,
   onUploadClick,
   isUploading,
+  title = "Homepage Slots",
+  badgeLabel = "Live",
+  subtitle = "Drag cards to reorder sequence on live homepage",
+  uploadLabel = "Upload Direct",
+  uploadTitle = "Upload artwork directly",
+  previewUrl = "/#trending-section",
+  previewLabel = "Preview Hero",
+  removeTitle = "Remove sticker",
+  totalSlots = 16,
 }: TrendingSlotBoardProps) {
+
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [swapActiveSlot, setSwapActiveSlot] = useState<number | null>(null);
 
@@ -48,8 +67,7 @@ export default function TrendingSlotBoard({
 
   const validStickerIds = rawIds.filter((id) => productsMap.has(id));
 
-  // Ensure fixed 16-slot array
-  const totalSlots = 16;
+  // Build slot array based on totalSlots prop
   const slots: (AdminProduct | null)[] = Array.from({ length: totalSlots }).map(
     (_, idx) => {
       const id = validStickerIds[idx];
@@ -117,14 +135,14 @@ export default function TrendingSlotBoard({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
-              Homepage Slots
+              {title}
             </span>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-              {filledCount} / {totalSlots} Live
+              {filledCount} / {totalSlots} {badgeLabel}
             </span>
           </div>
           <span className="text-[11px] text-muted-foreground hidden md:inline">
-            Drag cards to reorder sequence on live homepage
+            {subtitle}
           </span>
         </div>
 
@@ -135,14 +153,14 @@ export default function TrendingSlotBoard({
               onClick={onUploadClick}
               disabled={isUploading}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-foreground border border-white/[0.08] transition-colors cursor-pointer disabled:opacity-50"
-              title="Upload artwork directly into trending"
+              title={uploadTitle}
             >
               {isUploading ? (
                 <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               ) : (
                 <UploadCloud className="w-3.5 h-3.5 text-muted-foreground" />
               )}
-              <span>{isUploading ? "Uploading..." : "Upload Direct"}</span>
+              <span>{isUploading ? "Uploading..." : uploadLabel}</span>
             </button>
           )}
           <button
@@ -154,13 +172,13 @@ export default function TrendingSlotBoard({
             <span>Add from Catalogue</span>
           </button>
           <a
-            href="/#trending-section"
+            href={previewUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white/[0.02] hover:bg-white/[0.06] text-muted-foreground hover:text-foreground border border-white/[0.08] transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Preview Hero</span>
+            <span className="hidden sm:inline">{previewLabel}</span>
           </a>
         </div>
       </div>
@@ -244,11 +262,12 @@ export default function TrendingSlotBoard({
                     onRemoveSticker(prod.id);
                   }}
                   className="absolute top-1.5 right-1.5 h-5 w-5 rounded-md bg-black/70 backdrop-blur-xs text-muted-foreground hover:text-rose-400 hover:bg-rose-500/20 border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all cursor-pointer"
-                  title="Remove from Trending"
+                  title={removeTitle}
                 >
                   <X className="h-3 w-3 stroke-[2.5]" />
                 </button>
               </div>
+
 
               {/* Title & Category Chip */}
               <div className="mt-2 min-w-0">

@@ -13,6 +13,7 @@ import {
   Tag,
   Copy,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import {
   fetchAdminPacks,
@@ -24,6 +25,12 @@ import {
   updateTrendingStickers,
   addStickerToTrending,
   removeStickerFromTrending,
+  fetchShowcasePack,
+  updateShowcaseStickers,
+  addStickerToShowcase,
+  removeStickerFromShowcase,
+  SHOWCASE_PACK_ID,
+  SHOWCASE_PACK_SLUG,
   createProduct,
   fetchAdminProducts,
   TRENDING_PACK_ID,
@@ -43,15 +50,21 @@ import { toast } from "sonner";
 export default function AdminPacks() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const showcaseFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Navigation tab: "trending" (Homepage Trending Drops) vs "all-packs" (Custom Packs)
-  const [activeTab, setActiveTab] = useState<"trending" | "all-packs">("trending");
+  // Navigation tab: "trending" (Homepage Trending Drops) vs "showcase" (Put Them Anywhere) vs "all-packs" (Custom Packs)
+  const [activeTab, setActiveTab] = useState<"trending" | "showcase" | "all-packs">("trending");
 
   // Modals & Drawers
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [editingPack, setEditingPack] = useState<StickerPack | null>(null);
   const [isTrendingPickerOpen, setIsTrendingPickerOpen] = useState(false);
   const [targetSlotIndex, setTargetSlotIndex] = useState<number | null>(null);
+
+  // Showcase state
+  const [isShowcasePickerOpen, setIsShowcasePickerOpen] = useState(false);
+  const [targetShowcaseSlotIndex, setTargetShowcaseSlotIndex] = useState<number | null>(null);
+  const [isUploadingToShowcase, setIsUploadingToShowcase] = useState(false);
 
   // Trending Upload State
   const [isUploadingToTrending, setIsUploadingToTrending] = useState(false);
@@ -71,6 +84,13 @@ export default function AdminPacks() {
     queryKey: ["admin-trending-pack"],
     queryFn: fetchTrendingPack,
   });
+
+  // 2b. Query showcase pack specifically (Put Them Anywhere)
+  const { data: showcasePack, isLoading: showcaseLoading } = useQuery({
+    queryKey: ["admin-showcase-pack"],
+    queryFn: fetchShowcasePack,
+  });
+
 
   // 3. Query all products for slot board hydration
   const { data: productsData } = useQuery({
@@ -214,6 +234,108 @@ export default function AdminPacks() {
     }
   };
 
+  // --------------------------------------------------------------------------
+  // PUT THEM ANYWHERE (SHOWCASE SURFACES) ACTIONS
+  // --------------------------------------------------------------------------
+
+  const handleRemoveFromShowcase = async (stickerId: number) => {
+    try {
+      await removeStickerFromShowcase(stickerId);
+      queryClient.invalidateQueries({ queryKey: ["admin-showcase-pack"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-sticker-packs"] });
+      queryClient.invalidateQueries({ queryKey: ["showcase-sticker-ids"] });
+      toast.success("Removed from Put Them Anywhere Showcase");
+    } catch {
+      toast.error("Failed to remove from showcase.");
+    }
+  };
+
+  const handleToggleStickerShowcase = async (stickerId: number) => {
+    if (!showcasePack) return;
+    const isPresent = showcasePack.sticker_ids.includes(stickerId);
+    if (isPresent) {
+      await handleRemoveFromShowcase(stickerId);
+    } else {
+      await addStickerToShowcase(stickerId);
+      queryClient.invalidateQueries({ queryKey: ["admin-showcase-pack"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-sticker-packs"] });
+      queryClient.invalidateQueries({ queryKey: ["showcase-sticker-ids"] });
+      toast.success("Added to Put Them Anywhere Showcase");
+    }
+  };
+
+  const handleAssignToShowcaseSlot = async (stickerId: number, slotIndex: number) => {
+    if (!showcasePack) return;
+    const currentIds = [...(showcasePack.sticker_ids || [])];
+    const existingIdx = currentIds.indexOf(stickerId);
+    if (existingIdx !== -1) {
+      currentIds.splice(existingIdx, 1);
+    }
+    currentIds.splice(slotIndex, 0, stickerId);
+    const nextIds = currentIds.slice(0, 16);
+
+    await updateShowcaseStickers(nextIds);
+    queryClient.invalidateQueries({ queryKey: ["admin-showcase-pack"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-sticker-packs"] });
+    queryClient.invalidateQueries({ queryKey: ["showcase-sticker-ids"] });
+    toast.success(`Assigned to Slot #${String(slotIndex + 1).padStart(2, "0")}`);
+  };
+
+  const handleUpdateShowcaseOrder = async (newIds: number[]) => {
+    await updateShowcaseStickers(newIds);
+    queryClient.invalidateQueries({ queryKey: ["admin-showcase-pack"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-sticker-packs"] });
+    queryClient.invalidateQueries({ queryKey: ["showcase-sticker-ids"] });
+    toast.success("Put Them Anywhere showcase slots updated.");
+  };
+
+  const handleFilesUploadedToShowcase = async (files: FileList | File[]) => {
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast.error("Please drop valid image files (PNG, JPG, WEBP, SVG)");
+      return;
+    }
+
+    setIsUploadingToShowcase(true);
+    let successCount = 0;
+
+    for (const file of imageFiles) {
+      try {
+        const uploadRes = await imageStorageService.uploadImage(file, { folder: "your_designs" });
+        const title = formatStickerTitleFromFilename(file.name);
+        const newProduct = await createProduct({
+          title,
+          category_id: 100018, // Your Designs
+          image_url: uploadRes.publicUrl,
+          image_storage_key: uploadRes.storageKey,
+          stock_quantity: 50,
+          price: 350,
+          cost_price: 150,
+          status: "published",
+        });
+        await addStickerToShowcase(newProduct.id);
+        successCount++;
+      } catch (err) {
+        console.error("Failed to upload sticker to showcase:", err);
+      }
+    }
+
+    setIsUploadingToShowcase(false);
+    queryClient.invalidateQueries({ queryKey: ["admin-showcase-pack"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-sticker-packs"] });
+    queryClient.invalidateQueries({ queryKey: ["showcase-sticker-ids"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+
+    if (successCount > 0) {
+      toast.success(
+        `Added ${successCount} new design${successCount === 1 ? "" : "s"} directly to Put Them Anywhere!`,
+      );
+    } else {
+      toast.error("Failed to upload designs to showcase.");
+    }
+  };
+
   // Duplicate pack
   const handleDuplicate = async (pack: StickerPack) => {
     try {
@@ -236,7 +358,14 @@ export default function AdminPacks() {
   // Filtered Custom Packs
   const customPacks = useMemo(() => {
     return packs.filter((pack) => {
-      if (pack.id === TRENDING_PACK_ID || pack.slug === "trending-picks") return false;
+      if (
+        pack.id === TRENDING_PACK_ID ||
+        pack.slug === "trending-picks" ||
+        pack.id === SHOWCASE_PACK_ID ||
+        pack.slug === SHOWCASE_PACK_SLUG
+      ) {
+        return false;
+      }
       if (statusFilter !== "ALL" && pack.status !== statusFilter) return false;
       if (search.trim()) {
         const q = search.trim().toLowerCase();
@@ -251,8 +380,10 @@ export default function AdminPacks() {
   }, [packs, statusFilter, search]);
 
   const trendingStickerIds = trendingPack?.sticker_ids || [];
+  const showcaseStickerIds = showcasePack?.sticker_ids || [];
 
   return (
+
     <div className="space-y-5 max-w-[1600px] mx-auto">
       {/* Hidden File Input for Direct Upload */}
       <input
@@ -264,6 +395,18 @@ export default function AdminPacks() {
         onChange={(e) => {
           if (e.target.files && e.target.files.length > 0) {
             handleFilesUploadedToTrending(e.target.files);
+          }
+        }}
+      />
+      <input
+        ref={showcaseFileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            handleFilesUploadedToShowcase(e.target.files);
           }
         }}
       />
@@ -314,6 +457,22 @@ export default function AdminPacks() {
         </button>
 
         <button
+          onClick={() => setActiveTab("showcase")}
+          className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer",
+            activeTab === "showcase"
+              ? "bg-white/[0.08] text-foreground font-semibold"
+              : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
+          )}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+          <span>Realz Gallery</span>
+          <span className="rounded-md bg-white/[0.06] text-muted-foreground px-1.5 py-0.5 text-[10px] font-mono border border-white/[0.06]">
+            {showcaseStickerIds.length} / 16 Live
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab("all-packs")}
           className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer",
@@ -348,6 +507,33 @@ export default function AdminPacks() {
           isUploading={isUploadingToTrending}
         />
       )}
+
+      {/* ==================================================================== */}
+      {/* VIEW B: HOMEPAGE REALZ GALLERY BOARD                                 */}
+      {/* ==================================================================== */}
+      {activeTab === "showcase" && (
+        <TrendingSlotBoard
+          trendingPack={showcasePack ?? null}
+          products={products}
+          isLoading={showcaseLoading}
+          onUpdateOrder={handleUpdateShowcaseOrder}
+          onOpenPicker={(slotIdx) => {
+            setTargetShowcaseSlotIndex(slotIdx ?? null);
+            setIsShowcasePickerOpen(true);
+          }}
+          onRemoveSticker={handleRemoveFromShowcase}
+          onUploadClick={() => showcaseFileInputRef.current?.click()}
+          isUploading={isUploadingToShowcase}
+          title="Realz Gallery Slots"
+          subtitle="Curate real-world surface sticker designs showcased in live Realz Gallery"
+          previewUrl="/#realz-gallery"
+          previewLabel="Preview Gallery"
+          uploadLabel="Upload Design"
+          uploadTitle="Upload lifestyle design directly into your_designs folder"
+          removeTitle="Remove from Gallery"
+        />
+      )}
+
 
       {/* ==================================================================== */}
       {/* VIEW B: ALL CUSTOM STICKER PACKS                                     */}
@@ -630,6 +816,23 @@ export default function AdminPacks() {
         onToggleSticker={handleToggleStickerTrending}
         targetSlotIndex={targetSlotIndex}
         onAssignToSlot={handleAssignToSlot}
+      />
+
+      {/* 3. Showcase Sticker Picker Modal (Realz Gallery) */}
+      <TrendingPickerModal
+        open={isShowcasePickerOpen}
+        onClose={() => {
+          setIsShowcasePickerOpen(false);
+          setTargetShowcaseSlotIndex(null);
+        }}
+        currentTrendingIds={showcaseStickerIds}
+        onToggleSticker={handleToggleStickerShowcase}
+        targetSlotIndex={targetShowcaseSlotIndex}
+        onAssignToSlot={handleAssignToShowcaseSlot}
+        title="Catalogue Selection — Realz Gallery"
+        badgeLabel="Gallery"
+        addButtonText="+ Add to Gallery"
+        defaultCategory={100018}
       />
     </div>
   );

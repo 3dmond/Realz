@@ -6,6 +6,7 @@ import {
   fetchSubcategories,
   fetchProducts,
   fetchTrendingStickerIds,
+  fetchShowcaseStickerIds,
 } from "@/lib/queries";
 import { formatCategoryTitle, cn } from "@/lib/utils";
 import { ChevronRight, ChevronUp } from "lucide-react";
@@ -32,19 +33,31 @@ export default function Home() {
     queryKey: ["trending-sticker-ids"],
     queryFn: fetchTrendingStickerIds,
   });
+  const { data: showcaseIds = [] } = useQuery({
+    queryKey: ["showcase-sticker-ids"],
+    queryFn: fetchShowcaseStickerIds,
+  });
 
-  // Listen for admin live updates to trending drops
+  // Listen for admin live updates to trending drops and showcase
   useEffect(() => {
     const handleTrendingUpdate = () => {
       queryClient.invalidateQueries({ queryKey: ["trending-sticker-ids"] });
     };
+    const handleShowcaseUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["showcase-sticker-ids"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    };
+
     window.addEventListener("realz_trending_updated", handleTrendingUpdate);
     window.addEventListener("realz_packs_updated", handleTrendingUpdate);
+    window.addEventListener("realz_showcase_updated", handleShowcaseUpdate);
     return () => {
       window.removeEventListener("realz_trending_updated", handleTrendingUpdate);
       window.removeEventListener("realz_packs_updated", handleTrendingUpdate);
+      window.removeEventListener("realz_showcase_updated", handleShowcaseUpdate);
     };
   }, [queryClient]);
+
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string | number>("ALL");
@@ -161,16 +174,24 @@ export default function Home() {
 
   const showcaseStickers = useMemo(() => {
     if (!dbProducts || dbProducts.length === 0) return [];
-    const valid = dbProducts.filter((p) => p.image_url && p.image_url.trim().length > 0);
-    const byCategory = new Map<number | string, (typeof dbProducts)[0]>();
-    for (const p of valid) {
-      if (!byCategory.has(p.category_id)) {
-        byCategory.set(p.category_id, p);
-      }
+    if (showcaseIds && showcaseIds.length > 0) {
+      const idMap = new Map(dbProducts.map((p) => [p.id, p]));
+      const matched = showcaseIds
+        .map((id) => idMap.get(id))
+        .filter((p): p is (typeof dbProducts)[0] => !!p);
+      if (matched.length > 0) return matched;
     }
-    const diverse = Array.from(byCategory.values());
-    return diverse.length >= 4 ? diverse.slice(0, 4) : valid.slice(0, 4);
-  }, [dbProducts]);
+    // Fallback: pick products from "Your Designs" category
+    const yourDesigns = dbProducts.filter(
+      (p) =>
+        p.categories?.slug === "your_designs" ||
+        p.categories?.slug === "your-designs" ||
+        p.image_storage_key?.startsWith("your_designs/"),
+    );
+    if (yourDesigns.length > 0) return yourDesigns;
+
+    return dbProducts.slice(0, 16);
+  }, [dbProducts, showcaseIds]);
 
   const getCategoryVisibilityClass = (idx: number, showAll: boolean) => {
     if (showAll) return "";
